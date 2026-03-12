@@ -8,10 +8,10 @@
     ".": "./src/index.js"
   },
   "bin": {
-    "mr-magic-mcp-server": "./src/bin/cli.js",
-    "mr-magic-mcp-server-http": "./src/bin/http-server.js",
-    "mr-magic-mcp-server-mcp": "./src/bin/mcp-server.js",
-    "mr-magic-mcp-server-mcp-http": "./src/bin/mcp-http-server.js"
+    "mr-magic-mcp-server": "src/bin/cli.js",
+    "mr-magic-mcp-server-http": "src/bin/http-server.js",
+    "mr-magic-mcp-server-mcp": "src/bin/mcp-server.js",
+    "mr-magic-mcp-server-mcp-http": "src/bin/mcp-http-server.js"
   },
   "files": [
     "src",
@@ -44,7 +44,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mrnajiboy/mr-magic-mcp-server.git"
+    "url": "git+https://github.com/mrnajiboy/mr-magic-mcp-server.git"
   },
   "bugs": {
     "url": "https://github.com/mrnajiboy/mr-magic-mcp-server/issues"
