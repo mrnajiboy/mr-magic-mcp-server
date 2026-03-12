@@ -1,0 +1,77 @@
+import assert from 'node:assert/strict';
+
+import { mcpToolDefinitions, handleMcpTool } from '../src/transport/mcp-tools.js';
+
+const sampleTrack = {
+  title: 'Kill This Love',
+  artist: 'BLACKPINK'
+};
+
+async function testToolRegistry() {
+  const toolNames = mcpToolDefinitions.map((tool) => tool.name);
+  const expected = [
+    'find_lyrics',
+    'find_synced_lyrics',
+    'search_lyrics',
+    'search_provider',
+    'get_provider_status',
+    'export_lyrics',
+    'format_lyrics',
+    'select_match',
+    'runtime_status'
+  ];
+  expected.forEach((tool) => {
+    assert.ok(toolNames.includes(tool), `expected tool ${tool}`);
+  });
+}
+
+async function testFindLyricsTool() {
+  const payload = await handleMcpTool('find_lyrics', { track: sampleTrack });
+  assert.ok(payload?.best, 'find_lyrics should return best match');
+}
+
+async function testFindSyncedLyricsTool() {
+  const payload = await handleMcpTool('find_synced_lyrics', { track: sampleTrack });
+  assert.ok(payload);
+}
+
+async function testSearchProviderRequiresProvider() {
+  await assert.rejects(() => handleMcpTool('search_provider', { track: sampleTrack }), /provider is required/);
+}
+
+async function testSearchProviderReturnsArray() {
+  const results = await handleMcpTool('search_provider', { provider: 'lrclib', track: sampleTrack });
+  assert.ok(Array.isArray(results));
+}
+
+async function testFormatLyricsShape() {
+  const response = await handleMcpTool('format_lyrics', { track: sampleTrack, options: { includeSynced: false } });
+  assert.ok(response?.formatted || response?.error, 'format_lyrics should format or report error');
+}
+
+async function testSelectMatchErrors() {
+  const response = await handleMcpTool('select_match', { matches: [] });
+  assert.equal(response.error, 'No matches provided');
+}
+
+async function testRuntimeStatusIncludesEnvOverview() {
+  const response = await handleMcpTool('runtime_status');
+  assert.ok(Array.isArray(response?.providers));
+  assert.ok(Array.isArray(response?.env));
+}
+
+async function run() {
+  await testToolRegistry();
+  await testFindLyricsTool();
+  await testFindSyncedLyricsTool();
+  await testSearchProviderRequiresProvider();
+  await testSearchProviderReturnsArray();
+  await testFormatLyricsShape();
+  await testSelectMatchErrors();
+  await testRuntimeStatusIncludesEnvOverview();
+}
+
+run().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

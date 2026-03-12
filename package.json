@@ -1,0 +1,71 @@
+{
+  "name": "mr-magic-mcp-server",
+  "version": "0.1.1",
+  "description": "Lyrics MCP server connecting LRCLIB, Genius, Musixmatch, and Melon",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "bin": {
+    "mr-magic-mcp-server": "./src/bin/cli.js",
+    "mr-magic-mcp-server-http": "./src/bin/http-server.js",
+    "mr-magic-mcp-server-mcp": "./src/bin/mcp-server.js",
+    "mr-magic-mcp-server-mcp-http": "./src/bin/mcp-http-server.js"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE",
+    ".env.example"
+  ],
+  "scripts": {
+    "start": "node src/bin/cli.js",
+    "server:http": "node src/bin/http-server.js",
+    "server:mcp": "node src/bin/mcp-server.js",
+    "server:mcp:http": "node src/bin/mcp-http-server.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "node tests/run-tests.js",
+    "fetch:musixmatch-token": "node scripts/fetch_musixmatch_token.mjs",
+    "prepack": "npm run test"
+  },
+  "keywords": [
+    "lyrics",
+    "mcp",
+    "lrclib",
+    "genius",
+    "musixmatch",
+    "melon"
+  ],
+  "author": "Kenyatta Naji Johnson-Adams",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mrnajiboy/mr-magic-mcp-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mrnajiboy/mr-magic-mcp-server/issues"
+  },
+  "homepage": "https://github.com/mrnajiboy/mr-magic-mcp-server#readme",
+  "engines": {
+    "node": ">=18.17"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "axios": "^1.7.2",
+    "cheerio": "^1.0.0-rc.12",
+    "commander": "^10.0.0",
+    "dotenv": "^16.4.0",
+    "hangul-js": "^0.2.6",
+    "playwright-chromium": "^1.44.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "prettier": "^3.8.1"
+  }
+}
