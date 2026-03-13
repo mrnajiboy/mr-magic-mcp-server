@@ -12,11 +12,32 @@ details, and the automated tests that protect the surface area.
 - macOS/Linux/WSL (Playwright + MCP transports work cross-platform)
 - Provider credentials (see below)
 
-Install dependencies:
+## Installation
+
+1. Clone or download the repository:
+
+   ```bash
+   git clone https://github.com/mrnajiboy/mr-magic-mcp-server.git
+   cd mr-magic-mcp-server
+   ```
+
+   > Alternatively, download a ZIP from GitHub, extract it, and `cd` into the
+   > extracted directory.
+
+2. Install dependencies:
 
 ```bash
 npm install
 ```
+
+3. Configure `.env` (see Environment variables below) or export env vars in
+   your shell before running any commands.
+
+4. Run the desired entrypoint:
+   - CLI: `npm run cli -- --help`
+   - JSON HTTP server: `npm run server:http`
+   - MCP stdio server: `npm run server:mcp`
+   - MCP HTTP server: `npm run server:mcp:http`
 
 ## Environment variables
 
@@ -40,28 +61,33 @@ MR_MAGIC_TMP_DIR=/tmp/mr-magic             # overrides os.tmpdir for temp artifa
 MR_MAGIC_QUIET_STDIO=0                     # set to 1 to silence stdio logs
 ```
 
-- Genius and Musixmatch tokens remain **required** when those providers are
-  used.
-- Melon works without a cookie, but you can supply one for consistency.
-- `MR_MAGIC_EXPORT_BACKEND` decides where formatted lyrics land:
-  - `local` (default) writes to `MR_MAGIC_EXPORT_DIR` (or `exports/` if unset).
-  - `inline` skips disk writes entirely and returns the formatted strings in
-    the API response.
-  - `redis` stores each format in Upstash and hands back signed download URLs
-    (requires the Upstash env vars above plus a
-    `MR_MAGIC_DOWNLOAD_BASE_URL` so clients know which HTTP server serves
-    `/downloads/:id/:ext`).
-- `MR_MAGIC_EXPORT_DIR` can be a plain absolute path (e.g., `/tmp/mr-magic`).
-  Quote it only when the path contains spaces or shell metacharacters
+- **GENIUS_ACCESS_TOKEN** and **MUSIXMATCH_TOKEN** are required for their
+  respective providers. The CLI/servers will reject requests that need them if
+  they are unset.
+- **MELON_COOKIE** is optional—anonymous access generally works, but pinning a
+  cookie can improve consistency.
+- **MR_MAGIC_EXPORT_BACKEND** controls where formatted lyrics land:
+  - `local` (default) writes to `MR_MAGIC_EXPORT_DIR` (or `exports/` when
+    omitted).
+  - `inline` skips disk writes and returns the formatted strings directly in
+    the response body.
+  - `redis` stores each export in Upstash; you must also set the `UPSTASH_*`
+    vars plus `MR_MAGIC_DOWNLOAD_BASE_URL` so clients know which HTTP server
+    serves `/downloads/:id/:ext`.
+- **MR_MAGIC_EXPORT_DIR** can be any absolute path (e.g., `/tmp/mr-magic`).
+  Quote it only when the path contains spaces or special characters
   (`MR_MAGIC_EXPORT_DIR="/Users/you/My Exports"`).
-- `PORT` controls both HTTP entrypoints when the platform injects one (Render,
-  Fly, etc.). If unset, the JSON HTTP automation server uses `3333` and the MCP HTTP
-  transport uses `3444`. CLI flags always win: `mr-magic-mcp-server server --port 4000`
-  overrides both env and defaults.
-- `MR_MAGIC_QUIET_STDIO=1` keeps stdio transports silent by downgrading log
-  noise.
-- In remote deployments (Render/Fly/Netlify/etc.), inject the same variable
-  names in the platform dashboard—no `.env` file required.
+- **PORT** overrides both HTTP entrypoints when your platform injects one
+  (Render, Fly, etc.). If unset, the JSON HTTP automation server binds to
+  `3333` and the MCP HTTP transport binds to `3444`. CLI flags such as
+  `mr-magic-mcp-server server --port 4000` always take precedence.
+- **MR_MAGIC_DOWNLOAD_BASE_URL** should match the public URL that exposes the
+  `/downloads` routes. Include `:port` only when the HTTP server isn’t using
+  the default for its protocol.
+- **MR_MAGIC_QUIET_STDIO** set to `1` silences stdio transports (helpful when a
+  host MCP client expects clean JSON over stdout).
+- For hosted deployments, inject the variables via your platform dashboard so
+  no `.env` file is required at runtime.
 
 ### Getting the Musixmatch token
 
@@ -83,19 +109,19 @@ complete cookie header you already trust.
 
 ### CLI overview
 
-Mr. Magic ships with a single CLI binary (`mr-magic-mcp-server`). The most
-common commands are:
+A single CLI entrypoint (`mr-magic-mcp-server`) is published with the package
+and re-exported via `npm run cli`. Common invocations include:
 
-- `mr-magic-mcp-server search --artist "BLACKPINK" --title "Kill This Love"` –
-  list candidates across all providers.
+- `mr-magic-mcp-server search --artist "BLACKPINK" --title "Kill This Love"`
+  – list candidates across all providers.
 - `mr-magic-mcp-server find --artist "Nayeon" --title "POP!"` – download the
   best lyric (prefers synced LRC when possible).
 - `mr-magic-mcp-server select --provider lrclib --index 1 --file
   ./search-results.json` – pick a result from a previous search dump.
 - `mr-magic-mcp-server server --port 4000` – run the JSON automation API
   locally.
-- `npm start` (alias for `mr-magic-mcp-server`) – launch the CLI interactively;
-  combine with `server`, `search`, or `find` subcommands as needed.
+- `npm run cli -- server --port 3333` – launch the same CLI via npm (handy when
+  working inside the repo without a global install).
 
 Each command supports `--help` for detailed flags.
 
@@ -111,14 +137,14 @@ formatting consistent.
 
 ### Commands
 
-- `npm start` — launch the CLI (`src/tools/cli.js`). Combine with subcommands
-  like `server`, `search`, `find`, or `select`.
-- `npm run server:mcp` — start the MCP stdio transport (pipes responses over
-  stdin/stdout; ideal for local MCP clients).
-- `npm run server:mcp:http` — start the Streamable HTTP MCP transport (listens
-  on `127.0.0.1:3444` unless overridden).
-- `npm run server:http` — start the standard JSON HTTP automation endpoint (binds to
-  `127.0.0.1:3333` by default; use `PORT` or CLI flags to override).
+- `npm run server:http` — JSON HTTP automation endpoint
+  (`127.0.0.1:3333` by default; honor `PORT`/CLI flags).
+- `npm run server:mcp` — MCP stdio transport (ideal for local MCP clients that
+  speak stdio).
+- `npm run server:mcp:http` — Streamable HTTP MCP transport
+  (`127.0.0.1:3444` unless overridden).
+- `npm run cli` — interactive CLI entrypoint (`src/tools/cli.js`); combine with
+  `server`, `search`, `find`, or `select` subcommands.
 
 Set provider tokens/env vars via `.env` or `export` before running any command.
 `dotenv` is only for local convenience—production runners should inject env
@@ -193,10 +219,18 @@ you use.
 ## Remote deployment
 
 Ensure the deployment environment injects the same environment variables, then
-choose the transport you need:
+choose the transport you need. Typical remote workflows look like:
+
+```bash
+npm ci
+npm run server:http       # or server:mcp / server:mcp:http
+```
+
+Use a process manager (systemd, PM2, Docker CMD, etc.) to keep long-lived
+servers running.
 
 - **CLI** for ad-hoc/manual usage (one-off SSH sessions, CI jobs, or
-  ephemeral workers). Invoke with `npm start -- <subcommand>` or
+  ephemeral workers). Invoke with `npm run cli -- <subcommand>` or
   `npx mr-magic-mcp-server <subcommand>`; it isn’t designed to run as a
   long-lived daemon because it exits after each command completes.
 - **HTTP server** for container/remote automation (`npm run server:http`).

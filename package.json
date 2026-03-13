@@ -21,6 +21,7 @@
   ],
   "scripts": {
     "start": "node src/bin/cli.js",
+    "cli": "node src/bin/cli.js",
     "server:http": "node src/bin/http-server.js",
     "server:mcp": "node src/bin/mcp-server.js",
     "server:mcp:http": "node src/bin/mcp-http-server.js",
