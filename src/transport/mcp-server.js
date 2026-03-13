@@ -34,7 +34,7 @@ async function start() {
     transport: 'stdio'
   };
   logger.info('Lyrics MCP server listening on stdio', readyDetails);
-  process.stderr.write(`[mr-magic] MCP stdio server ready: transport=stdio, name=${readyDetails.name}\n`);
+  process.stderr.write(`Mr. Magic MCP server running: transport=stdio, name=${readyDetails.name}\n`);
 }
 
 start().catch((error) => {

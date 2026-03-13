@@ -49,23 +49,43 @@ export function startHttpServer(options = {}) {
       }
 
       if (req.method === 'GET' && req.url.startsWith('/downloads/')) {
-        const [, , downloadId, extension] = req.url.split('/');
+        const segments = req.url.split('/');
+        const [, , downloadId, ...rest] = segments;
+        const extension = rest?.join('/') || '';
         if (!downloadId || !extension) {
+          logger.warn('Invalid download path', {
+            context: 'http-download',
+            url: req.url,
+            segments
+          });
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Invalid download path' }));
           return;
         }
         try {
-          const redis = getSharedRedisClient();
+          const redis = getSharedRedisClient({ context: 'http-download' });
           const key = `mr-magic:${downloadId}:${extension}`;
           const content = await redis.get(key);
           if (!content) {
+            logger.warn('Export download missing', {
+              context: 'http-download',
+              key,
+              downloadId,
+              extension
+            });
             res.writeHead(404, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ error: 'Export expired or missing' }));
             return;
           }
           res.writeHead(200, { 'Content-Type': 'text/plain' });
           res.end(content);
+          logger.info('Export download served', {
+            context: 'http-download',
+            key,
+            downloadId,
+            extension,
+            bytes: Buffer.byteLength(content)
+          });
         } catch (error) {
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Failed to fetch export' }));

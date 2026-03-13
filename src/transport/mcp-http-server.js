@@ -53,7 +53,7 @@ const server = new Server(
     const httpServer = app.listen(port, host, () => {
       const endpoint = `http://${host}:${port}/mcp`;
       logger.info('MCP HTTP server listening', { host, port, endpoint, sessionless: !transport.sessionId });
-      process.stderr.write(`[mr-magic] MCP HTTP server ready: endpoint=${endpoint}, sessionless=${!transport.sessionId}\n`);
+      process.stderr.write(`Mr. Magic MCP HTTP server running: endpoint=${endpoint}, sessionless=${!transport.sessionId}\n`);
       resolve(httpServer);
     });
   });

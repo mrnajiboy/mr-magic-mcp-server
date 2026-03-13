@@ -5,6 +5,7 @@ export class RedisClient {
     if (!this.url || !this.token) {
       throw new Error('Redis client requires UPSTASH_REDIS_REST_URL and _TOKEN');
     }
+    this.fingerprint = this.url.replace(/https?:\/\//, '').split('/')[0];
   }
 
   async set(key, value, ttlSeconds) {
@@ -35,6 +36,15 @@ let sharedClient = null;
 export function getSharedRedisClient(config = {}) {
   if (!sharedClient) {
     sharedClient = new RedisClient(config);
+    const where = config?.context || 'unknown';
+    console.error(
+      JSON.stringify({
+        level: 'info',
+        message: 'Redis client initialized',
+        context: where,
+        redisHost: sharedClient.fingerprint
+      })
+    );
   }
   return sharedClient;
 }
