@@ -48,15 +48,18 @@ MUSIXMATCH_TOKEN=your_musixmatch_token
 MELON_COOKIE=your_melon_session_cookie (optional)
 
 # Export + storage controls
-PORT=                               # override whichever HTTP server you launch
-MR_MAGIC_EXPORT_BACKEND=local # local | inline | redis
-MR_MAGIC_EXPORT_DIR=/absolute/path         # used by local backend
-MR_MAGIC_EXPORT_TTL_SECONDS=900           # redis expiry if enabled
-MR_MAGIC_DOWNLOAD_BASE_URL=https://example.com/magic
-UPSTASH_REDIS_REST_URL=https://...         # required when using redis exports
-UPSTASH_REDIS_REST_TOKEN=...               # required when using redis exports
-MR_MAGIC_TMP_DIR=/tmp/mr-magic             # overrides os.tmpdir for temp artifacts
-MR_MAGIC_QUIET_STDIO=0                     # set to 1 to silence stdio logs
+PORT=                    # Override all server ports, or leave blank to default to 3444 for MCP, 3333 the JSON HTTP automation server. 
+GENIUS_ACCESS_TOKEN=     # Get from https://genius.com/api-clients, required for Genius lyrics support.
+MUSIXMATCH_TOKEN=        # Get from https://developer.musixmatch.com or see README for fetching from Public API.
+MELON_COOKIE=            # Optional
+MR_MAGIC_EXPORT_BACKEND= # local|inline|redis
+MR_MAGIC_EXPORT_DIR=/absolute/path/to/exports # Required if MR_MAGIC_EXPORT_BACKEND=local
+MR_MAGIC_EXPORT_TTL_SECONDS=3600 # Optional, default 3600 (1 hour). Only applies to local and redis backends, ignored for inline.                 
+MR_MAGIC_DOWNLOAD_BASE_URL=https://yourserver.com|http://localhost:GIVEN_PORT   # Used for generating download links for exported files. See README for details.
+UPSTASH_REDIS_REST_URL=  # Get from https://console.upstash.com/redis/rest, required if MR_MAGIC_EXPORT_BACKEND=redis
+UPSTASH_REDIS_REST_TOKEN=  # Get from https://console.upstash.com/redis/rest, required if MR_MAGIC_EXPORT_BACKEND=redis
+MR_MAGIC_TMP_DIR=/tmp/ # Optional, default /tmp/. Used for temporary file storage during export generation. Only applies to local and redis, ignored for inline.                    
+MR_MAGIC_QUIET_STDIO=0  # Optional, default 0. If set to 1, suppresses all non-error logs to stdout. Useful when running in environments where you only want to capture errors, or when using the export functionality and don't want logs mixed in with export data.
 ```
 
 - **GENIUS_ACCESS_TOKEN** and **MUSIXMATCH_TOKEN** are required for their
