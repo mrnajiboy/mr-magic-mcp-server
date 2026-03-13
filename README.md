@@ -89,6 +89,15 @@ MR_MAGIC_QUIET_STDIO=0                     # set to 1 to silence stdio logs
 
 ### Getting the Musixmatch token
 
+#### Developer Accounts
+
+1. Get API access from https://developer.musixmatch.com
+2. Run `npm run fetch:musixmatch-token` to open a browser, complete the login,
+   and copy the printed `web-desktop-app-v1.0` value into `MUSIXMATCH_TOKEN`
+   (this is the actual token used by the API). The decoded `musixmatchUserToken`
+   JSON is logged for reference but not required.
+
+#### Public Account
 1. Visit `https://auth.musixmatch.com/`
 2. Sign in with a Musixmatch account and allow the app. When redirected, the
    helper script below will capture the cookies.
@@ -96,6 +105,7 @@ MR_MAGIC_QUIET_STDIO=0                     # set to 1 to silence stdio logs
    and copy the printed `web-desktop-app-v1.0` value into `MUSIXMATCH_TOKEN`
    (this is the actual token used by the API). The decoded `musixmatchUserToken`
    JSON is logged for reference but not required.
+**WARNING: CALLING THE  API FROM A NON-APPROVED ACCOUNT CAN RESULT IN A BAN.**
 
 ### Optional Melon cookie
 
