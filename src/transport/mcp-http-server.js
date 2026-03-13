@@ -51,7 +51,9 @@ const server = new Server(
 
   return new Promise((resolve) => {
     const httpServer = app.listen(port, host, () => {
-      logger.info('MCP HTTP server listening', { host, port, sessionless: !transport.sessionId });
+      const endpoint = `http://${host}:${port}/mcp`;
+      logger.info('MCP HTTP server listening', { host, port, endpoint, sessionless: !transport.sessionId });
+      process.stderr.write(`[mr-magic] MCP HTTP server ready: endpoint=${endpoint}, sessionless=${!transport.sessionId}\n`);
       resolve(httpServer);
     });
   });

@@ -29,10 +29,12 @@ async function start() {
   const logger = createLogger('mcp-server');
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  if (process.env.MR_MAGIC_QUIET_STDIO === '1') {
-    return;
-  }
-  logger.info('Lyrics MCP server listening on stdio');
+  const readyDetails = {
+    name: 'mr-magic-mcp-server-mcp',
+    transport: 'stdio'
+  };
+  logger.info('Lyrics MCP server listening on stdio', readyDetails);
+  process.stderr.write(`[mr-magic] MCP stdio server ready: transport=stdio, name=${readyDetails.name}\n`);
 }
 
 start().catch((error) => {
