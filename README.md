@@ -141,31 +141,6 @@ with descriptions, defaults, and examples.
 - `npm run cli -- server --port 3333` – launch the same CLI via npm (handy when
   working inside the repo without a global install).
 
-### Linting & formatting
-
-- `npm run lint` / `npm run lint:fix`
-- `npm run format` / `npm run format:check`
-
-ESLint enforces import order + Node best practices, while Prettier keeps
-formatting consistent.
-
-## Local testing
-
-### Commands
-
-- `npm run server:http` — JSON HTTP automation endpoint
-  (`127.0.0.1:3333` by default; honor `PORT`/CLI flags).
-- `npm run server:mcp` — MCP stdio transport (ideal for local MCP clients that
-  speak stdio).
-- `npm run server:mcp:http` — Streamable HTTP MCP transport
-  (`127.0.0.1:3444` unless overridden).
-- `npm run cli` — interactive CLI entrypoint (`src/tools/cli.js`); combine with
-  `server`, `search`, `find`, or `select` subcommands.
-
-Set provider tokens/env vars via `.env` or `export` before running any command.
-`dotenv` is only for local convenience—production runners should inject env
-vars directly.
-
 ### MCP client configuration (local repo vs published npm)
 
 Until the package is published to npm, most MCP clients need to launch the stdio
@@ -230,6 +205,21 @@ you use.
   artifacts land (defaults to `os.tmpdir()`), so remote runners that disallow
   root writes can set `/tmp/mr-magic` or similar.
 
+## Local Deployment
+      
+  - `npm run server:http` — JSON HTTP automation endpoint
+    (`127.0.0.1:3333` by default; honor `PORT`/CLI flags).
+  - `npm run server:mcp` — MCP stdio transport (ideal for local MCP clients that
+    speak stdio).
+  - `npm run server:mcp:http` — Streamable HTTP MCP transport
+    (`127.0.0.1:3444` unless overridden).
+  - `npm run cli` — interactive CLI entrypoint (`src/tools/cli.js`); combine with
+    `server`, `search`, `find`, or `select` subcommands.
+  
+  Set provider tokens/env vars via `.env` or `export` before running any command.
+  `dotenv` is only for local convenience—production runners should inject env
+  vars directly.
+
 ## Remote deployment
 
 Ensure the deployment environment injects the same environment variables, then
@@ -276,7 +266,7 @@ Both transports expose the same tool registry:
 Add new tools by editing `src/transport/mcp-tools.js`, then extend
 `tests/mcp-tools.test.js` so integration coverage stays current.
 
-## Testing strategy
+## Testing
 
 - `npm run test` – exercises chooser behavior (`autoPick`, `selectMatch`) and
   dumps the tool registry.
