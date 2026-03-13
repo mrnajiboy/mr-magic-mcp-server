@@ -55,7 +55,7 @@ MR_MAGIC_QUIET_STDIO=0                     # set to 1 to silence stdio logs
   Quote it only when the path contains spaces or shell metacharacters
   (`MR_MAGIC_EXPORT_DIR="/Users/you/My Exports"`).
 - `PORT` controls both HTTP entrypoints when the platform injects one (Render,
-  Fly, etc.). If unset, the JSON automation server uses `3333` and the MCP HTTP
+  Fly, etc.). If unset, the JSON HTTP automation server uses `3333` and the MCP HTTP
   transport uses `3444`. CLI flags always win: `mr-magic-mcp-server server --port 4000`
   overrides both env and defaults.
 - `MR_MAGIC_QUIET_STDIO=1` keeps stdio transports silent by downgrading log
