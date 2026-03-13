@@ -334,8 +334,8 @@ changes and test improvements.
 
 [MIT LICENSE](/LICENSE)
 
-I'm not liable for any infrigement or ban from services that could occur
-as a result of using this software. Your usage is solely your responsibility.
-Godspeed.
+I am not and cannot be held liable for any infrigement or ban from services
+that could occur as a result of using this software. Your usage is solely
+your responsibility. Godspeed.
 
 © 2026 Kenyatta Naji Johnson-Adams
