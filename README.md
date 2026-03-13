@@ -219,7 +219,7 @@ settings and dotenv loading are consistent:
 - `npm run cli` — interactive CLI entrypoint (`src/tools/cli.js`); combine with
   `server`, `search`, `find`, or `select` subcommands.
 
-Set provider tokens/env vars via `.env` or `export` before running any command.
+Set provider tokens/env vars via `.env` before running any command.
 `dotenv` is only for local convenience—production runners should inject env vars
 directly.
 
