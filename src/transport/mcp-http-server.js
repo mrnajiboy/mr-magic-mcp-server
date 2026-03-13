@@ -10,6 +10,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { createLogger } from '../utils/logger.js';
 
 import { mcpToolDefinitions, handleMcpTool } from './mcp-tools.js';
+import { logTokenStatus } from './token-startup-log.js';
 
 export async function startMcpHttpServer(options = {}) {
   const logger = createLogger('mcp-http-server');
@@ -37,6 +38,7 @@ const server = new Server(
   };
 
   await server.connect(transport);
+  await logTokenStatus({ context: 'http-mcp' });
 
   const app = createMcpExpressApp({ host });
   app.all('/mcp', async (req, res) => {

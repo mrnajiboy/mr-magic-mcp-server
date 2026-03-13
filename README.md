@@ -46,6 +46,8 @@ credentials plus any storage configuration:
 GENIUS_ACCESS_TOKEN=your_genius_api_token
 MUSIXMATCH_TOKEN=your_musixmatch_token
 MELON_COOKIE=your_melon_session_cookie (optional)
+LOG_LEVEL=info
+DEBUG=0
 
 # Export + storage controls
 PORT=                    # Override all server ports, or leave blank to default to 3444 for MCP, 3333 the JSON HTTP automation server. 
@@ -60,6 +62,11 @@ UPSTASH_REDIS_REST_URL=  # Get from https://console.upstash.com/redis/rest, requ
 UPSTASH_REDIS_REST_TOKEN=  # Get from https://console.upstash.com/redis/rest, required if MR_MAGIC_EXPORT_BACKEND=redis
 MR_MAGIC_TMP_DIR=/tmp/ # Optional, default /tmp/. Used for temporary file storage during export generation. Only applies to local and redis, ignored for inline.                    
 MR_MAGIC_QUIET_STDIO=0  # Optional, default 0. If set to 1, suppresses all non-error logs to stdout. Useful when running in environments where you only want to capture errors, or when using the export functionality and don't want logs mixed in with export data.
+LOG_LEVEL=info          # Optional, defaults to info. Accepts error|warn|info|debug. Overrides DEBUG.
+DEBUG=0                 # Optional. Any truthy value enables debug logging unless LOG_LEVEL overrides it.
+MR_MAGIC_ROOT=          # Optional. Force the project root used for resolving .env/.cache paths.
+MR_MAGIC_ENV_PATH=      # Optional. Custom path to an env file when the default isn't desired.
+MUSIXMATCH_AUTO_FETCH=0 # Optional. When 1, provider will attempt to rerun the fetch script automatically (headless) if no token is available.
 ```
 
 - **GENIUS_ACCESS_TOKEN** and **MUSIXMATCH_TOKEN** are required for their
@@ -85,30 +92,61 @@ MR_MAGIC_QUIET_STDIO=0  # Optional, default 0. If set to 1, suppresses all non-e
 - **MR_MAGIC_DOWNLOAD_BASE_URL** should match the public URL that exposes the
   `/downloads` routes. Include `:port` only when the HTTP server isn’t using
   the default for its protocol.
+- **LOG_LEVEL** (error|warn|info|debug, default `info`) controls global logging verbosity.
+  Takes precedence over `DEBUG`.
+- **DEBUG** enables `debug` level logging when truthy. If `LOG_LEVEL` is set,
+  it wins over `DEBUG`.
 - **MR_MAGIC_QUIET_STDIO** set to `1` silences stdio transports (helpful when a
-  host MCP client expects clean JSON over stdout).
+  host MCP client expects clean JSON over stdout). When enabled, it forces
+  `LOG_LEVEL=error` and disables `DEBUG` internally so stdout stays quiet.
+- **MR_MAGIC_ROOT** overrides the project root used for loading `.env` and `.cache`.
+  Useful when an MCP host launches the server from another directory.
+- **MR_MAGIC_ENV_PATH** lets you point to a specific `.env` file instead of the
+  default `<project root>/.env`.
 - For hosted deployments, inject the variables via your platform dashboard so
   no `.env` file is required at runtime.
 
 ### Getting the Musixmatch token
 
+All Musixmatch support in this project assumes you capture a browser session
+and hand that token to the server. There is no OAuth callback – instead the
+fetch script writes the captured session data into `.cache/musixmatch-token.json`
+so the server can reuse it later.
+
+#### Workflow
+
+1. From any machine that can open a browser, run:
+   ```bash
+   npm run fetch:musixmatch-token
+   ```
+   - Locally this pops up a Playwright-controlled Chromium window
+   - Remotely you can run the same command wherever you have GUI access (SSH + X11,
+     VNC, RDP, etc.)
+
+2. Sign in with Musixmatch (Google sign-in works) when prompted.
+
+3. After the redirect to `https://www.musixmatch.com/discover`, the script logs
+   the captured token JSON and writes a cache file (default
+   `<project>/.cache/musixmatch-token.json`). That file contains both the
+   `musixmatchUserToken` payload and the `web-desktop-app-v1.0` cookie so the
+   server can replay the session.
+
+4. For remote deployments, copy the resulting cache file (or set
+   `MUSIXMATCH_TOKEN` in env) onto the server host so the runtime can load it. If
+   `MUSIXMATCH_AUTO_FETCH=1`, the provider can re-run the script headlessly when
+   it detects a missing token, but the initial login still requires a browser.
+
 #### Developer Accounts
 
 1. Get API access from `https://developer.musixmatch.com`
-2. Run `npm run fetch:musixmatch-token` to open a browser, complete the login,
-   and copy the printed `web-desktop-app-v1.0` value into `MUSIXMATCH_TOKEN`.
-   The decoded `musixmatchUserToken` JSON is logged for reference
-   but not required.
+2. Run the script above and keep the cached file or env variable in sync.
 
 #### Public Account (WARNING: MAY RESULT IN BAN)
 
 1. Visit `https://auth.musixmatch.com/`
 2. Sign in with a Musixmatch account and allow the app. When redirected, the
-   helper script below will capture the cookies.
-3. Run `npm run fetch:musixmatch-token` to open a browser, complete the login,
-   and copy the printed `web-desktop-app-v1.0` value into `MUSIXMATCH_TOKEN`.
-   The decoded `musixmatchUserToken` JSON is logged for reference
-   but not required.
+   helper script above will capture the cookies and write them to the cache.
+3. Copy the cache file or env token to whatever environment needs it.
   
 **WARNING: CALLING THE  API FROM AN UNAUTHORIZED ACCOUNT MAY RESULT IN A BAN.**
 
@@ -334,7 +372,7 @@ with descriptions, defaults, and examples.
 - **Genius**: Requires `GENIUS_ACCESS_TOKEN`. Provides metadata-rich plain
   lyrics.
 - **Musixmatch**: Requires `MUSIXMATCH_TOKEN`.
-  `scripts/fetch_musixmatch_token.mjs` helps recover tokens.
+  `scripts/fetch_musixmatch_token.mjs` helps recover tokens using a browser session capture flow.
 - **Melon**: Works anonymously but benefits from `MELON_COOKIE` for reliability
   if needed.
 

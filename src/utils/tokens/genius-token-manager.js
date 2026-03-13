@@ -8,6 +8,7 @@ const logger = createLogger('genius-token-manager');
 
 let cachedToken = null;
 let cachedExpiry = 0;
+let lastAuthMode = 'unknown';
 
 function getFallbackToken() {
   return getEnvValue('GENIUS_ACCESS_TOKEN');
@@ -43,6 +44,7 @@ async function fetchClientCredentialsToken() {
     const ttl = Number(expiresIn) || 3600;
     cachedToken = accessToken;
     cachedExpiry = Date.now() + ttl * 1000;
+    lastAuthMode = 'client_credentials';
     logger.info('Genius token refreshed', { ttlSeconds: ttl });
     return cachedToken;
   } catch (error) {
@@ -64,6 +66,7 @@ export async function getGeniusToken({ forceRefresh = false } = {}) {
     logger.warn('Using fallback Genius access token from environment');
     cachedToken = fallback;
     cachedExpiry = Date.now() + 86_400_000; // 1 day placeholder
+    lastAuthMode = 'env_access_token';
     return cachedToken;
   }
   return cachedToken;
@@ -72,4 +75,43 @@ export async function getGeniusToken({ forceRefresh = false } = {}) {
 export function invalidateGeniusToken() {
   cachedToken = null;
   cachedExpiry = 0;
+  lastAuthMode = 'unknown';
+}
+
+export function hasValidGeniusAuth() {
+  const hasClient = Boolean(getEnvValue('GENIUS_CLIENT_ID') && getEnvValue('GENIUS_CLIENT_SECRET'));
+  if (hasClient) return true;
+  return Boolean(getFallbackToken());
+}
+
+export function describeGeniusAuthMode() {
+  if (lastAuthMode !== 'unknown') {
+    return lastAuthMode;
+  }
+  if (cachedToken && cachedExpiry > Date.now()) {
+    return 'cached_runtime_token';
+  }
+  const hasClient = Boolean(getEnvValue('GENIUS_CLIENT_ID') && getEnvValue('GENIUS_CLIENT_SECRET'));
+  if (hasClient) {
+    return 'client_credentials';
+  }
+  if (getFallbackToken()) {
+    return 'env_access_token';
+  }
+  return 'none';
+}
+
+export function getGeniusDiagnostics() {
+  const clientId = getEnvValue('GENIUS_CLIENT_ID');
+  const clientSecret = getEnvValue('GENIUS_CLIENT_SECRET');
+  const fallback = getFallbackToken();
+  const ttlMs = Math.max(cachedExpiry - Date.now(), 0);
+
+  return {
+    clientCredentialsPresent: Boolean(clientId && clientSecret),
+    fallbackTokenPresent: Boolean(fallback),
+    runtimeTokenCached: Boolean(cachedToken),
+    runtimeTokenExpiresInMs: cachedToken ? ttlMs : 0,
+    lastAuthMode: describeGeniusAuthMode()
+  };
 }

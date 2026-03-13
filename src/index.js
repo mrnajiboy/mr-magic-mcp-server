@@ -1,7 +1,8 @@
 import { fetchFromLrclib, searchLrclib } from './providers/lrclib.js';
-import { fetchFromGenius, searchGenius } from './providers/genius.js';
-import { fetchFromMusixmatch, searchMusixmatch } from './providers/musixmatch.js';
+import { fetchFromGenius, searchGenius, checkGeniusTokenReady } from './providers/genius.js';
+import { fetchFromMusixmatch, searchMusixmatch, checkMusixmatchTokenReady } from './providers/musixmatch.js';
 import { fetchFromMelon, searchMelon } from './providers/melon.js';
+import { getEnvValue } from './utils/config.js';
 
 const providers = [
   { name: 'lrclib', fetch: fetchFromLrclib, search: searchLrclib },
@@ -92,13 +93,39 @@ export function selectMatch(matches, { providerName, requireSynced = false } = {
   return filtered[0] ?? null;
 }
 
-export function getProviderStatus() {
-  return providers.map((provider) => ({
-    name: provider.name,
-    implemented: provider.fetch && provider.search,
-    note:
-      provider.name === 'musixmatch' || provider.name === 'melon'
-        ? 'Requires reverse-engineering/token discovery'
-        : 'Ready'
-  }));
+export async function getProviderStatus() {
+  const melonReady = Boolean(getEnvValue('MELON_COOKIE'));
+  const statuses = await Promise.all(
+    providers.map(async (provider) => {
+      if (provider.name === 'genius') {
+        const ready = await checkGeniusTokenReady();
+        return {
+          name: provider.name,
+          implemented: provider.fetch && provider.search,
+          note: ready ? 'Ready' : 'Missing client credentials or legacy access token'
+        };
+      }
+      if (provider.name === 'musixmatch') {
+        const ready = await checkMusixmatchTokenReady();
+        return {
+          name: provider.name,
+          implemented: provider.fetch && provider.search,
+          note: ready ? 'Ready' : 'Requires token discovery/login'
+        };
+      }
+      if (provider.name === 'melon') {
+        return {
+          name: provider.name,
+          implemented: provider.fetch && provider.search,
+          note: melonReady ? 'Ready' : 'Requires MELON_COOKIE'
+        };
+      }
+      return {
+        name: provider.name,
+        implemented: provider.fetch && provider.search,
+        note: 'Ready'
+      };
+    })
+  );
+  return statuses;
 }

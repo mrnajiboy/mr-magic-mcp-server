@@ -7,6 +7,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { createLogger } from '../utils/logger.js';
 
 import { mcpToolDefinitions, handleMcpTool } from './mcp-tools.js';
+import { logTokenStatus } from './token-startup-log.js';
 
 const server = new Server(
   { name: 'mr-magic-mcp-server-mcp', version: '1.0.0' },
@@ -21,12 +22,25 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   return { content: [{ type: 'text', text: JSON.stringify(result) }] };
 });
 
-async function start() {
-  if (process.env.MR_MAGIC_QUIET_STDIO === '1') {
-    process.env.DEBUG = '0';
-    process.env.LOG_LEVEL = 'error';
+function applyQuietLogLevelOverride() {
+  if (process.env.MR_MAGIC_QUIET_STDIO !== '1') {
+    return null;
   }
+  const previousLevel = process.env.LOG_LEVEL;
+  process.env.DEBUG = '0';
+  process.env.LOG_LEVEL = 'error';
+  return previousLevel || null;
+}
+
+async function start() {
+  const previousLogLevel = applyQuietLogLevelOverride();
   const logger = createLogger('mcp-server');
+  await logTokenStatus({ context: 'stdio-mcp' });
+  if (process.env.MR_MAGIC_QUIET_STDIO === '1') {
+    logger.info('MR_MAGIC_QUIET_STDIO enabled; forcing stderr-only logging at error level', {
+      previousLogLevel: previousLogLevel || 'info'
+    });
+  }
   const transport = new StdioServerTransport();
   await server.connect(transport);
   const readyDetails = {

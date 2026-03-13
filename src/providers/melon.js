@@ -13,7 +13,11 @@ let cachedMelonCookie = null;
 const logger = createLogger('provider:melon');
 
 async function ensureMelonCookie() {
-  if (MELON_COOKIE) return MELON_COOKIE;
+  const manualCookie = typeof MELON_COOKIE === 'function' ? MELON_COOKIE() : MELON_COOKIE;
+  if (manualCookie) {
+    cachedMelonCookie = manualCookie;
+    return manualCookie;
+  }
   if (cachedMelonCookie) return cachedMelonCookie;
   const response = await axios.get('https://www.melon.com', {
     headers: {
@@ -42,10 +46,10 @@ async function buildSearchHeaders() {
     'Sec-Fetch-User': '?1',
     'Upgrade-Insecure-Requests': '1'
   };
-  if (!MELON_COOKIE) {
+  if (!cachedMelonCookie) {
     warnMissingEnv(['MELON_COOKIE']);
   }
-  const cookie = MELON_COOKIE || (await ensureMelonCookie());
+  const cookie = await ensureMelonCookie();
   if (cookie) headers.Cookie = cookie;
   return headers;
 }

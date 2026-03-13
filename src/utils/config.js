@@ -1,6 +1,22 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const projectRoot = path.resolve(__dirname, '..', '..');
+const resolvedRoot = process.env.MR_MAGIC_ROOT || projectRoot;
+const resolvedEnvPath = process.env.MR_MAGIC_ENV_PATH || path.join(resolvedRoot, '.env');
+
+dotenv.config({ path: resolvedEnvPath });
+
+export function getProjectRoot() {
+  return resolvedRoot;
+}
+
+export function getEnvPath() {
+  return resolvedEnvPath;
+}
 
 export function getEnvValue(name) {
   return process.env[name] ?? null;

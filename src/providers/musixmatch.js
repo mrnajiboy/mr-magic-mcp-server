@@ -3,7 +3,11 @@ import axios from 'axios';
 import { normalizeLyricRecord } from '../provider-result-schema.js';
 import { assertEnv } from '../utils/config.js';
 import { createLogger } from '../utils/logger.js';
-import { getMusixmatchToken, invalidateMusixmatchToken } from '../utils/tokens/musixmatch-token-manager.js';
+import {
+  getMusixmatchToken,
+  invalidateMusixmatchToken,
+  describeMusixmatchTokenSource
+} from '../utils/tokens/musixmatch-token-manager.js';
 
 const BASE_URL = 'https://apic-desktop.musixmatch.com/ws/1.1/macro.subtitles.get';
 const MOZILLA_USER_AGENT =
@@ -149,4 +153,14 @@ export async function fetchFromMusixmatch(track) {
 export async function searchMusixmatch(track) {
   const record = await fetchFromMusixmatch(track);
   return record ? [record] : [];
+}
+
+export async function checkMusixmatchTokenReady() {
+  const source = describeMusixmatchTokenSource();
+  if (source === 'env' || source === 'cache' || source === 'runtime') {
+    const token = await getMusixmatchToken();
+    return Boolean(token);
+  }
+  const token = await getMusixmatchToken();
+  return Boolean(token);
 }

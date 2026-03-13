@@ -8,3 +8,4 @@ npm-debug.log*
 /.parcel-cache
 .render
 dist
+.cache

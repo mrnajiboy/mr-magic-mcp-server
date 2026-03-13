@@ -4,7 +4,11 @@ import * as cheerio from 'cheerio';
 import { normalizeLyricRecord } from '../provider-result-schema.js';
 import { assertEnv, getEnvValue } from '../utils/config.js';
 import { createLogger } from '../utils/logger.js';
-import { getGeniusToken, invalidateGeniusToken } from '../utils/tokens/genius-token-manager.js';
+import {
+  getGeniusToken,
+  invalidateGeniusToken,
+  hasValidGeniusAuth
+} from '../utils/tokens/genius-token-manager.js';
 
 const BASE_API = 'https://api.genius.com';
 const MOZILLA_USER_AGENT =
@@ -224,4 +228,8 @@ export async function fetchLyricsForGeniusSong(url) {
   }
 
   return blocks.join('\n\n');
+}
+
+export async function checkGeniusTokenReady() {
+  return hasValidGeniusAuth();
 }
