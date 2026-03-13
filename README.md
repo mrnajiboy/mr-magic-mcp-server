@@ -1,8 +1,8 @@
-## Mr. Magic MCP Server
+# Mr. Magic MCP Server
 
 Mr. Magic bridges LRCLIB, Genius, Musixmatch, and Melon so command-line users, HTTP automations, and MCP clients can all request lyrics from a single toolchain. This README covers local setup, deployment options, MCP transport details, and the automated tests that protect the surface area.
 
-### Prerequisites
+## Prerequisites
 
 - Node.js 18.17 or newer
 - npm 9+
@@ -15,7 +15,7 @@ Install dependencies:
 npm install
 ```
 
-### Environment variables
+## Environment variables
 
 Copy `.env.example` to `.env` (or export values in your shell) and fill in the credentials plus any storage configuration:
 
@@ -48,11 +48,13 @@ MR_MAGIC_QUIET_STDIO=0                     # set to 1 to silence stdio logs
 - In remote deployments (Render/Fly/Netlify/etc.), inject the same variable names in the platform dashboard—no `.env` file required.
 
 ### Getting the Musixmatch token
+
 1. Visit `https://auth.musixmatch.com/`
 2. Sign in with a Musixmatch account and allow the app. When redirected, the helper script below will capture the cookies.
 3. Run `npm run fetch:musixmatch-token` to open a browser, complete the login, and copy the printed `web-desktop-app-v1.0` value into `MUSIXMATCH_TOKEN` (this is the actual token used by the API). The decoded `musixmatchUserToken` JSON is logged for reference but not required.
 
 ### Optional Melon cookie
+
 Fetching Melon search/lyric endpoints still works with the MCP’s built-in cookie collection. If `MELON_COOKIE` is blank, the app will quietly request whatever session cookies the site provides, so you rarely need to copy a manual string. If you prefer to pin a cookie for repeatable results, set `MELON_COOKIE` to the complete cookie header you already trust.
 
 ### CLI overview
