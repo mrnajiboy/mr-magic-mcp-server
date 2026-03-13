@@ -113,12 +113,12 @@ formatting consistent.
 
 - `npm start` — launch the CLI (`src/tools/cli.js`). Combine with subcommands
   like `server`, `search`, `find`, or `select`.
-- `npm run server:http` — start the JSON HTTP automation endpoint (binds to
-  `127.0.0.1:3333` by default; use `PORT` or CLI flags to override).
 - `npm run server:mcp` — start the MCP stdio transport (pipes responses over
   stdin/stdout; ideal for local MCP clients).
 - `npm run server:mcp:http` — start the Streamable HTTP MCP transport (listens
   on `127.0.0.1:3444` unless overridden).
+- `npm run server:http` — start the standard JSON HTTP automation endpoint (binds to
+  `127.0.0.1:3333` by default; use `PORT` or CLI flags to override).
 
 Set provider tokens/env vars via `.env` or `export` before running any command.
 `dotenv` is only for local convenience—production runners should inject env
