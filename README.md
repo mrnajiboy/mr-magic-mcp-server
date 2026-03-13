@@ -105,7 +105,7 @@ MR_MAGIC_QUIET_STDIO=0                     # set to 1 to silence stdio logs
    and copy the printed `web-desktop-app-v1.0` value into `MUSIXMATCH_TOKEN`
    (this is the actual token used by the API). The decoded `musixmatchUserToken`
    JSON is logged for reference but not required.
-**WARNING: CALLING THE  API FROM A NON-APPROVED ACCOUNT MAY RESULT IN A BAN.**
+**WARNING: CALLING THE  API FROM AN UNAUTHORIZED ACCOUNT MAY RESULT IN A BAN.**
 
 ### Optional Melon cookie
 
