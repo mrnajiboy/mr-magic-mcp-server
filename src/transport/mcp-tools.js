@@ -61,7 +61,8 @@ const catalogOptionsSchema = {
     },
     omitInlineLyrics: {
       type: 'boolean',
-      description: 'When true, omit the raw lyrics fields (lyrics/plainLyrics/romanizedPlainLyrics).'
+      description:
+        'When true, omit the raw lyrics fields (lyrics/plainLyrics/romanizedPlainLyrics).'
     },
     lyricsPayloadMode: {
       type: 'string',
@@ -76,7 +77,8 @@ const catalogOptionsSchema = {
     },
     airtableSafePayload: {
       type: 'boolean',
-      description: 'When true, include an Airtable-safe escaped lyric string alongside the structured payload.'
+      description:
+        'When true, include an Airtable-safe escaped lyric string alongside the structured payload.'
     }
   },
   additionalProperties: false
@@ -200,7 +202,8 @@ export const mcpToolDefinitions = [
     description: 'Find lyrics but reject any candidates that lack timestamps.',
     inputSchema: {
       type: 'object',
-      description: 'Provide a track description (and optional hints) to look up synced lyrics only.',
+      description:
+        'Provide a track description (and optional hints) to look up synced lyrics only.',
       properties: {
         track: trackSchema,
         options: {
@@ -273,7 +276,8 @@ export const mcpToolDefinitions = [
   },
   {
     name: 'select_match',
-    description: 'Pick a single match from a previous search result based on provider/index filters.',
+    description:
+      'Pick a single match from a previous search result based on provider/index filters.',
     inputSchema: {
       type: 'object',
       description:

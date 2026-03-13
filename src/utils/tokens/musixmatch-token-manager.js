@@ -5,7 +5,9 @@ import { getEnvValue, getProjectRoot } from '../config.js';
 import { createLogger } from '../logger.js';
 
 const logger = createLogger('musixmatch-token-manager');
-const TOKEN_CACHE_PATH = process.env.MUSIXMATCH_TOKEN_CACHE || path.join(getProjectRoot(), '.cache', 'musixmatch-token.json');
+const TOKEN_CACHE_PATH =
+  process.env.MUSIXMATCH_TOKEN_CACHE ||
+  path.join(getProjectRoot(), '.cache', 'musixmatch-token.json');
 
 let cachedToken = null;
 let lastLoadedFrom = 'unknown';

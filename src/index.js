@@ -1,6 +1,10 @@
 import { fetchFromLrclib, searchLrclib } from './providers/lrclib.js';
 import { fetchFromGenius, searchGenius, checkGeniusTokenReady } from './providers/genius.js';
-import { fetchFromMusixmatch, searchMusixmatch, checkMusixmatchTokenReady } from './providers/musixmatch.js';
+import {
+  fetchFromMusixmatch,
+  searchMusixmatch,
+  checkMusixmatchTokenReady
+} from './providers/musixmatch.js';
 import { fetchFromMelon, searchMelon } from './providers/melon.js';
 import { getEnvValue } from './utils/config.js';
 
@@ -10,7 +14,10 @@ const providers = [
   { name: 'melon', fetch: fetchFromMelon, search: searchMelon },
   { name: 'genius', fetch: fetchFromGenius, search: searchGenius }
 ];
-const providerIndex = providers.reduce((acc, provider) => acc.set(provider.name, provider), new Map());
+const providerIndex = providers.reduce(
+  (acc, provider) => acc.set(provider.name, provider),
+  new Map()
+);
 
 function rankRecord(record) {
   const confidenceScore = record?.confidence ?? 0;
@@ -42,7 +49,7 @@ async function tryProviders(track, { syncedOnly = false, providerNames = [] } = 
     }
   }
 
-  const best = syncedOnly ? bestSynced ?? null : bestSynced ?? bestOverall ?? null;
+  const best = syncedOnly ? (bestSynced ?? null) : (bestSynced ?? bestOverall ?? null);
   return {
     matches,
     best

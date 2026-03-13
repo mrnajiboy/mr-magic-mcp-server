@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import '../utils/config.js';
 import http from 'node:http';
 
 import { buildActionContext, buildPayloadFromResult } from '../services/lyrics-service.js';
@@ -116,7 +116,11 @@ export function startHttpServer(options = {}) {
 
       const { action, track, options: actionOptions = {} } = payload;
       try {
-        const responseBody = await handleAction(action, track, normalizePayloadOptions(actionOptions));
+        const responseBody = await handleAction(
+          action,
+          track,
+          normalizePayloadOptions(actionOptions)
+        );
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(responseBody));
       } catch (error) {

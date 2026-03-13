@@ -48,16 +48,25 @@ async function testFindSyncedLyricsTool() {
 }
 
 async function testSearchProviderRequiresProvider() {
-  await assert.rejects(() => handleMcpTool('search_provider', { track: sampleTrack }), /provider is required/);
+  await assert.rejects(
+    () => handleMcpTool('search_provider', { track: sampleTrack }),
+    /provider is required/
+  );
 }
 
 async function testSearchProviderReturnsArray() {
-  const results = await handleMcpTool('search_provider', { provider: 'lrclib', track: sampleTrack });
+  const results = await handleMcpTool('search_provider', {
+    provider: 'lrclib',
+    track: sampleTrack
+  });
   assert.ok(Array.isArray(results));
 }
 
 async function testFormatLyricsShape() {
-  const response = await handleMcpTool('format_lyrics', { track: sampleTrack, options: { includeSynced: false } });
+  const response = await handleMcpTool('format_lyrics', {
+    track: sampleTrack,
+    options: { includeSynced: false }
+  });
   assert.ok(response?.formatted || response?.error, 'format_lyrics should format or report error');
 }
 
@@ -99,9 +108,15 @@ async function testBuildCatalogPayloadWithAirtableSafePayload() {
     }
   });
 
-  assert.ok(response?.lyricsPayload?.airtableEscapedContent, 'Airtable escaped content should exist');
+  assert.ok(
+    response?.lyricsPayload?.airtableEscapedContent,
+    'Airtable escaped content should exist'
+  );
   assert.ok(!response.lyrics, 'inline lyrics should stay omitted');
-  assert.ok(response.lyricsPayload.airtableEscapedContent.includes('\\n'), 'escaped content should include literal \\n');
+  assert.ok(
+    response.lyricsPayload.airtableEscapedContent.includes('\\n'),
+    'escaped content should include literal \\n'
+  );
 }
 
 async function testSelectMatchErrors() {
@@ -126,7 +141,11 @@ ending with unicode ♥`;
     extras: { airtableEscapedContent: 'Line 1\nLine 2\nLine 3' }
   };
   const response = buildMcpResponse(result);
-  assert.equal(response.structuredContent, result, 'structuredContent should pass through original object');
+  assert.equal(
+    response.structuredContent,
+    result,
+    'structuredContent should pass through original object'
+  );
   const summary = response.content?.[0]?.text;
   assert.ok(summary.includes('provider=test-provider'), 'summary should mention provider');
   assert.ok(summary.includes('keys=['), 'summary should mention key list');
@@ -135,9 +154,16 @@ ending with unicode ♥`;
 async function testMcpResponseHandlesStringResults() {
   const lyricString = 'Line 1\nLine 2\nLine 3 "quoted"';
   const response = buildMcpResponse(lyricString);
-  assert.deepEqual(response.structuredContent, { value: lyricString }, 'structuredContent should wrap string payloads');
+  assert.deepEqual(
+    response.structuredContent,
+    { value: lyricString },
+    'structuredContent should wrap string payloads'
+  );
   const summary = response.content?.[0]?.text;
-  assert.ok(typeof summary === 'string' && summary.length > 0, 'summary text should exist for strings');
+  assert.ok(
+    typeof summary === 'string' && summary.length > 0,
+    'summary text should exist for strings'
+  );
   assert.ok(summary.includes('Line 1'), 'summary should include first line of lyrics');
 }
 
@@ -149,7 +175,10 @@ async function testMcpResponsePreservesArrayResults() {
     { items },
     'structuredContent should wrap array payloads for MCP tools'
   );
-  assert.ok(response.content?.[1]?.text.includes('lrclib'), 'raw JSON content should include serialized array data');
+  assert.ok(
+    response.content?.[1]?.text.includes('lrclib'),
+    'raw JSON content should include serialized array data'
+  );
 }
 
 async function testExportLyricsReturnsFileUrl() {
@@ -167,7 +196,10 @@ async function testExportLyricsReturnsFileUrl() {
     if (plainExport.filePath) {
       assert.ok(plainExport.url?.startsWith('file://'), 'local exports should include file URL');
     } else {
-      assert.ok(typeof plainExport.url === 'string' && plainExport.url.length > 0, 'remote exports should include url');
+      assert.ok(
+        typeof plainExport.url === 'string' && plainExport.url.length > 0,
+        'remote exports should include url'
+      );
     }
   }
 }

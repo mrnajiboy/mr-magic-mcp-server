@@ -49,7 +49,12 @@ export async function exportLyrics(record, options) {
   }
   const baseName = `${record.artist || 'unknown'}-${record.title || 'song'}`;
   if (options.formats.includes('plain')) {
-    exports.plain = await storeExport(options.output, baseName, 'txt', formatPlainStanzas(record.plainLyrics));
+    exports.plain = await storeExport(
+      options.output,
+      baseName,
+      'txt',
+      formatPlainStanzas(record.plainLyrics)
+    );
   }
   if (options.formats.includes('lrc')) {
     exports.lrc = await storeExport(options.output, baseName, 'lrc', buildLrc(record.syncedLyrics));

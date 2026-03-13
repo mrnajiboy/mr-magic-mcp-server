@@ -33,7 +33,9 @@ export function extractSyncedPreview(record) {
     .split('\n')
     .map((entry) => entry.trim())
     .filter(Boolean)
-    .filter((entry) => !entry.startsWith('[ar:') && !entry.startsWith('[ti:') && !entry.startsWith('[by:'));
+    .filter(
+      (entry) => !entry.startsWith('[ar:') && !entry.startsWith('[ti:') && !entry.startsWith('[by:')
+    );
 
   const preview = [];
   for (const rawLine of lines) {

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import 'dotenv/config';
+import '../utils/config.js';
 import process from 'node:process';
 
 import { Command } from 'commander';
@@ -316,10 +316,15 @@ program
   .option('--show-all', 'Print all matches, even when picking automatically', false)
   .option('--pick <provider>', 'Auto-pick a provider and show details')
   .option('--export', 'Write lyrics to disk using the selected formats', false)
-  .option('--format <format>', 'Export format (plain|lrc|srt). repeatable', (value, acc) => {
-    acc.push(value);
-    return acc;
-  }, [])
+  .option(
+    '--format <format>',
+    'Export format (plain|lrc|srt). repeatable',
+    (value, acc) => {
+      acc.push(value);
+      return acc;
+    },
+    []
+  )
   .option('--output <dir>', 'Directory to write exports (requires --export)', 'exports')
   .option('--no-romanize', 'Disable romanized lyrics', false)
   .action(async (options) => {
@@ -373,7 +378,11 @@ program
     }
     renderTable(table, [
       { key: 'index', header: '#', formatter: (value) => colorize(value, COLORS.cyan) },
-      { key: 'provider', header: 'Provider', formatter: (value) => colorize(value, COLORS.magenta) },
+      {
+        key: 'provider',
+        header: 'Provider',
+        formatter: (value) => colorize(value, COLORS.magenta)
+      },
       {
         key: 'synced',
         header: 'Synced',
@@ -382,8 +391,16 @@ program
       },
       { key: 'artist', header: 'Artist', formatter: (value) => colorize(value, COLORS.cyan) },
       { key: 'title', header: 'Title', formatter: (value) => colorize(value, COLORS.cyan) },
-      { key: 'plainPreview', header: 'Plain Preview', formatter: (value) => colorize(value, COLORS.green) },
-      { key: 'syncedPreview', header: 'Synced Preview', formatter: (value) => colorize(value, COLORS.yellow) }
+      {
+        key: 'plainPreview',
+        header: 'Plain Preview',
+        formatter: (value) => colorize(value, COLORS.green)
+      },
+      {
+        key: 'syncedPreview',
+        header: 'Synced Preview',
+        formatter: (value) => colorize(value, COLORS.yellow)
+      }
     ]);
 
     if (!options.pick) {
@@ -447,10 +464,15 @@ program
   .option('--choose', 'List available matches before downloading', false)
   .option('--index <number>', 'Pick a match (1-based index) from the chooser list')
   .option('--export', 'Write lyrics to disk using the selected formats', false)
-  .option('--format <format>', 'Export format (plain|lrc|srt). repeatable', (value, acc) => {
-    acc.push(value);
-    return acc;
-  }, [])
+  .option(
+    '--format <format>',
+    'Export format (plain|lrc|srt). repeatable',
+    (value, acc) => {
+      acc.push(value);
+      return acc;
+    },
+    []
+  )
   .option('--output <dir>', 'Directory for exports (requires --export)', 'exports')
   .option('--no-romanize', 'Disable romanized lyrics', false)
   .action(async (options) => {
@@ -480,17 +502,28 @@ program
       }));
       renderTable(rows, [
         { key: 'index', header: '#', formatter: (value) => colorize(value, COLORS.cyan) },
-        { key: 'provider', header: 'Provider', formatter: (value) => colorize(value, COLORS.magenta) },
+        {
+          key: 'provider',
+          header: 'Provider',
+          formatter: (value) => colorize(value, COLORS.magenta)
+        },
         {
           key: 'syncedLabel',
           header: 'Synced',
-          formatter: (value, row) =>
-            colorize(value, row.synced ? COLORS.green : COLORS.yellow)
+          formatter: (value, row) => colorize(value, row.synced ? COLORS.green : COLORS.yellow)
         },
         { key: 'artist', header: 'Artist', formatter: (value) => colorize(value, COLORS.cyan) },
         { key: 'title', header: 'Title', formatter: (value) => colorize(value, COLORS.cyan) },
-        { key: 'plainPreview', header: 'Plain Preview', formatter: (value) => colorize(value, COLORS.green) },
-        { key: 'syncedPreview', header: 'Synced Preview', formatter: (value) => colorize(value, COLORS.yellow) }
+        {
+          key: 'plainPreview',
+          header: 'Plain Preview',
+          formatter: (value) => colorize(value, COLORS.green)
+        },
+        {
+          key: 'syncedPreview',
+          header: 'Synced Preview',
+          formatter: (value) => colorize(value, COLORS.yellow)
+        }
       ]);
     };
 
@@ -514,7 +547,9 @@ program
       }
 
       try {
-        resolvedRecord = options.index ? pickIndex(chooserEntries, options.index) : autoPick(chooserEntries, true);
+        resolvedRecord = options.index
+          ? pickIndex(chooserEntries, options.index)
+          : autoPick(chooserEntries, true);
       } catch (error) {
         console.error(error.message);
         process.exitCode = 1;
@@ -611,8 +646,9 @@ program
     const track = buildTrackFromOptions(options);
     const providerNames = options.providers.split(',').map((value) => value.trim());
     const result = await runFind(track, { providerNames });
-    const match = result.matches.find((entry) =>
-      providerNames.includes(entry.provider) && (!options.requireSynced || entry.result.synced)
+    const match = result.matches.find(
+      (entry) =>
+        providerNames.includes(entry.provider) && (!options.requireSynced || entry.result.synced)
     );
     if (!match) {
       console.log('No match satisfying selection criteria');

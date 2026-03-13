@@ -36,7 +36,8 @@ async function ensureMelonCookie() {
 async function buildSearchHeaders() {
   const headers = {
     'User-Agent': USER_AGENT,
-    Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+    Accept:
+      'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
     'Accept-Language': 'en-US,en;q=0.9',
     'sec-ch-ua': '"Not:A-Brand";v="99", "Google Chrome";v="145", "Chromium";v="145"',
     'sec-ch-ua-mobile': '?0',
@@ -114,18 +115,9 @@ function parseSearchPage(html) {
       if (!songId || seenIds.has(songId)) {
         return null;
       }
-      const title = titleAnchor
-        .text()
-        .trim()
-        .replace(/\s+/g, ' ');
-      const artist = artistAnchor
-        .text()
-        .trim()
-        .replace(/\s+/g, ' ');
-      const album = albumAnchor
-        .text()
-        .trim()
-        .replace(/\s+/g, ' ');
+      const title = titleAnchor.text().trim().replace(/\s+/g, ' ');
+      const artist = artistAnchor.text().trim().replace(/\s+/g, ' ');
+      const album = albumAnchor.text().trim().replace(/\s+/g, ' ');
       seenIds.add(songId);
       if (!title && !artist) return null;
       return { songId, title, artist, album };
@@ -164,7 +156,10 @@ function toLyricStrings(lyricInfo) {
   }
   if (!lyricInfo.lyricList) return { plain: null, synced: null };
   const list = lyricInfo.lyricList;
-  const plain = list.map((item) => item.lyric || '').filter(Boolean).join('\n');
+  const plain = list
+    .map((item) => item.lyric || '')
+    .filter(Boolean)
+    .join('\n');
   return { plain: plain || null, synced: null };
 }
 

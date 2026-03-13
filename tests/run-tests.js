@@ -32,7 +32,10 @@ function mockRecord({
 }
 
 function testAutoPickPrefersSynced() {
-  const matches = [mockRecord({ provider: 'plain', synced: false }), mockRecord({ provider: 'synced', synced: true })];
+  const matches = [
+    mockRecord({ provider: 'plain', synced: false }),
+    mockRecord({ provider: 'synced', synced: true })
+  ];
   const chooser = buildChooserEntries(matches);
   const picked = autoPick(chooser, true);
   assert.equal(picked.provider, 'synced');
@@ -41,7 +44,10 @@ function testAutoPickPrefersSynced() {
 }
 
 function testAutoPickFallbackWhenNoSynced() {
-  const matches = [mockRecord({ provider: 'plainA', synced: false }), mockRecord({ provider: 'plainB', synced: false })];
+  const matches = [
+    mockRecord({ provider: 'plainA', synced: false }),
+    mockRecord({ provider: 'plainB', synced: false })
+  ];
   const chooser = buildChooserEntries(matches);
   const picked = autoPick(chooser, true);
   assert.equal(picked.provider, 'plainA');

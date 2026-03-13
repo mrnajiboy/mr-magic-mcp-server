@@ -50,17 +50,17 @@ LOG_LEVEL=info
 DEBUG=0
 
 # Export + storage controls
-PORT=                    # Override all server ports, or leave blank to default to 3444 for MCP, 3333 the JSON HTTP automation server. 
+PORT=                    # Override all server ports, or leave blank to default to 3444 for MCP, 3333 the JSON HTTP automation server.
 GENIUS_ACCESS_TOKEN=     # Get from https://genius.com/api-clients, required for Genius lyrics support.
 MUSIXMATCH_TOKEN=        # Get from https://developer.musixmatch.com or see README for fetching from Public API.
 MELON_COOKIE=            # Optional
 MR_MAGIC_EXPORT_BACKEND= # local|inline|redis
 MR_MAGIC_EXPORT_DIR=/absolute/path/to/exports # Required if MR_MAGIC_EXPORT_BACKEND=local
-MR_MAGIC_EXPORT_TTL_SECONDS=3600 # Optional, default 3600 (1 hour). Only applies to local and redis backends, ignored for inline.                 
+MR_MAGIC_EXPORT_TTL_SECONDS=3600 # Optional, default 3600 (1 hour). Only applies to local and redis backends, ignored for inline.
 MR_MAGIC_DOWNLOAD_BASE_URL=https://yourserver.com|http://localhost:GIVEN_PORT   # Used for generating download links for exported files. See README for details.
 UPSTASH_REDIS_REST_URL=  # Get from https://console.upstash.com/redis/rest, required if MR_MAGIC_EXPORT_BACKEND=redis
 UPSTASH_REDIS_REST_TOKEN=  # Get from https://console.upstash.com/redis/rest, required if MR_MAGIC_EXPORT_BACKEND=redis
-MR_MAGIC_TMP_DIR=/tmp/ # Optional, default /tmp/. Used for temporary file storage during export generation. Only applies to local and redis, ignored for inline.                    
+MR_MAGIC_TMP_DIR=/tmp/ # Optional, default /tmp/. Used for temporary file storage during export generation. Only applies to local and redis, ignored for inline.
 MR_MAGIC_QUIET_STDIO=0  # Optional, default 0. If set to 1, suppresses all non-error logs to stdout. Useful when running in environments where you only want to capture errors, or when using the export functionality and don't want logs mixed in with export data.
 MR_MAGIC_HTTP_TIMEOUT_MS=10000 # Optional. Global outbound HTTP timeout in ms for provider/storage calls.
 LOG_LEVEL=info          # Optional, defaults to info. Accepts error|warn|info|debug. Overrides DEBUG.
@@ -120,9 +120,11 @@ so the server can reuse it later.
 #### Workflow
 
 1. From any machine that can open a browser, run:
+
    ```bash
    npm run fetch:musixmatch-token
    ```
+
    - Locally this pops up a Playwright-controlled Chromium window
    - Remotely you can run the same command wherever you have GUI access (SSH + X11,
      VNC, RDP, etc.)
@@ -151,8 +153,8 @@ so the server can reuse it later.
 2. Sign in with a Musixmatch account and allow the app. When redirected, the
    helper script above will capture the cookies and write them to the cache.
 3. Copy the cache file or env token to whatever environment needs it.
-  
-**WARNING: CALLING THE  API FROM AN UNAUTHORIZED ACCOUNT MAY RESULT IN A BAN.**
+
+**WARNING: CALLING THE API FROM AN UNAUTHORIZED ACCOUNT MAY RESULT IN A BAN.**
 
 ### Optional Melon cookie
 
@@ -163,40 +165,40 @@ If you prefer to pin a cookie for repeatable results, set `MELON_COOKIE` to the
 complete cookie header you already trust.
 
 ### Export + download configuration
-  
+
 - **Local files:** The default `local` backend writes into `exports/` (repo
-    root). Override with `MR_MAGIC_EXPORT_DIR=/absolute/path` when the working
-    directory isn’t writable. The `export_lyrics` tool also includes the raw
-    `content` field so clients can still inline results if file writes fail.
+  root). Override with `MR_MAGIC_EXPORT_DIR=/absolute/path` when the working
+  directory isn’t writable. The `export_lyrics` tool also includes the raw
+  `content` field so clients can still inline results if file writes fail.
 - **Redis downloads:** Set `MR_MAGIC_EXPORT_BACKEND=redis` plus
-    `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, and
-    `MR_MAGIC_DOWNLOAD_BASE_URL`. Each export is cached in Upstash for
-    `MR_MAGIC_EXPORT_TTL_SECONDS` seconds, but the download link should point at
-    _your own_ HTTP server’s `/downloads/:id/:ext` route (not the Upstash REST
-    URL). In other words, `MR_MAGIC_DOWNLOAD_BASE_URL` must be the publicly
-    reachable base URL for the HTTP automation server (e.g.,
-    `https://lyrics.example.com`), and request paths are appended to it
-    (`https://lyrics.example.com/downloads/...`). MCP clients can take the
-    returned URLs and download the files from the same HTTP server or proxy where
-    `/downloads` is routed.
+  `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, and
+  `MR_MAGIC_DOWNLOAD_BASE_URL`. Each export is cached in Upstash for
+  `MR_MAGIC_EXPORT_TTL_SECONDS` seconds, but the download link should point at
+  _your own_ HTTP server’s `/downloads/:id/:ext` route (not the Upstash REST
+  URL). In other words, `MR_MAGIC_DOWNLOAD_BASE_URL` must be the publicly
+  reachable base URL for the HTTP automation server (e.g.,
+  `https://lyrics.example.com`), and request paths are appended to it
+  (`https://lyrics.example.com/downloads/...`). MCP clients can take the
+  returned URLs and download the files from the same HTTP server or proxy where
+  `/downloads` is routed.
 - Even if you’re only using the stdio MCP server locally, you still need the
-    HTTP automation server running to serve those `/downloads/:id/:ext` routes
-    whenever `redis` storage is enabled.
+  HTTP automation server running to serve those `/downloads/:id/:ext` routes
+  whenever `redis` storage is enabled.
 - For local testing, set `MR_MAGIC_DOWNLOAD_BASE_URL=http://127.0.0.1:3333` (or
-    `http://localhost:3333`) so the generated links look like
-    `http://127.0.0.1:3333/downloads/<id>/<ext>`. In remote deployments, point it
-    at your public host (e.g., `https://lyrics.example.com`). Only include a
-    `:port` suffix when the HTTP server listens on a nonstandard port (e.g.,
-    `https://lyrics.example.com:8443`). If you override the local port via `PORT`
-    or CLI flags, update the base URL accordingly.
+  `http://localhost:3333`) so the generated links look like
+  `http://127.0.0.1:3333/downloads/<id>/<ext>`. In remote deployments, point it
+  at your public host (e.g., `https://lyrics.example.com`). Only include a
+  `:port` suffix when the HTTP server listens on a nonstandard port (e.g.,
+  `https://lyrics.example.com:8443`). If you override the local port via `PORT`
+  or CLI flags, update the base URL accordingly.
 - **Inline:** `MR_MAGIC_EXPORT_BACKEND=inline` is handy for sandboxes that
-    prohibit writes. Instead of touching the file system or Redis, each export is
-    returned inline in the tool/server response with `content` populated and
-    `skipped: true` to signal that persistence was intentionally bypassed (not
-    that the export failed).
+  prohibit writes. Instead of touching the file system or Redis, each export is
+  returned inline in the tool/server response with `content` populated and
+  `skipped: true` to signal that persistence was intentionally bypassed (not
+  that the export failed).
 - **Temporary files:** `MR_MAGIC_TMP_DIR` controls where internal debug
-    artifacts land (defaults to `os.tmpdir()`), so remote runners that disallow
-    root writes can set `/tmp/mr-magic` or similar.
+  artifacts land (defaults to `os.tmpdir()`), so remote runners that disallow
+  root writes can set `/tmp/mr-magic` or similar.
 
 ## Local deployment
 
@@ -233,8 +235,8 @@ servers running.
   bundled CLI: `npm run server:mcp` or call `node ./src/bin/mcp-server.js`).
 - **MCP server (Streamable HTTP)** for remote MCP clients that speak the Streamable HTTP
   transport (`npm run server:mcp:http`). When running the Streamable HTTP transport
-in remote environments, restrict ingress (e.g., `0.0.0.0:3444` behind auth)
-and provide allowed host/origin headers via the MCP SDK options if needed.
+  in remote environments, restrict ingress (e.g., `0.0.0.0:3444` behind auth)
+  and provide allowed host/origin headers via the MCP SDK options if needed.
 - **Standard JSON HTTP server** for container/remote automation (`npm run server:http`).
 - **CLI** for ad-hoc/manual usage (one-off SSH sessions, CI jobs, or ephemeral
   workers). Invoke with `npm run cli -- <subcommand>` or `npx mr-magic-mcp-cli
@@ -245,18 +247,18 @@ and provide allowed host/origin headers via the MCP SDK options if needed.
 
 Both STDIO and Streamable HTTP transports expose the same tool registry:
 
-| Tool name                | Purpose                                                                 |
-| ------------------------ | ----------------------------------------------------------------------- |
-| `find_lyrics`            | Fetch best lyrics (prefers synced) plus metadata and payload.           |
-| `build_catalog_payload`  | Return a compact record (title/link/lyrics) for Airtable-style inserts (supports structured lyric payloads). |
-| `find_synced_lyrics`     | Like `find_lyrics` but rejects plain-only results.                      |
-| `search_lyrics`          | List candidate matches across providers without hydration.              |
-| `search_provider`        | Query a single provider (requires the `provider` flag).                 |
-| `get_provider_status`    | Report readiness and notes for each provider.                           |
-| `export_lyrics`          | Download + write plain/LRC/SRT/romanized files to disk.                 |
-| `format_lyrics`          | Format lyrics in memory (optional romanization) for display.            |
-| `select_match`           | Pick a prior result by provider/index/synced flag.                      |
-| `runtime_status`         | Snapshot provider readiness plus present env vars.                      |
+| Tool name               | Purpose                                                                                                      |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `find_lyrics`           | Fetch best lyrics (prefers synced) plus metadata and payload.                                                |
+| `build_catalog_payload` | Return a compact record (title/link/lyrics) for Airtable-style inserts (supports structured lyric payloads). |
+| `find_synced_lyrics`    | Like `find_lyrics` but rejects plain-only results.                                                           |
+| `search_lyrics`         | List candidate matches across providers without hydration.                                                   |
+| `search_provider`       | Query a single provider (requires the `provider` flag).                                                      |
+| `get_provider_status`   | Report readiness and notes for each provider.                                                                |
+| `export_lyrics`         | Download + write plain/LRC/SRT/romanized files to disk.                                                      |
+| `format_lyrics`         | Format lyrics in memory (optional romanization) for display.                                                 |
+| `select_match`          | Pick a prior result by provider/index/synced flag.                                                           |
+| `runtime_status`        | Snapshot provider readiness plus present env vars.                                                           |
 
 #### Safe lyric payload handoff (Airtable-friendly)
 
@@ -328,10 +330,7 @@ server:mcp`. For example, TypingMind expects a single command and doesn’t set
       "timeout": 60,
       "type": "stdio",
       "command": "npm",
-      "args": [
-        "run",
-        "server:mcp"
-      ],
+      "args": ["run", "server:mcp"],
       "cwd": "/Users/naji/Documents/Code/MCP/mr-magic-mcp-server"
     }
   }

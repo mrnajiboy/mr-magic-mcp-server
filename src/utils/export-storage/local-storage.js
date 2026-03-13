@@ -22,7 +22,8 @@ function ensureDirExists(dirPath) {
 
 export default class LocalStorage {
   constructor(baseDir) {
-    this.baseDir = baseDir || process.env.MR_MAGIC_EXPORT_DIR || path.resolve(process.cwd(), 'exports');
+    this.baseDir =
+      baseDir || process.env.MR_MAGIC_EXPORT_DIR || path.resolve(process.cwd(), 'exports');
   }
 
   async store({ content, extension, baseName }) {

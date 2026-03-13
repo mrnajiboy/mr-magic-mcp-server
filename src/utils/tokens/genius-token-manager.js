@@ -48,7 +48,9 @@ async function fetchClientCredentialsToken() {
     logger.info('Genius token refreshed', { ttlSeconds: ttl });
     return cachedToken;
   } catch (error) {
-    logger.error('Failed to refresh Genius token', { error: error.response?.data || error.message });
+    logger.error('Failed to refresh Genius token', {
+      error: error.response?.data || error.message
+    });
     return null;
   }
 }

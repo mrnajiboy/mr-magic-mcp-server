@@ -47,12 +47,13 @@ function normalizeBody(body) {
   const meta = matcher.track || {};
   const lyricsBody = body['track.lyrics.get']?.message?.body?.lyrics?.lyrics_body || '';
   const subtitlesRoot = body['track.subtitles.get']?.message?.body;
-  const subtitleEntry = subtitlesRoot?.subtitle_list?.find((entry) => {
-    if (!entry) return false;
-    if (entry.subtitle_body) return true;
-    if (entry.subtitle?.subtitle_body) return true;
-    return Boolean(entry.subtitle_id || entry.subtitle?.subtitle_id);
-  }) ?? null;
+  const subtitleEntry =
+    subtitlesRoot?.subtitle_list?.find((entry) => {
+      if (!entry) return false;
+      if (entry.subtitle_body) return true;
+      if (entry.subtitle?.subtitle_body) return true;
+      return Boolean(entry.subtitle_id || entry.subtitle?.subtitle_id);
+    }) ?? null;
   let syncedLines = [];
   const resolveBody = () => {
     if (!subtitleEntry) return null;
@@ -77,7 +78,9 @@ function normalizeBody(body) {
   const syncedLyrics = syncedLines
     .map((item) => {
       const time = item?.time || {};
-      return `[${time.minutes.toString().padStart(2, '0')}:${time.seconds.toString().padStart(2, '0')}.${(time.hundredths || 0)
+      return `[${time.minutes.toString().padStart(2, '0')}:${time.seconds.toString().padStart(2, '0')}.${(
+        time.hundredths || 0
+      )
         .toString()
         .padStart(2, '0')}] ${item.text}`.trim();
     })

@@ -8,7 +8,10 @@ export function detectSyncedState(syncedLyrics) {
     return { hasSynced: false, timestampCount: 0 };
   }
   const timestampRegex = /\[(\d{1,2}:)?\d{1,2}:[0-9]{2}(?:\.|:)\d{1,3}\]/;
-  const timestampCount = lines.reduce((count, line) => (timestampRegex.test(line) ? count + 1 : count), 0);
+  const timestampCount = lines.reduce(
+    (count, line) => (timestampRegex.test(line) ? count + 1 : count),
+    0
+  );
   return { hasSynced: timestampCount > 1, timestampCount };
 }
 

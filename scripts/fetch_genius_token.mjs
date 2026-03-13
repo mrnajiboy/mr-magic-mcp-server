@@ -3,6 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import axios from 'axios';
+import '../src/utils/config.js';
 
 const TOKEN_ENDPOINT = 'https://api.genius.com/oauth/token';
 
@@ -37,7 +38,13 @@ async function main() {
 
     const cachePath = process.env.GENIUS_TOKEN_CACHE || path.resolve('.cache', 'genius-token.json');
     await mkdir(path.dirname(cachePath), { recursive: true });
-    await writeFile(cachePath, JSON.stringify({ access_token: accessToken, expires_at: Date.now() + (expiresIn || 3600) * 1000 }));
+    await writeFile(
+      cachePath,
+      JSON.stringify({
+        access_token: accessToken,
+        expires_at: Date.now() + (expiresIn || 3600) * 1000
+      })
+    );
     console.log(`Token cached to ${cachePath}`);
   } catch (error) {
     console.error('Failed to refresh Genius token:', error.response?.data || error.message);

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-import 'dotenv/config';
+import '../utils/config.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
@@ -53,7 +54,9 @@ export async function startMcpServer() {
     transport: 'stdio'
   };
   logger.info('Lyrics MCP server listening on stdio', readyDetails);
-  process.stderr.write(`Mr. Magic MCP server running: transport=stdio, name=${readyDetails.name}\n`);
+  process.stderr.write(
+    `Mr. Magic MCP server running: transport=stdio, name=${readyDetails.name}\n`
+  );
 }
 
 function isDirectExecution() {

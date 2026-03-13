@@ -29,7 +29,7 @@ async function querySearch(track) {
     timeout: HTTP_TIMEOUT_MS,
     headers: {
       'User-Agent': MOZILLA_USER_AGENT,
-      'Accept': 'application/json',
+      Accept: 'application/json',
       'lrclib-client': 'MrMagicLyricsMCP',
       'x-user-agent': MOZILLA_USER_AGENT
     }

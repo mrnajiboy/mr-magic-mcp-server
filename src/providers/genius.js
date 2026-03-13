@@ -18,7 +18,9 @@ const MOZILLA_USER_AGENT =
 const logger = createLogger('provider:genius');
 
 async function ensureGeniusAuth() {
-  const hasClientCredentials = Boolean(getEnvValue('GENIUS_CLIENT_ID') && getEnvValue('GENIUS_CLIENT_SECRET'));
+  const hasClientCredentials = Boolean(
+    getEnvValue('GENIUS_CLIENT_ID') && getEnvValue('GENIUS_CLIENT_SECRET')
+  );
   if (hasClientCredentials) {
     await getGeniusToken();
     return;
@@ -73,7 +75,9 @@ async function searchCatalog(query) {
       if (token) {
         try {
           const data = await attempt(token);
-          return (data?.response?.hits ?? []).map((hit) => normalizeHit(hit, query)).filter(Boolean);
+          return (data?.response?.hits ?? [])
+            .map((hit) => normalizeHit(hit, query))
+            .filter(Boolean);
         } catch (retryError) {
           logger.error('Genius search retry failed', { error: retryError, query });
         }
@@ -156,7 +160,9 @@ function extractFromNodes(nodes, $) {
   nodes.forEach((element) => {
     const cleaned = $(element)
       .clone()
-      .find('script,noscript,img,style,aside,.song_media_dropdown,.header_with_cover_art-primary_info')
+      .find(
+        'script,noscript,img,style,aside,.song_media_dropdown,.header_with_cover_art-primary_info'
+      )
       .remove()
       .end();
 
@@ -208,7 +214,8 @@ export async function fetchLyricsForGeniusSong(url) {
     timeout: HTTP_TIMEOUT_MS,
     headers: {
       'User-Agent': MOZILLA_USER_AGENT,
-      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+      Accept:
+        'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
       'Accept-Language': 'en-US,en;q=0.9',
       Referer: 'https://genius.com/',
       'Sec-Fetch-Mode': 'navigate',

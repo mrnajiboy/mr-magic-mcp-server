@@ -3,11 +3,13 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { chromium } from 'playwright-chromium';
+import '../src/utils/config.js';
 
 const AUTH_URL = 'https://auth.musixmatch.com/';
 
 async function saveToken(token, desktopCookie) {
-  const cachePath = process.env.MUSIXMATCH_TOKEN_CACHE || path.resolve('.cache', 'musixmatch-token.json');
+  const cachePath =
+    process.env.MUSIXMATCH_TOKEN_CACHE || path.resolve('.cache', 'musixmatch-token.json');
   await mkdir(path.dirname(cachePath), { recursive: true });
   const payload = { token };
   if (desktopCookie) {

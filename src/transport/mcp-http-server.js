@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import 'dotenv/config';
+import '../utils/config.js';
 import { randomUUID } from 'node:crypto';
 
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
@@ -18,8 +18,8 @@ export async function startMcpHttpServer(options = {}) {
   const host = options.remote ? '0.0.0.0' : options.host || '127.0.0.1';
   const port = Number(options.port) || 3444;
 
-const server = new Server(
-  { name: 'mr-magic-mcp-server-mcp-http', version: '1.0.0' },
+  const server = new Server(
+    { name: 'mr-magic-mcp-server-mcp-http', version: '1.0.0' },
     { capabilities: { tools: {} } }
   );
 
@@ -55,8 +55,15 @@ const server = new Server(
   return new Promise((resolve) => {
     const httpServer = app.listen(port, host, () => {
       const endpoint = `http://${host}:${port}/mcp`;
-      logger.info('MCP HTTP server listening', { host, port, endpoint, sessionless: !transport.sessionId });
-      process.stderr.write(`Mr. Magic MCP HTTP server running: endpoint=${endpoint}, sessionless=${!transport.sessionId}\n`);
+      logger.info('MCP HTTP server listening', {
+        host,
+        port,
+        endpoint,
+        sessionless: !transport.sessionId
+      });
+      process.stderr.write(
+        `Mr. Magic MCP HTTP server running: endpoint=${endpoint}, sessionless=${!transport.sessionId}\n`
+      );
       resolve(httpServer);
     });
   });

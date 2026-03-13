@@ -19,7 +19,11 @@ export default class RedisStorage {
     const value = typeof content === 'string' ? content : JSON.stringify(content);
 
     try {
-      await getSharedRedisClient({ url: this.url, token: this.token, context: 'export-storage' }).set(key, value, this.ttl);
+      await getSharedRedisClient({
+        url: this.url,
+        token: this.token,
+        context: 'export-storage'
+      }).set(key, value, this.ttl);
     } catch (error) {
       return new ExportStorageResult({ content, skipped: true });
     }

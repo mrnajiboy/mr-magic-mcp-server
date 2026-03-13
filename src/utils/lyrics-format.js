@@ -3,46 +3,46 @@ import Hangul from 'hangul-js';
 const HANGUL_REGEX = /[\u1100-\u11FF\u3130-\u318F\uAC00-\uD7AF]/;
 
 const ROMAN_MAP = {
-  'ㄱ': 'g',
-  'ㄲ': 'kk',
-  'ㄴ': 'n',
-  'ㄷ': 'd',
-  'ㄸ': 'tt',
-  'ㄹ': 'r',
-  'ㅁ': 'm',
-  'ㅂ': 'b',
-  'ㅃ': 'pp',
-  'ㅅ': 's',
-  'ㅆ': 'ss',
-  'ㅇ': 'ng',
-  'ㅈ': 'j',
-  'ㅉ': 'jj',
-  'ㅊ': 'ch',
-  'ㅋ': 'k',
-  'ㅌ': 't',
-  'ㅍ': 'p',
-  'ㅎ': 'h',
-  'ㅏ': 'a',
-  'ㅐ': 'ae',
-  'ㅑ': 'ya',
-  'ㅒ': 'yae',
-  'ㅓ': 'eo',
-  'ㅔ': 'e',
-  'ㅕ': 'yeo',
-  'ㅖ': 'ye',
-  'ㅗ': 'o',
-  'ㅘ': 'wa',
-  'ㅙ': 'wae',
-  'ㅚ': 'wae',
-  'ㅛ': 'yo',
-  'ㅜ': 'u',
-  'ㅝ': 'weo',
-  'ㅞ': 'we',
-  'ㅟ': 'wi',
-  'ㅠ': 'yu',
-  'ㅡ': 'eu',
-  'ㅢ': 'ui',
-  'ㅣ': 'i'
+  ㄱ: 'g',
+  ㄲ: 'kk',
+  ㄴ: 'n',
+  ㄷ: 'd',
+  ㄸ: 'tt',
+  ㄹ: 'r',
+  ㅁ: 'm',
+  ㅂ: 'b',
+  ㅃ: 'pp',
+  ㅅ: 's',
+  ㅆ: 'ss',
+  ㅇ: 'ng',
+  ㅈ: 'j',
+  ㅉ: 'jj',
+  ㅊ: 'ch',
+  ㅋ: 'k',
+  ㅌ: 't',
+  ㅍ: 'p',
+  ㅎ: 'h',
+  ㅏ: 'a',
+  ㅐ: 'ae',
+  ㅑ: 'ya',
+  ㅒ: 'yae',
+  ㅓ: 'eo',
+  ㅔ: 'e',
+  ㅕ: 'yeo',
+  ㅖ: 'ye',
+  ㅗ: 'o',
+  ㅘ: 'wa',
+  ㅙ: 'wae',
+  ㅚ: 'wae',
+  ㅛ: 'yo',
+  ㅜ: 'u',
+  ㅝ: 'weo',
+  ㅞ: 'we',
+  ㅟ: 'wi',
+  ㅠ: 'yu',
+  ㅡ: 'eu',
+  ㅢ: 'ui',
+  ㅣ: 'i'
 };
 
 function normalizeLines(text = '') {
@@ -74,11 +74,7 @@ function romanizeWord(word) {
     return word;
   }
   const romanized = grouped
-    .map((characters) =>
-      characters
-        .map((char) => ROMAN_MAP[char] ?? char)
-        .join('')
-    )
+    .map((characters) => characters.map((char) => ROMAN_MAP[char] ?? char).join(''))
     .join('');
   if (!romanized) return word;
   return romanized[0]?.toUpperCase() + romanized.slice(1);
@@ -116,9 +112,7 @@ export function formatPlainStanzas(plainLyrics) {
     .map((paragraph) => paragraph.trim())
     .filter(Boolean);
   if (paragraphs.length > 1) {
-    return paragraphs
-      .map((paragraph) => normalizeLines(paragraph).join('\n'))
-      .join('\n\n');
+    return paragraphs.map((paragraph) => normalizeLines(paragraph).join('\n')).join('\n\n');
   }
   const lines = normalizeLines(plainLyrics);
   if (!lines.length) return '';
@@ -149,15 +143,17 @@ export function buildLrc(syncedLyrics) {
 export function buildSrt(syncedLyrics) {
   if (!syncedLyrics) return '';
   const lines = normalizeLines(syncedLyrics);
-  const entries = lines.map((line, idx) => {
-    const match = line.match(/^\[(\d{2}):(\d{2})\.(\d{2})\](.*)$/);
-    if (!match) {
-      return null;
-    }
-    const [, minutes, seconds, centiseconds, text] = match;
-    const startMs = Number(minutes) * 60000 + Number(seconds) * 1000 + Number(centiseconds) * 10;
-    return { startMs, text: text.trim(), index: idx };
-  }).filter(Boolean);
+  const entries = lines
+    .map((line, idx) => {
+      const match = line.match(/^\[(\d{2}):(\d{2})\.(\d{2})\](.*)$/);
+      if (!match) {
+        return null;
+      }
+      const [, minutes, seconds, centiseconds, text] = match;
+      const startMs = Number(minutes) * 60000 + Number(seconds) * 1000 + Number(centiseconds) * 10;
+      return { startMs, text: text.trim(), index: idx };
+    })
+    .filter(Boolean);
   return entries
     .map((entry, idx) => {
       const next = entries[idx + 1];
