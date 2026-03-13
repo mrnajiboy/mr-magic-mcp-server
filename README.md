@@ -1,7 +1,7 @@
 # Mr. Magic MCP Server
 
 Mr. Magic bridges LRCLIB, Genius, Musixmatch, and Melon so MCP clients, Standard
-HTTP automations or CLI afficionados can all request lyrics from a single toolchain. 
+HTTP automations or CLI afficionados can all request lyrics from a single toolchain.
 
 ## Prerequisites
 
@@ -76,8 +76,8 @@ MR_MAGIC_QUIET_STDIO=0                     # set to 1 to silence stdio logs
   Quote it only when the path contains spaces or special characters
   (`MR_MAGIC_EXPORT_DIR="/Users/you/My Exports"`).
 - **PORT** overrides both HTTP entrypoints when your platform injects one
-  (Render, Fly, etc.). If unset, the JSON HTTP automation server binds to
-  `3333` and the MCP HTTP transport binds to `3444`. CLI flags such as
+  (Render, Fly, etc.). If unset, the MCP HTTP transport binds to `3444` and
+  the JSON HTTP automation server binds to `3333`. CLI flags such as
   `mr-magic-mcp-server server --port 4000` always take precedence.
 - **MR_MAGIC_DOWNLOAD_BASE_URL** should match the public URL that exposes the
   `/downloads` routes. Include `:port` only when the HTTP server isn’t using
@@ -175,8 +175,8 @@ servers running.
 - **MCP server (Stdio)** for local Model Context Protocol clients (use the
   bundled CLI: `npm run server:mcp` or call `node ./src/bin/mcp-server.js`).
 - **MCP server (Streamable HTTP)** for remote MCP clients that speak the Streamable HTTP
-  transport (`npm run server:mcp:http`). When running the Streamable HTTP transport 
-in remote environments, restrict ingress (e.g., `0.0.0.0:3444` behind auth) 
+  transport (`npm run server:mcp:http`). When running the Streamable HTTP transport
+in remote environments, restrict ingress (e.g., `0.0.0.0:3444` behind auth)
 and provide allowed host/origin headers via the MCP SDK options if needed.
 - **Standard JSON HTTP server** for container/remote automation (`npm run server:http`).
 - **CLI** for ad-hoc/manual usage (one-off SSH sessions, CI jobs, or ephemeral
@@ -329,3 +329,13 @@ schema exposed via the CLI, HTTP API, and MCP tools.
 
 See `CHANGELOG.md` for a summary of recent updates, including MCP transport
 changes and test improvements.
+
+## LICENSE
+
+[MIT LICENSE](/LICENSE)
+
+I'm not liable for any infrigement or ban from services that could occur
+as a result of using this software. Your usage is solely your responsibility.
+Godspeed.
+
+© 2026 Kenyatta Naji Johnson-Adams
