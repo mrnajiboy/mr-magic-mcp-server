@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { createRequire } from 'node:module';
 
 export class ExportStorageResult {
   constructor({ filePath = null, content = null, skipped = false, url = null, expiresAt = null }) {
@@ -14,6 +15,8 @@ export function buildId(prefix = 'export') {
   return `${prefix}-${crypto.randomUUID()}`;
 }
 
+const requireBackend = createRequire(import.meta.url);
+
 export function createExportStorage(config = {}) {
   const backend = (process.env.MR_MAGIC_EXPORT_BACKEND || 'local').toLowerCase();
   if (backend === 'redis') {
@@ -26,8 +29,4 @@ export function createExportStorage(config = {}) {
   }
   const { default: LocalStorage } = requireBackend('./export-storage/local-storage.js');
   return new LocalStorage(config.local?.baseDir);
-}
-
-function requireBackend(modulePath) {
-  return typeof require === 'function' ? require(modulePath) : null;
 }
