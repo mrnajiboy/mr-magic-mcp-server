@@ -25,14 +25,15 @@ MUSIXMATCH_TOKEN=your_musixmatch_token
 MELON_COOKIE=your_melon_session_cookie (optional)
 
 # Export + storage controls
-MR_MAGIC_EXPORT_BACKEND=local            # local | inline | redis
-MR_MAGIC_EXPORT_DIR=/absolute/path       # used by local backend
-MR_MAGIC_EXPORT_TTL_SECONDS=3600         # redis expiry if enabled
+PORT=3333                               # override whichever HTTP server you launch
+MR_MAGIC_EXPORT_BACKEND=local # local | inline | redis
+MR_MAGIC_EXPORT_DIR=/absolute/path         # used by local backend
+MR_MAGIC_EXPORT_TTL_SECONDS=900           # redis expiry if enabled
 MR_MAGIC_DOWNLOAD_BASE_URL=https://example.com/magic
-UPSTASH_REDIS_REST_URL=https://...       # required when using redis exports
-UPSTASH_REDIS_REST_TOKEN=...             # required when using redis exports
-MR_MAGIC_TMP_DIR=/tmp/mr-magic           # overrides os.tmpdir for temp artifacts
-MR_MAGIC_QUIET_STDIO=0                   # set to 1 to silence stdio logs
+UPSTASH_REDIS_REST_URL=https://...         # required when using redis exports
+UPSTASH_REDIS_REST_TOKEN=...               # required when using redis exports
+MR_MAGIC_TMP_DIR=/tmp/mr-magic             # overrides os.tmpdir for temp artifacts
+MR_MAGIC_QUIET_STDIO=0                     # set to 1 to silence stdio logs
 ```
 
 - Genius and Musixmatch tokens remain **required** when those providers are used.
@@ -41,6 +42,8 @@ MR_MAGIC_QUIET_STDIO=0                   # set to 1 to silence stdio logs
   - `local` (default) writes files to `MR_MAGIC_EXPORT_DIR` or `exports/`.
   - `inline` skips writes and just returns the formatted strings in tool responses.
   - `redis` pushes each format to Upstash Redis and returns signed download URLs (requires the Upstash env vars above plus a `MR_MAGIC_DOWNLOAD_BASE_URL` so clients know where to fetch).
+- `MR_MAGIC_EXPORT_DIR` can be written plainly (e.g., `/tmp/mr-magic-exports`). Only quote it if the path contains spaces or characters that would confuse shell/env parsing (`MR_MAGIC_EXPORT_DIR="/Users/you/My Exports"`).
+- `PORT` is honored by both HTTP entrypoints when your platform injects one (e.g., Render/Fly). If unset, the JSON automation server defaults to `3333` and the MCP HTTP transport defaults to `3444`. CLI flags such as `mr-magic-mcp-server server --port 4000` still take precedence.
 - `MR_MAGIC_QUIET_STDIO=1` keeps stdio transports silent by downgrading log noise.
 - In remote deployments (Render/Fly/Netlify/etc.), inject the same variable names in the platform dashboard—no `.env` file required.
 
@@ -102,13 +105,13 @@ Until the package is published to npm, most MCP clients need to launch the stdio
 
 If/when the project is published and installed globally (e.g., `npm install -g mr-magic-mcp-server`), MCP clients can invoke the installed binary directly (`mr-magic-mcp-server-mcp`) without the `cd`/shell workaround because the executable will already be on `PATH`.
 
-Note: `npm run server:mcp` now keeps stdout clean (all logging goes to stderr), so stdio-based clients see only the JSON responses regardless of which launch style you use.
+Note: `npm run server:mcp` keeps stdout clean (all logging goes to stderr), so stdio-based clients see only the JSON responses regardless of which launch style you use.
 
 ### Export + download configuration
 
 - **Local files:** The default `local` backend writes into `exports/` (repo root). Override with `MR_MAGIC_EXPORT_DIR=/absolute/path` when the working directory isn’t writable. The `export_lyrics` tool also includes the raw `content` field so clients can still inline results if file writes fail.
-- **Redis downloads:** Set `MR_MAGIC_EXPORT_BACKEND=redis` plus `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, and `MR_MAGIC_DOWNLOAD_BASE_URL`. Each export is cached in Upstash for `MR_MAGIC_EXPORT_TTL_SECONDS` seconds and exposed via `GET /downloads/:id/:ext` on the HTTP automation server. MCP clients can take the returned URLs and download the files from the same HTTP server.
-- **Inline:** `MR_MAGIC_EXPORT_BACKEND=inline` is handy for sandboxes that prohibit writes; tools simply echo the strings in the response.
+- **Redis downloads:** Set `MR_MAGIC_EXPORT_BACKEND=redis` plus `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, and `MR_MAGIC_DOWNLOAD_BASE_URL`. Each export is cached in Upstash for `MR_MAGIC_EXPORT_TTL_SECONDS` seconds, but the download link should point at *your own* HTTP server’s `/downloads/:id/:ext` route (not the Upstash REST URL). In other words, `MR_MAGIC_DOWNLOAD_BASE_URL` must be the publicly reachable base URL for the HTTP automation server (e.g., `https://lyrics.example.com`), and request paths are appended to it (`https://lyrics.example.com/downloads/...`). MCP clients can take the returned URLs and download the files from the same HTTP server or proxy where `/downloads` is routed.
+- **Inline:** `MR_MAGIC_EXPORT_BACKEND=inline` is handy for sandboxes that prohibit writes. Instead of touching the file system or Redis, each export is returned inline in the tool/server response with `content` populated and `skipped: true` to signal that persistence was intentionally bypassed (not that the export failed).
 - **Temporary files:** `MR_MAGIC_TMP_DIR` controls where internal debug artifacts land (defaults to `os.tmpdir()`), so remote runners that disallow root writes can set `/tmp/mr-magic` or similar.
 
 ## Remote deployment
