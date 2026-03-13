@@ -7,6 +7,7 @@ import { createLogger } from '../utils/logger.js';
 
 const SEARCH_URL = 'https://www.melon.com/search/song/index.htm';
 const LYRIC_URL = 'https://www.melon.com/song/lyricInfo.json';
+const HTTP_TIMEOUT_MS = Number(process.env.MR_MAGIC_HTTP_TIMEOUT_MS || 10000);
 const USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36';
 let cachedMelonCookie = null;
@@ -20,6 +21,7 @@ async function ensureMelonCookie() {
   }
   if (cachedMelonCookie) return cachedMelonCookie;
   const response = await axios.get('https://www.melon.com', {
+    timeout: HTTP_TIMEOUT_MS,
     headers: {
       'User-Agent': USER_AGENT,
       Accept: 'text/html'
@@ -57,6 +59,7 @@ async function buildSearchHeaders() {
 async function fetchSearchPage(track) {
   const headers = await buildSearchHeaders();
   const response = await axios.get(SEARCH_URL, {
+    timeout: HTTP_TIMEOUT_MS,
     headers,
     params: {
       q: `${(track.artist || '').trim()} ${(track.title || '').trim()}`.trim(),
@@ -135,7 +138,10 @@ async function fetchLyricInfo(songId) {
   const searchParams = new URLSearchParams({ songId });
   const headers = await buildLyricHeaders(songId);
   try {
-    const response = await axios.get(`${LYRIC_URL}?${searchParams.toString()}`, { headers });
+    const response = await axios.get(`${LYRIC_URL}?${searchParams.toString()}`, {
+      timeout: HTTP_TIMEOUT_MS,
+      headers
+    });
     return response.data;
   } catch (error) {
     logger.error('Melon lyricInfo fetch failed', { error, songId });

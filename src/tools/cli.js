@@ -14,7 +14,12 @@ import {
   pickIndex,
   autoPick
 } from '../core/find-service.js';
-import { buildActionContext, buildPayloadFromResult } from '../services/lyrics-service.js';
+import {
+  buildActionContext,
+  buildPayloadFromResult,
+  formatRecord
+} from '../services/lyrics-service.js';
+import { exportLyrics, deriveFormatSet } from '../core/export.js';
 import { fetchFromMelon } from '../providers/melon.js';
 import { fetchFromGenius } from '../providers/genius.js';
 

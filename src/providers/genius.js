@@ -11,6 +11,7 @@ import {
 } from '../utils/tokens/genius-token-manager.js';
 
 const BASE_API = 'https://api.genius.com';
+const HTTP_TIMEOUT_MS = Number(process.env.MR_MAGIC_HTTP_TIMEOUT_MS || 10000);
 const MOZILLA_USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36';
 
@@ -52,6 +53,7 @@ async function searchCatalog(query) {
   const attempt = async (bearer) => {
     const response = await axios.get(`${BASE_API}/search`, {
       params: { q: query },
+      timeout: HTTP_TIMEOUT_MS,
       headers: {
         Authorization: `Bearer ${bearer}`,
         'User-Agent': MOZILLA_USER_AGENT
@@ -203,6 +205,7 @@ function stripSummaryText(text) {
 
 export async function fetchLyricsForGeniusSong(url) {
   const response = await axios.get(url, {
+    timeout: HTTP_TIMEOUT_MS,
     headers: {
       'User-Agent': MOZILLA_USER_AGENT,
       Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',

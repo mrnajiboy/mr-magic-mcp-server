@@ -372,7 +372,7 @@ export async function handleMcpTool(name, args = {}) {
 
   if (name === 'runtime_status') {
     return {
-      providers: getProviderStatus(),
+      providers: await getProviderStatus(),
       env: Object.keys(process.env).filter((key) =>
         ['GENIUS_ACCESS_TOKEN', 'MUSIXMATCH_TOKEN', 'MELON_COOKIE'].includes(key)
       )

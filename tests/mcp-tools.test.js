@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 
 import { mcpToolDefinitions, handleMcpTool } from '../src/transport/mcp-tools.js';
+import { buildMcpResponse } from '../src/transport/mcp-response.js';
 
 const sampleTrack = {
   title: 'Kill This Love',
@@ -114,6 +115,63 @@ async function testRuntimeStatusIncludesEnvOverview() {
   assert.ok(Array.isArray(response?.env));
 }
 
+async function testMcpResponseHandlesMultilineLyrics() {
+  const lyricBlob = `This line has quotes "like this" and commas,
+and spans multiple lines,
+ending with unicode ♥`;
+  const result = {
+    provider: 'test-provider',
+    track: { title: 'Sample', artist: 'Tester' },
+    lyrics: lyricBlob,
+    extras: { airtableEscapedContent: 'Line 1\nLine 2\nLine 3' }
+  };
+  const response = buildMcpResponse(result);
+  assert.equal(response.structuredContent, result, 'structuredContent should pass through original object');
+  const summary = response.content?.[0]?.text;
+  assert.ok(summary.includes('provider=test-provider'), 'summary should mention provider');
+  assert.ok(summary.includes('keys=['), 'summary should mention key list');
+}
+
+async function testMcpResponseHandlesStringResults() {
+  const lyricString = 'Line 1\nLine 2\nLine 3 "quoted"';
+  const response = buildMcpResponse(lyricString);
+  assert.deepEqual(response.structuredContent, { value: lyricString }, 'structuredContent should wrap string payloads');
+  const summary = response.content?.[0]?.text;
+  assert.ok(typeof summary === 'string' && summary.length > 0, 'summary text should exist for strings');
+  assert.ok(summary.includes('Line 1'), 'summary should include first line of lyrics');
+}
+
+async function testMcpResponsePreservesArrayResults() {
+  const items = [{ provider: 'lrclib', result: { title: 'Song' } }];
+  const response = buildMcpResponse(items);
+  assert.deepEqual(
+    response.structuredContent,
+    { items },
+    'structuredContent should wrap array payloads for MCP tools'
+  );
+  assert.ok(response.content?.[1]?.text.includes('lrclib'), 'raw JSON content should include serialized array data');
+}
+
+async function testExportLyricsReturnsFileUrl() {
+  const response = await handleMcpTool('export_lyrics', {
+    track: sampleTrack,
+    options: { formats: ['plain'] }
+  });
+
+  const plainExport = response?.exports?.plain;
+  if (plainExport && !plainExport.skipped) {
+    assert.ok(
+      plainExport.filePath || plainExport.url,
+      'plain export should include either filePath or url depending on storage backend'
+    );
+    if (plainExport.filePath) {
+      assert.ok(plainExport.url?.startsWith('file://'), 'local exports should include file URL');
+    } else {
+      assert.ok(typeof plainExport.url === 'string' && plainExport.url.length > 0, 'remote exports should include url');
+    }
+  }
+}
+
 async function run() {
   await testToolRegistry();
   await testFindLyricsTool();
@@ -127,6 +185,10 @@ async function run() {
   await testBuildCatalogPayloadWithAirtableSafePayload();
   await testSelectMatchErrors();
   await testRuntimeStatusIncludesEnvOverview();
+  await testMcpResponseHandlesMultilineLyrics();
+  await testMcpResponseHandlesStringResults();
+  await testMcpResponsePreservesArrayResults();
+  await testExportLyricsReturnsFileUrl();
 }
 
 run().catch((error) => {

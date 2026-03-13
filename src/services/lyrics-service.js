@@ -262,7 +262,14 @@ function buildAirtableEscapedContent(value) {
     const serialized = JSON.stringify(value);
     return typeof serialized === 'string' ? serialized.slice(1, -1) : value;
   } catch (error) {
-    return value;
+    return value
+      .replace(/\\/g, '\\\\')
+      .replace(/\r/g, '\\r')
+      .replace(/\n/g, '\\n')
+      .replace(/\t/g, '\\t')
+      .replace(/\f/g, '\\f')
+      .replace(/\b/g, '\\b')
+      .replace(/\"/g, '\\\"');
   }
 }
 

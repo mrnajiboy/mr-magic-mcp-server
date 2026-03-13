@@ -6,20 +6,24 @@ export class RedisClient {
       throw new Error('Redis client requires UPSTASH_REDIS_REST_URL and _TOKEN');
     }
     this.fingerprint = this.url.replace(/https?:\/\//, '').split('/')[0];
+    this.timeoutMs = Number(process.env.MR_MAGIC_HTTP_TIMEOUT_MS || 10000);
   }
 
   async set(key, value, ttlSeconds) {
-    const response = await fetch(`${this.url}/set/${encodeURIComponent(key)}/${encodeURIComponent(value)}?EX=${ttlSeconds}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${this.token}` }
-    });
+    const response = await this.request(
+      `${this.url}/set/${encodeURIComponent(key)}/${encodeURIComponent(value)}?EX=${ttlSeconds}`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${this.token}` }
+      }
+    );
     if (!response.ok) {
       throw new Error(`Redis set failed (${response.status})`);
     }
   }
 
   async get(key) {
-    const response = await fetch(`${this.url}/get/${encodeURIComponent(key)}`, {
+    const response = await this.request(`${this.url}/get/${encodeURIComponent(key)}`, {
       method: 'GET',
       headers: { Authorization: `Bearer ${this.token}` }
     });
@@ -28,6 +32,21 @@ export class RedisClient {
     }
     const data = await response.json();
     return data.result ?? null;
+  }
+
+  async request(url, init) {
+    const controller = new AbortController();
+    const timeoutHandle = setTimeout(() => controller.abort(), this.timeoutMs);
+    try {
+      return await fetch(url, { ...init, signal: controller.signal });
+    } catch (error) {
+      if (error?.name === 'AbortError') {
+        throw new Error(`Redis request timeout after ${this.timeoutMs}ms`);
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutHandle);
+    }
   }
 }
 

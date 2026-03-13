@@ -10,6 +10,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { createLogger } from '../utils/logger.js';
 
 import { mcpToolDefinitions, handleMcpTool } from './mcp-tools.js';
+import { buildMcpResponse } from './mcp-response.js';
 import { logTokenStatus } from './token-startup-log.js';
 
 export async function startMcpHttpServer(options = {}) {
@@ -26,7 +27,7 @@ const server = new Server(
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args = {} } = request.params;
     const result = await handleMcpTool(name, args);
-    return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+    return buildMcpResponse(result);
   });
 
   const transport = new StreamableHTTPServerTransport({

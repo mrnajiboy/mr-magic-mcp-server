@@ -62,6 +62,7 @@ UPSTASH_REDIS_REST_URL=  # Get from https://console.upstash.com/redis/rest, requ
 UPSTASH_REDIS_REST_TOKEN=  # Get from https://console.upstash.com/redis/rest, required if MR_MAGIC_EXPORT_BACKEND=redis
 MR_MAGIC_TMP_DIR=/tmp/ # Optional, default /tmp/. Used for temporary file storage during export generation. Only applies to local and redis, ignored for inline.                    
 MR_MAGIC_QUIET_STDIO=0  # Optional, default 0. If set to 1, suppresses all non-error logs to stdout. Useful when running in environments where you only want to capture errors, or when using the export functionality and don't want logs mixed in with export data.
+MR_MAGIC_HTTP_TIMEOUT_MS=10000 # Optional. Global outbound HTTP timeout in ms for provider/storage calls.
 LOG_LEVEL=info          # Optional, defaults to info. Accepts error|warn|info|debug. Overrides DEBUG.
 DEBUG=0                 # Optional. Any truthy value enables debug logging unless LOG_LEVEL overrides it.
 MR_MAGIC_ROOT=          # Optional. Force the project root used for resolving .env/.cache paths.
@@ -99,6 +100,9 @@ MUSIXMATCH_AUTO_FETCH=0 # Optional. When 1, provider will attempt to rerun the f
 - **MR_MAGIC_QUIET_STDIO** set to `1` silences stdio transports (helpful when a
   host MCP client expects clean JSON over stdout). When enabled, it forces
   `LOG_LEVEL=error` and disables `DEBUG` internally so stdout stays quiet.
+- **MR_MAGIC_HTTP_TIMEOUT_MS** (default `10000`) applies a global timeout to
+  outbound provider/export-storage network calls so slow upstream endpoints
+  fail fast instead of hanging MCP tool calls.
 - **MR_MAGIC_ROOT** overrides the project root used for loading `.env` and `.cache`.
   Useful when an MCP host launches the server from another directory.
 - **MR_MAGIC_ENV_PATH** lets you point to a specific `.env` file instead of the

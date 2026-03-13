@@ -10,6 +10,7 @@ import {
 } from '../utils/tokens/musixmatch-token-manager.js';
 
 const BASE_URL = 'https://apic-desktop.musixmatch.com/ws/1.1/macro.subtitles.get';
+const HTTP_TIMEOUT_MS = Number(process.env.MR_MAGIC_HTTP_TIMEOUT_MS || 10000);
 const MOZILLA_USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36';
 const DEFAULT_HEADERS = {
@@ -108,6 +109,7 @@ async function macroRequest(track) {
   const attempt = async (tok) => {
     const params = buildParams(track, tok);
     const response = await axios.get(`${BASE_URL}?${params.toString()}`, {
+      timeout: HTTP_TIMEOUT_MS,
       headers: DEFAULT_HEADERS
     });
     return response.data?.message?.body?.macro_calls || response.data?.message?.body || {};

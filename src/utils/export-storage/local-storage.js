@@ -3,6 +3,11 @@ import fs from 'node:fs';
 
 import { ExportStorageResult, buildId } from '../export-storage.js';
 
+function toFileUrl(filePath) {
+  if (!filePath) return null;
+  return new URL(`file://${filePath}`).toString();
+}
+
 function ensureDirExists(dirPath) {
   if (!dirPath) return null;
   try {
@@ -28,6 +33,6 @@ export default class LocalStorage {
     const id = buildId('file');
     const filePath = path.join(dir, `${baseName || id}.${extension}`);
     fs.writeFileSync(filePath, content, 'utf8');
-    return new ExportStorageResult({ filePath, content, skipped: false });
+    return new ExportStorageResult({ filePath, content, skipped: false, url: toFileUrl(filePath) });
   }
 }

@@ -7,6 +7,7 @@ function normalizeLrclibRecord(record) {
 }
 
 const BASE_URL = 'https://lrclib.net/api';
+const HTTP_TIMEOUT_MS = Number(process.env.MR_MAGIC_HTTP_TIMEOUT_MS || 10000);
 const MOZILLA_USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36';
 
@@ -25,6 +26,7 @@ async function querySearch(track) {
   const query = `${(artist || '').trim()} ${(title || '').trim()}`.trim();
   const response = await axios.get(`${BASE_URL}/search`, {
     params: { q: query },
+    timeout: HTTP_TIMEOUT_MS,
     headers: {
       'User-Agent': MOZILLA_USER_AGENT,
       'Accept': 'application/json',
@@ -43,8 +45,8 @@ export async function fetchFromLrclib(track) {
       return null;
     }
     const exactMatch = results.find((record) => {
-      const sameTitle = record.trackName?.toLowerCase() === track.title?.toLowerCase();
-      const sameArtist = record.artistName?.toLowerCase() === track.artist?.toLowerCase();
+      const sameTitle = record.title?.toLowerCase() === track.title?.toLowerCase();
+      const sameArtist = record.artist?.toLowerCase() === track.artist?.toLowerCase();
       return sameTitle && sameArtist;
     });
     return exactMatch ?? results[0];

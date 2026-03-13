@@ -24,6 +24,7 @@ export function getEnvValue(name) {
 }
 
 const DEFAULT_REQUIRED = ['GENIUS_ACCESS_TOKEN'];
+const warnedMissingEnvCache = new Set();
 
 export function getMissingEnvVars(requiredVars = DEFAULT_REQUIRED) {
   return requiredVars.filter((name) => !getEnvValue(name));
@@ -44,6 +45,11 @@ export function warnMissingEnv(requiredVars = DEFAULT_REQUIRED) {
   }
   const missing = getMissingEnvVars(requiredVars);
   if (missing.length > 0) {
+    const cacheKey = missing.slice().sort().join(',');
+    if (warnedMissingEnvCache.has(cacheKey)) {
+      return;
+    }
+    warnedMissingEnvCache.add(cacheKey);
     console.warn(`[env] Missing recommended variables: ${missing.join(', ')}`);
   }
 }
