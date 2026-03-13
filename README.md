@@ -29,7 +29,7 @@ MUSIXMATCH_TOKEN=your_musixmatch_token
 MELON_COOKIE=your_melon_session_cookie (optional)
 
 # Export + storage controls
-PORT=3333                               # override whichever HTTP server you launch
+PORT=                               # override whichever HTTP server you launch
 MR_MAGIC_EXPORT_BACKEND=local # local | inline | redis
 MR_MAGIC_EXPORT_DIR=/absolute/path         # used by local backend
 MR_MAGIC_EXPORT_TTL_SECONDS=900           # redis expiry if enabled
@@ -43,20 +43,21 @@ MR_MAGIC_QUIET_STDIO=0                     # set to 1 to silence stdio logs
 - Genius and Musixmatch tokens remain **required** when those providers are
   used.
 - Melon works without a cookie, but you can supply one for consistency.
-- `MR_MAGIC_EXPORT_BACKEND`
-  - `local` (default) writes files to `MR_MAGIC_EXPORT_DIR` or `exports/`.
-  - `inline` skips writes and just returns the formatted strings in tool
-    responses.
-  - `redis` pushes each format to Upstash Redis and returns signed download URLs
-    (requires the Upstash env vars above plus a `MR_MAGIC_DOWNLOAD_BASE_URL` so
-    clients know where to fetch).
-- `MR_MAGIC_EXPORT_DIR` can be written plainly (e.g., `/tmp/mr-magic-exports`).
-  Only quote it if the path contains spaces or characters that would confuse
-  shell/env parsing (`MR_MAGIC_EXPORT_DIR="/Users/you/My Exports"`).
-- `PORT` is honored by both HTTP entrypoints when your platform injects one
-  (e.g., Render/Fly). If unset, the JSON automation server defaults to `3333`
-  and the MCP HTTP transport defaults to `3444`. CLI flags such as
-  `mr-magic-mcp-server server --port 4000` still take precedence.
+- `MR_MAGIC_EXPORT_BACKEND` decides where formatted lyrics land:
+  - `local` (default) writes to `MR_MAGIC_EXPORT_DIR` (or `exports/` if unset).
+  - `inline` skips disk writes entirely and returns the formatted strings in
+    the API response.
+  - `redis` stores each format in Upstash and hands back signed download URLs
+    (requires the Upstash env vars above plus a
+    `MR_MAGIC_DOWNLOAD_BASE_URL` so clients know which HTTP server serves
+    `/downloads/:id/:ext`).
+- `MR_MAGIC_EXPORT_DIR` can be a plain absolute path (e.g., `/tmp/mr-magic`).
+  Quote it only when the path contains spaces or shell metacharacters
+  (`MR_MAGIC_EXPORT_DIR="/Users/you/My Exports"`).
+- `PORT` controls both HTTP entrypoints when the platform injects one (Render,
+  Fly, etc.). If unset, the JSON automation server uses `3333` and the MCP HTTP
+  transport uses `3444`. CLI flags always win: `mr-magic-mcp-server server --port 4000`
+  overrides both env and defaults.
 - `MR_MAGIC_QUIET_STDIO=1` keeps stdio transports silent by downgrading log
   noise.
 - In remote deployments (Render/Fly/Netlify/etc.), inject the same variable
