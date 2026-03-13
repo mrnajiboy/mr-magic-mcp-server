@@ -174,8 +174,11 @@ you use.
   whenever `redis` storage is enabled.
 - For local testing, set `MR_MAGIC_DOWNLOAD_BASE_URL=http://127.0.0.1:3333` (or
   `http://localhost:3333`) so the generated links look like
-  `http://127.0.0.1:3333/downloads/<id>/<ext>`. If you override the server port
-  via `PORT` or `--port`, update the base URL accordingly.
+  `http://127.0.0.1:3333/downloads/<id>/<ext>`. In remote deployments, point it
+  at your public host (e.g., `https://lyrics.example.com`). Only include a
+  `:port` suffix when the HTTP server listens on a nonstandard port (e.g.,
+  `https://lyrics.example.com:8443`). If you override the local port via `PORT`
+  or CLI flags, update the base URL accordingly.
 - **Inline:** `MR_MAGIC_EXPORT_BACKEND=inline` is handy for sandboxes that
   prohibit writes. Instead of touching the file system or Redis, each export is
   returned inline in the tool/server response with `content` populated and
