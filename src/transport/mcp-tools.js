@@ -188,7 +188,8 @@ export const mcpToolDefinitions = [
     description: 'Pick a single match from a previous search result based on provider/index filters.',
     inputSchema: {
       type: 'object',
-      description: 'Select a single result either by passing matches + criteria or by supplying match directly.',
+      description:
+        'Select a single result either by passing matches + criteria or by supplying match directly.',
       properties: {
         matches: {
           type: 'array',
@@ -197,15 +198,7 @@ export const mcpToolDefinitions = [
         },
         match: matchSchema,
         criteria: selectCriteriaSchema
-      },
-      anyOf: [
-        {
-          required: ['matches']
-        },
-        {
-          required: ['match']
-        }
-      ]
+      }
     }
   },
   {
