@@ -1,8 +1,9 @@
 import axios from 'axios';
 
 import { normalizeLyricRecord } from '../provider-result-schema.js';
-import { MUSIXMATCH_TOKEN, assertEnv } from '../utils/config.js';
+import { assertEnv } from '../utils/config.js';
 import { createLogger } from '../utils/logger.js';
+import { getMusixmatchToken, invalidateMusixmatchToken } from '../utils/tokens/musixmatch-token-manager.js';
 
 const BASE_URL = 'https://apic-desktop.musixmatch.com/ws/1.1/macro.subtitles.get';
 const MOZILLA_USER_AGENT =
@@ -98,12 +99,40 @@ function normalizeBody(body) {
 }
 
 async function macroRequest(track) {
-  assertEnv(['MUSIXMATCH_TOKEN']);
-  const params = buildParams(track, MUSIXMATCH_TOKEN);
-  const response = await axios.get(`${BASE_URL}?${params.toString()}`, {
-    headers: DEFAULT_HEADERS
-  });
-  return response.data?.message?.body?.macro_calls || response.data?.message?.body || {};
+  await ensureMusixmatchToken();
+  let token = await getMusixmatchToken();
+  const attempt = async (tok) => {
+    const params = buildParams(track, tok);
+    const response = await axios.get(`${BASE_URL}?${params.toString()}`, {
+      headers: DEFAULT_HEADERS
+    });
+    return response.data?.message?.body?.macro_calls || response.data?.message?.body || {};
+  };
+
+  try {
+    return await attempt(token);
+  } catch (error) {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      logger.warn('Musixmatch token rejected, invalidating', { status: error.response.status });
+      invalidateMusixmatchToken();
+      token = await getMusixmatchToken();
+      if (token) {
+        try {
+          return await attempt(token);
+        } catch (retryError) {
+          logger.error('Musixmatch retry failed', { error: retryError });
+        }
+      }
+    }
+    throw error;
+  }
+}
+
+async function ensureMusixmatchToken() {
+  const token = await getMusixmatchToken();
+  if (!token) {
+    assertEnv(['MUSIXMATCH_TOKEN']);
+  }
 }
 
 export async function fetchFromMusixmatch(track) {

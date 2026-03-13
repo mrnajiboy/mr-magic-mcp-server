@@ -31,6 +31,7 @@
     "format:check": "prettier --check .",
     "test": "node tests/run-tests.js",
     "fetch:musixmatch-token": "node scripts/fetch_musixmatch_token.mjs",
+    "fetch:genius-token": "node scripts/fetch_genius_token.mjs",
     "prepack": "npm run test"
   },
   "keywords": [

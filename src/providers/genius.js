@@ -2,8 +2,9 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 
 import { normalizeLyricRecord } from '../provider-result-schema.js';
-import { GENIUS_TOKEN, assertEnv } from '../utils/config.js';
+import { assertEnv, getEnvValue } from '../utils/config.js';
 import { createLogger } from '../utils/logger.js';
+import { getGeniusToken, invalidateGeniusToken } from '../utils/tokens/genius-token-manager.js';
 
 const BASE_API = 'https://api.genius.com';
 const MOZILLA_USER_AGENT =
@@ -11,9 +12,13 @@ const MOZILLA_USER_AGENT =
 
 const logger = createLogger('provider:genius');
 
-function getGeniusToken() {
+async function ensureGeniusAuth() {
+  const hasClientCredentials = Boolean(getEnvValue('GENIUS_CLIENT_ID') && getEnvValue('GENIUS_CLIENT_SECRET'));
+  if (hasClientCredentials) {
+    await getGeniusToken();
+    return;
+  }
   assertEnv(['GENIUS_ACCESS_TOKEN']);
-  return GENIUS_TOKEN;
 }
 
 function normalizeHit(hit, query) {
@@ -38,20 +43,36 @@ function normalizeHit(hit, query) {
 }
 
 async function searchCatalog(query) {
-  const token = getGeniusToken();
-  try {
+  await ensureGeniusAuth();
+  let token = await getGeniusToken();
+  const attempt = async (bearer) => {
     const response = await axios.get(`${BASE_API}/search`, {
       params: { q: query },
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${bearer}`,
         'User-Agent': MOZILLA_USER_AGENT
       }
     });
+    return response.data;
+  };
 
-    return (response.data?.response?.hits ?? [])
-      .map((hit) => normalizeHit(hit, query))
-      .filter(Boolean);
+  try {
+    const data = await attempt(token);
+    return (data?.response?.hits ?? []).map((hit) => normalizeHit(hit, query)).filter(Boolean);
   } catch (error) {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      logger.warn('Genius token rejected, refreshing', { status: error.response.status });
+      invalidateGeniusToken();
+      token = await getGeniusToken({ forceRefresh: true });
+      if (token) {
+        try {
+          const data = await attempt(token);
+          return (data?.response?.hits ?? []).map((hit) => normalizeHit(hit, query)).filter(Boolean);
+        } catch (retryError) {
+          logger.error('Genius search retry failed', { error: retryError, query });
+        }
+      }
+    }
     logger.error('Genius search request failed', { error, query });
     return [];
   }
