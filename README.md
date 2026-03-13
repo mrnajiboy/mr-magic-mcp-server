@@ -244,7 +244,7 @@ Both STDIO and Streamable HTTP transports expose the same tool registry:
 | Tool name                | Purpose                                                                 |
 | ------------------------ | ----------------------------------------------------------------------- |
 | `find_lyrics`            | Fetch best lyrics (prefers synced) plus metadata and payload.           |
-| `build_catalog_payload`  | Return a compact record (title/link/lyrics) for Airtable-style inserts. |
+| `build_catalog_payload`  | Return a compact record (title/link/lyrics) for Airtable-style inserts (supports structured lyric payloads). |
 | `find_synced_lyrics`     | Like `find_lyrics` but rejects plain-only results.                      |
 | `search_lyrics`          | List candidate matches across providers without hydration.              |
 | `search_provider`        | Query a single provider (requires the `provider` flag).                 |
@@ -253,6 +253,46 @@ Both STDIO and Streamable HTTP transports expose the same tool registry:
 | `format_lyrics`          | Format lyrics in memory (optional romanization) for display.            |
 | `select_match`           | Pick a prior result by provider/index/synced flag.                      |
 | `runtime_status`         | Snapshot provider readiness plus present env vars.                      |
+
+#### Safe lyric payload handoff (Airtable-friendly)
+
+The `build_catalog_payload` tool now exposes extra options that solve the
+"inline JSON lyric" problem reported in workflows that pipe lyrics straight
+into Airtable tool calls. Large multiline text that contains quotes, emoji, or
+Unicode can corrupt downstream JSON when it is interpolated directly into a
+payload string. To avoid this, request a structured lyric payload instead of
+embedding the raw text:
+
+```jsonc
+{
+  "track": { "artist": "K/DA", "title": "I'll Show You" },
+  "options": {
+    "omitInlineLyrics": true,
+    "lyricsPayloadMode": "payload" // or "reference"
+  }
+}
+```
+
+- `omitInlineLyrics: true` removes the `lyrics`, `plainLyrics`, and
+  `romanizedPlainLyrics` fields so the response stays compact and safe to log.
+- `lyricsPayloadMode: "payload"` adds `lyricsPayload` with metadata plus the
+  full text in a structured object (transport = `inline`).
+- `lyricsPayloadMode: "reference"` stores the lyrics via the export storage
+  backend (local/inline/redis) and returns a `lyricsPayload.reference` object
+  containing the file path or download URL instead of the raw text.
+- `airtableSafePayload: true` additionally exposes `lyricsPayload.airtableEscapedContent`
+  which is pre-escaped for JSON bodies (quotes/backslashes/newlines rendered as
+  literal `\"`, `\\`, `\n`). Use this when you must interpolate lyrics into
+  an Airtable tool call JSON string manually.
+- Optional `lyricsPayloadOutput` lets you override the output directory when
+  using the default local backend.
+
+Downstream automations (Airtable, Zapier, Make, etc.) should map either
+`lyricsPayload.content` (inline mode) or fetch from
+`lyricsPayload.reference.url/filePath` (reference mode) and place that string
+into Airtable using the platform’s native variable substitution. This avoids
+hand-written JSON concatenation and eliminates the malformed request errors
+seen with long lyric fields.
 
 ### MCP client configuration (local repo vs published npm)
 

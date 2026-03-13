@@ -58,6 +58,25 @@ const catalogOptionsSchema = {
     includeRomanizedSynced: {
       type: 'boolean',
       description: 'Include romanized synced lyrics (SRT/LRC) when available.'
+    },
+    omitInlineLyrics: {
+      type: 'boolean',
+      description: 'When true, omit the raw lyrics fields (lyrics/plainLyrics/romanizedPlainLyrics).'
+    },
+    lyricsPayloadMode: {
+      type: 'string',
+      enum: ['inline', 'payload', 'reference'],
+      description:
+        "Controls how lyric text is handed off: 'inline' (default) keeps current behavior, 'payload' returns a structured payload bundle, and 'reference' stores the payload via the configured export backend."
+    },
+    lyricsPayloadOutput: {
+      type: 'string',
+      description:
+        'Optional output directory override used when lyricsPayloadMode is reference and the storage backend writes to disk.'
+    },
+    airtableSafePayload: {
+      type: 'boolean',
+      description: 'When true, include an Airtable-safe escaped lyric string alongside the structured payload.'
     }
   },
   additionalProperties: false
@@ -164,7 +183,8 @@ export const mcpToolDefinitions = [
   },
   {
     name: 'build_catalog_payload',
-    description: 'Return a compact payload suitable for Airtable inserts and exports.',
+    description:
+      'Return a compact payload suitable for Airtable inserts and exports, with optional structured lyric payloads for safer downstream processing.',
     inputSchema: {
       type: 'object',
       description: 'Provide a track plus optional catalog preferences.',

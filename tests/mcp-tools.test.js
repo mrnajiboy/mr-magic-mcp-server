@@ -70,6 +70,39 @@ async function testBuildCatalogPayload() {
   assert.ok(response?.provider, 'catalog payload should include provider info');
 }
 
+async function testBuildCatalogPayloadWithLyricsPayload() {
+  const response = await handleMcpTool('build_catalog_payload', {
+    track: sampleTrack,
+    options: {
+      preferRomanized: false,
+      omitInlineLyrics: true,
+      lyricsPayloadMode: 'payload'
+    }
+  });
+
+  assert.ok(!response?.lyrics, 'inline lyrics should be omitted');
+  assert.ok(response?.lyricsPayload, 'lyricsPayload bundle should exist');
+  assert.equal(response.lyricsPayload.transport, 'inline');
+  assert.equal(response.lyricsPayload.contentType, 'text/plain');
+  assert.ok(response.lyricsPayload.preview?.length > 0, 'preview should be populated');
+}
+
+async function testBuildCatalogPayloadWithAirtableSafePayload() {
+  const response = await handleMcpTool('build_catalog_payload', {
+    track: sampleTrack,
+    options: {
+      preferRomanized: false,
+      omitInlineLyrics: true,
+      lyricsPayloadMode: 'payload',
+      airtableSafePayload: true
+    }
+  });
+
+  assert.ok(response?.lyricsPayload?.airtableEscapedContent, 'Airtable escaped content should exist');
+  assert.ok(!response.lyrics, 'inline lyrics should stay omitted');
+  assert.ok(response.lyricsPayload.airtableEscapedContent.includes('\\n'), 'escaped content should include literal \\n');
+}
+
 async function testSelectMatchErrors() {
   const response = await handleMcpTool('select_match', { matches: [] });
   assert.equal(response.error, 'No matches provided');
@@ -90,6 +123,8 @@ async function run() {
   await testSearchProviderReturnsArray();
   await testFormatLyricsShape();
   await testBuildCatalogPayload();
+  await testBuildCatalogPayloadWithLyricsPayload();
+  await testBuildCatalogPayloadWithAirtableSafePayload();
   await testSelectMatchErrors();
   await testRuntimeStatusIncludesEnvOverview();
 }
