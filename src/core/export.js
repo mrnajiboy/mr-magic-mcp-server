@@ -19,20 +19,18 @@ function sanitizeFilename(value) {
 
 const storageCache = new Map();
 
-function getStorage(outputDir) {
+async function getStorage(outputDir) {
   const key = `${process.env.MR_MAGIC_EXPORT_BACKEND || 'local'}:${outputDir || 'default'}`;
   if (!storageCache.has(key)) {
-    storageCache.set(
-      key,
-      createExportStorage({
-        local: { baseDir: outputDir },
-        redis: {
-          url: process.env.UPSTASH_REDIS_REST_URL,
-          token: process.env.UPSTASH_REDIS_REST_TOKEN,
-          ttl: process.env.MR_MAGIC_EXPORT_TTL_SECONDS
-        }
-      })
-    );
+    const storage = await createExportStorage({
+      local: { baseDir: outputDir },
+      redis: {
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN,
+        ttl: process.env.MR_MAGIC_EXPORT_TTL_SECONDS
+      }
+    });
+    storageCache.set(key, storage);
   }
   return storageCache.get(key);
 }
@@ -40,7 +38,7 @@ function getStorage(outputDir) {
 async function storeExport(outputDir, baseName, extension, contents) {
   if (!contents) return null;
   const safe = sanitizeFilename(baseName || 'lyrics');
-  const storage = getStorage(outputDir);
+  const storage = await getStorage(outputDir);
   return storage.store({ content: contents, extension, baseName: safe });
 }
 

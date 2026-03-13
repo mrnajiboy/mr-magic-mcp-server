@@ -57,7 +57,7 @@ export function startHttpServer(options = {}) {
         }
         try {
           const redis = getSharedRedisClient();
-          const key = `mr-magic:export-${downloadId}:${extension}`;
+          const key = `mr-magic:${downloadId}:${extension}`;
           const content = await redis.get(key);
           if (!content) {
             res.writeHead(404, { 'Content-Type': 'application/json' });
