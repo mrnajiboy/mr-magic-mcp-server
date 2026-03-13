@@ -30,6 +30,16 @@ async function testFindLyricsTool() {
   assert.ok(payload?.best, 'find_lyrics should return best match');
 }
 
+async function testFindLyricsAllowsPartialTrack() {
+  const payload = await handleMcpTool('find_lyrics', { track: { title: sampleTrack.title } });
+  assert.ok(payload?.matches?.length > 0, 'find_lyrics should tolerate partial track metadata');
+  const firstResult = payload.matches[0]?.result;
+  assert.ok(
+    firstResult && Object.prototype.hasOwnProperty.call(firstResult, 'providerId'),
+    'normalized match results should expose providerId'
+  );
+}
+
 async function testFindSyncedLyricsTool() {
   const payload = await handleMcpTool('find_synced_lyrics', { track: sampleTrack });
   assert.ok(payload);
@@ -63,6 +73,7 @@ async function testRuntimeStatusIncludesEnvOverview() {
 async function run() {
   await testToolRegistry();
   await testFindLyricsTool();
+  await testFindLyricsAllowsPartialTrack();
   await testFindSyncedLyricsTool();
   await testSearchProviderRequiresProvider();
   await testSearchProviderReturnsArray();

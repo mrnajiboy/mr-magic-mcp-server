@@ -5,11 +5,12 @@ import { exportLyrics, deriveFormatSet } from '../core/export.js';
 export function buildActionContext(options = {}) {
   const defaultFormats = ['plain', 'srt'];
   const requestedFormats = options.formats ?? options.format ?? [];
+  const baseExportDir = options.exportDir || process.env.MR_MAGIC_EXPORT_DIR;
   return {
     includeRomanization: options.noRomanize ? false : true,
     includeSynced: options.includeSynced ?? true,
     shouldExport: Boolean(options.export),
-    outputDir: options.output || 'exports',
+    outputDir: options.output || baseExportDir,
     formats: deriveFormatSet(
       Array.isArray(requestedFormats) && requestedFormats.length > 0
         ? requestedFormats

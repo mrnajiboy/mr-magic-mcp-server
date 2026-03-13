@@ -1,6 +1,3 @@
-import fs from 'node:fs';
-import path from 'node:path';
-
 import {
   buildLrc,
   buildSrt,
@@ -10,6 +7,7 @@ import {
   romanizeSrtLyrics,
   containsHangul
 } from '../utils/lyrics-format.js';
+import { createExportStorage } from '../utils/export-storage.js';
 
 function sanitizeFilename(value) {
   return value
@@ -19,19 +17,31 @@ function sanitizeFilename(value) {
     .slice(0, 80);
 }
 
-function ensureOutputDir(dirPath) {
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true });
+const storageCache = new Map();
+
+function getStorage(outputDir) {
+  const key = `${process.env.MR_MAGIC_EXPORT_BACKEND || 'local'}:${outputDir || 'default'}`;
+  if (!storageCache.has(key)) {
+    storageCache.set(
+      key,
+      createExportStorage({
+        local: { baseDir: outputDir },
+        redis: {
+          url: process.env.UPSTASH_REDIS_REST_URL,
+          token: process.env.UPSTASH_REDIS_REST_TOKEN,
+          ttl: process.env.MR_MAGIC_EXPORT_TTL_SECONDS
+        }
+      })
+    );
   }
-  return dirPath;
+  return storageCache.get(key);
 }
 
-function writeExport(outputDir, baseName, extension, contents) {
+async function storeExport(outputDir, baseName, extension, contents) {
   if (!contents) return null;
   const safe = sanitizeFilename(baseName || 'lyrics');
-  const filePath = path.resolve(ensureOutputDir(outputDir), `${safe}.${extension}`);
-  fs.writeFileSync(filePath, contents, 'utf8');
-  return filePath;
+  const storage = getStorage(outputDir);
+  return storage.store({ content: contents, extension, baseName: safe });
 }
 
 export async function exportLyrics(record, options) {
@@ -41,20 +51,20 @@ export async function exportLyrics(record, options) {
   }
   const baseName = `${record.artist || 'unknown'}-${record.title || 'song'}`;
   if (options.formats.includes('plain')) {
-    exports.plain = writeExport(options.output, baseName, 'txt', formatPlainStanzas(record.plainLyrics));
+    exports.plain = await storeExport(options.output, baseName, 'txt', formatPlainStanzas(record.plainLyrics));
   }
   if (options.formats.includes('lrc')) {
-    exports.lrc = writeExport(options.output, baseName, 'lrc', buildLrc(record.syncedLyrics));
+    exports.lrc = await storeExport(options.output, baseName, 'lrc', buildLrc(record.syncedLyrics));
   }
   if (options.formats.includes('srt')) {
-    exports.srt = writeExport(options.output, baseName, 'srt', buildSrt(record.syncedLyrics));
+    exports.srt = await storeExport(options.output, baseName, 'srt', buildSrt(record.syncedLyrics));
   }
   if (options.includeRomanization !== false) {
     const hasHangulPlain = containsHangul(record.plainLyrics);
     const hasHangulSynced = record.syncedLyrics && containsHangul(record.syncedLyrics);
 
     if (hasHangulPlain && options.formats.includes('plain')) {
-      exports.romanizedPlain = writeExport(
+      exports.romanizedPlain = await storeExport(
         options.output,
         baseName,
         'romanized.txt',
@@ -63,7 +73,7 @@ export async function exportLyrics(record, options) {
     }
 
     if (hasHangulSynced && options.formats.includes('lrc')) {
-      exports.romanizedLrc = writeExport(
+      exports.romanizedLrc = await storeExport(
         options.output,
         baseName,
         'romanized.lrc',
@@ -72,7 +82,7 @@ export async function exportLyrics(record, options) {
     }
 
     if (hasHangulSynced && options.formats.includes('srt')) {
-      exports.romanizedSrt = writeExport(
+      exports.romanizedSrt = await storeExport(
         options.output,
         baseName,
         'romanized.srt',

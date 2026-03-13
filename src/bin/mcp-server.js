@@ -1,2 +1,5 @@
 #!/usr/bin/env node
-import '../transport/mcp-server.js';
+if (!process.env.MR_MAGIC_QUIET_STDIO) {
+  process.env.MR_MAGIC_QUIET_STDIO = '1';
+}
+await import('../transport/mcp-server.js');

@@ -22,9 +22,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 });
 
 async function start() {
+  if (process.env.MR_MAGIC_QUIET_STDIO === '1') {
+    process.env.DEBUG = '0';
+    process.env.LOG_LEVEL = 'error';
+  }
   const logger = createLogger('mcp-server');
   const transport = new StdioServerTransport();
   await server.connect(transport);
+  if (process.env.MR_MAGIC_QUIET_STDIO === '1') {
+    return;
+  }
   logger.info('Lyrics MCP server listening on stdio');
 }
 

@@ -20,8 +20,7 @@ const trackSchema = {
       type: ['number', 'string', 'null'],
       description: 'Track length in seconds or MM:SS format (optional).'
     }
-  },
-  required: ['title', 'artist']
+  }
 };
 
 const exportOptionsSchema = {
@@ -72,28 +71,52 @@ const selectCriteriaSchema = {
   }
 };
 
+const normalizedLyricRecordSchema = {
+  type: 'object',
+  description: 'Normalized lyric record as returned by a provider search.',
+  properties: {
+    provider: { type: 'string', description: 'Provider slug for the result.' },
+    providerId: {
+      type: ['string', 'number', 'null'],
+      description: 'Provider-specific identifier if available.'
+    },
+    title: { type: ['string', 'null'], description: 'Track title from the provider result.' },
+    artist: { type: ['string', 'null'], description: 'Artist name from the provider result.' },
+    album: { type: ['string', 'null'], description: 'Album name if provided.' },
+    duration: {
+      type: ['number', 'null'],
+      description: 'Duration (seconds) if reported.'
+    },
+    plainLyrics: { type: ['string', 'null'], description: 'Plain lyric text if hydrated.' },
+    syncedLyrics: { type: ['string', 'null'], description: 'Synced lyric text if hydrated.' },
+    sourceUrl: { type: ['string', 'null'], description: 'Canonical URL to view the lyrics.' },
+    confidence: {
+      type: ['number', 'null'],
+      description: 'Confidence score for the match (0-1 scale when available).'
+    },
+    synced: { type: 'boolean', description: 'True if synced lyrics exist for this result.' },
+    plainOnly: {
+      type: 'boolean',
+      description: 'True when only plain lyrics are available (no timestamps).'
+    },
+    timestampCount: {
+      type: ['number', 'null'],
+      description: 'Number of timestamped lines detected in synced lyrics.'
+    },
+    status: { type: ['string', 'null'], description: 'Provider-specific status for the record.' },
+    rawRecord: {
+      type: ['object', 'null'],
+      description: 'Unmodified provider payload for debugging/reference.'
+    }
+  }
+};
+
 const matchSchema = {
   type: 'object',
   description: 'A single search result entry (provider + normalized lyric record).',
   properties: {
     provider: { type: 'string', description: 'Provider slug for the result.' },
-    result: {
-      type: 'object',
-      description: 'Normalized lyric record as returned by the provider.',
-      properties: {
-        id: { type: ['string', 'number', 'null'], description: 'Provider-specific identifier.' },
-        title: { type: 'string', description: 'Track title from the provider result.' },
-        artist: { type: 'string', description: 'Artist name from the provider result.' },
-        album: { type: ['string', 'null'], description: 'Album name if provided.' },
-        duration: {
-          type: ['number', 'null'],
-          description: 'Duration (seconds) if reported.'
-        },
-        synced: { type: 'boolean', description: 'True if synced lyrics exist for this result.' },
-        plainLyrics: { type: ['string', 'null'], description: 'Plain lyric text if hydrated.' },
-        syncedLyrics: { type: ['string', 'null'], description: 'Synced lyric text if hydrated.' }
-      }
-    }
+    result: normalizedLyricRecordSchema
   }
 };
 

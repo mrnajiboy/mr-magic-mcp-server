@@ -3,6 +3,7 @@ import http from 'node:http';
 
 import { buildActionContext, buildPayloadFromResult } from '../services/lyrics-service.js';
 import { findLyrics, findSyncedLyrics, searchSources, getProviderStatus } from '../index.js';
+import { getSharedRedisClient } from '../utils/export-storage/shared-redis-client.js';
 import { createLogger } from '../utils/logger.js';
 
 export function normalizePayloadOptions(options = {}) {
@@ -44,6 +45,32 @@ export function startHttpServer(options = {}) {
             providers: getProviderStatus()
           })
         );
+        return;
+      }
+
+      if (req.method === 'GET' && req.url.startsWith('/downloads/')) {
+        const [, , downloadId, extension] = req.url.split('/');
+        if (!downloadId || !extension) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid download path' }));
+          return;
+        }
+        try {
+          const redis = getSharedRedisClient();
+          const key = `mr-magic:export-${downloadId}:${extension}`;
+          const content = await redis.get(key);
+          if (!content) {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Export expired or missing' }));
+            return;
+          }
+          res.writeHead(200, { 'Content-Type': 'text/plain' });
+          res.end(content);
+        } catch (error) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Failed to fetch export' }));
+          logger.error('Download lookup failed', { error, url: req.url });
+        }
         return;
       }
 

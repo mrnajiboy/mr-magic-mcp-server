@@ -28,6 +28,9 @@ export function assertEnv(requiredVars = DEFAULT_REQUIRED) {
 }
 
 export function warnMissingEnv(requiredVars = DEFAULT_REQUIRED) {
+  if (process.env.MR_MAGIC_QUIET_STDIO === '1') {
+    return;
+  }
   const missing = getMissingEnvVars(requiredVars);
   if (missing.length > 0) {
     console.warn(`[env] Missing recommended variables: ${missing.join(', ')}`);
