@@ -205,20 +205,23 @@ you use.
   artifacts land (defaults to `os.tmpdir()`), so remote runners that disallow
   root writes can set `/tmp/mr-magic` or similar.
 
-## Local Deployment
-      
-  - `npm run server:http` — JSON HTTP automation endpoint
-    (`127.0.0.1:3333` by default; honor `PORT`/CLI flags).
-  - `npm run server:mcp` — MCP stdio transport (ideal for local MCP clients that
-    speak stdio).
-  - `npm run server:mcp:http` — Streamable HTTP MCP transport
-    (`127.0.0.1:3444` unless overridden).
-  - `npm run cli` — interactive CLI entrypoint (`src/tools/cli.js`); combine with
-    `server`, `search`, `find`, or `select` subcommands.
-  
-  Set provider tokens/env vars via `.env` or `export` before running any command.
-  `dotenv` is only for local convenience—production runners should inject env
-  vars directly.
+## Local deployment
+
+Run whichever entrypoint you need via npm scripts so the repo’s `NODE_PATH`
+settings and dotenv loading are consistent:
+
+- `npm run server:http` — JSON HTTP automation endpoint (`127.0.0.1:3333` by
+  default; honors `PORT`/CLI overrides).
+- `npm run server:mcp` — MCP stdio transport (ideal for local MCP clients that
+  speak stdio).
+- `npm run server:mcp:http` — Streamable HTTP MCP transport
+  (`127.0.0.1:3444` unless overridden).
+- `npm run cli` — interactive CLI entrypoint (`src/tools/cli.js`); combine with
+  `server`, `search`, `find`, or `select` subcommands.
+
+Set provider tokens/env vars via `.env` or `export` before running any command.
+`dotenv` is only for local convenience—production runners should inject env vars
+directly.
 
 ## Remote deployment
 
@@ -233,13 +236,13 @@ npm run server:http       # or server:mcp / server:mcp:http
 Use a process manager (systemd, PM2, Docker CMD, etc.) to keep long-lived
 servers running.
 
-- **CLI** for ad-hoc/manual usage (one-off SSH sessions, CI jobs, or
-  ephemeral workers). Invoke with `npm run cli -- <subcommand>` or
-  `npx mr-magic-mcp-cli <subcommand>`; it isn’t designed to run as a long-lived
-  daemon because it exits after each command completes.
+- **CLI** for ad-hoc/manual usage (one-off SSH sessions, CI jobs, or ephemeral
+  workers). Invoke with `npm run cli -- <subcommand>` or `npx mr-magic-mcp-cli
+<subcommand>`; it isn’t designed to run as a long-lived daemon because it exits
+  after each command completes.
 - **HTTP server** for container/remote automation (`npm run server:http`).
-- **MCP server (stdio)** for local Model Context Protocol clients (`node
-./src/bin/mcp-server.js`).
+- **MCP server (stdio)** for local Model Context Protocol clients (use the
+  bundled CLI: `npm run server:mcp` or call `node ./src/bin/mcp-server.js`).
 - **MCP server (HTTP)** for remote MCP clients that speak the Streamable HTTP
   transport (`npm run server:mcp:http`).
 
@@ -263,32 +266,32 @@ Both transports expose the same tool registry:
 | `select_match`        | Pick a prior result by provider/index/synced flag.            |
 | `runtime_status`      | Snapshot provider readiness plus present env vars.            |
 
-Add new tools by editing `src/transport/mcp-tools.js`, then extend
-`tests/mcp-tools.test.js` so integration coverage stays current.
-
 ## Testing
 
-- `npm run test` – exercises chooser behavior (`autoPick`, `selectMatch`) and
-  dumps the tool registry.
-- `node tests/mcp-tools.test.js` – directly invokes each MCP tool to confirm
-  arguments, payload shapes, and error handling.
-- `npm run lint` – runs ESLint (flat config) to enforce import order and Node
-  best practices.
-- `npm run format:check` – runs Prettier to keep formatting consistent.
-- `npm pack --dry-run` – verifies the packaged file list plus README/CHANGELOG
-  contents before publishing.
-
-Run the HTTP/stdio transports locally to confirm the MCP endpoints respond (use
-direct `node` so stdio stays clean):
+- `npm run test` – invokes the repo’s bundled test runner (`tests/run-tests.js`).
+  Use this when you want the full chooser/CLI regression suite plus MCP surface
+  sanity checks in one command.
+- `node tests/mcp-tools.test.js` – runs the raw MCP integration harness directly
+  with Node. There isn’t a dedicated npm script for this file, so call it with
+  `node` (or add your own script alias) when you only need to validate the MCP
+  tool registry.
+- `npm run lint` – runs ESLint (flat config) to enforce import order and other
+  Node best practices.
+- `npm run format:check` – runs Prettier in check mode so CI fails on drift.
+  Use the HTTP/MCP transports locally to confirm JSONRPC traffic end to end. The
+  snippet below launches both transports with npm scripts (so the repo’s env and
+  Node options are respected) and then calls the HTTP transport with `curl`:
 
 ```bash
-node ./src/bin/mcp-server.js &
-npm run server:mcp:http &
-curl \
+npm run server:mcp &
+npm run server:mcp:http
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' \
   http://127.0.0.1:3444/mcp
+
+> Stop the backgrounded servers (`fg` + `Ctrl+C` or `kill`) once you’re done.
+
 ```
 
 ## Provider notes
