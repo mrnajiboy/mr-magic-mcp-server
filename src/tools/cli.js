@@ -95,13 +95,38 @@ async function buildServerPayload(result, actionOptions) {
 
 program
   .command('server')
-  .description('Start a JSON API server for local automation')
+  .description('Start the JSON automation HTTP server')
   .option('--host <host>', 'Host to bind', '127.0.0.1')
   .option('--port <port>', 'Port to listen on', '3333')
   .option('--remote', 'Allow remote (0.0.0.0) binding for container/server deployments', false)
   .action(async (options) => {
     const { startHttpServer } = await import('../transport/http-server.js');
     await startHttpServer(options);
+  });
+
+program
+  .command('server:mcp')
+  .description('Start the MCP stdio server')
+  .action(async () => {
+    const { startMcpServer } = await import('../transport/mcp-server.js');
+    await startMcpServer();
+  });
+
+program
+  .command('server:mcp:http')
+  .description('Start the Streamable HTTP MCP server')
+  .option('--host <host>', 'Host to bind', '127.0.0.1')
+  .option('--port <port>', 'Port to listen on', '3444')
+  .option('--remote', 'Allow remote (0.0.0.0) binding for container/server deployments', false)
+  .option('--sessionless', 'Disable per-session connection IDs', false)
+  .action(async (options) => {
+    const { startMcpHttpServer } = await import('../transport/mcp-http-server.js');
+    await startMcpHttpServer({
+      host: options.remote ? '0.0.0.0' : options.host,
+      port: options.port,
+      remote: options.remote,
+      sessionless: options.sessionless
+    });
   });
 
 program

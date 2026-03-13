@@ -8,8 +8,8 @@
     ".": "./src/index.js"
   },
   "bin": {
-    "mr-magic-mcp-server": "src/bin/cli.js",
-    "mr-magic-mcp-server-http": "src/bin/http-server.js",
+    "mr-magic-mcp-cli": "src/bin/cli.js",
+    "mr-magic-mcp-server": "src/bin/http-server.js",
     "mr-magic-mcp-server-mcp": "src/bin/mcp-server.js",
     "mr-magic-mcp-server-mcp-http": "src/bin/mcp-http-server.js"
   },

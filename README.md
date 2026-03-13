@@ -109,22 +109,38 @@ complete cookie header you already trust.
 
 ### CLI overview
 
-A single CLI entrypoint (`mr-magic-mcp-server`) is published with the package
-and re-exported via `npm run cli`. Common invocations include:
+A single CLI entrypoint (`mr-magic-mcp-cli`) is published with the package.
+Running `mr-magic-mcp-cli --help` (or `npm run cli -- --help` inside the repo),
+prints a top-level summary, while subcommand-specific help—e.g., 
+`mr-magic-mcp-cli search --help`—lists all flags
+with descriptions, defaults, and examples.
 
-- `mr-magic-mcp-server search --artist "BLACKPINK" --title "Kill This Love"`
+#### Command summary
+
+| Command | Purpose | Notable flags |
+|---------|---------|---------------|
+| `mr-magic-mcp-cli search` | List candidate matches across providers without downloading lyrics. | `--artist`/`--title` (required track metadata), `--provider` (limit providers), `--duration` (ms), `--show-all` (print table), `--pick` (auto-select provider) |
+| `mr-magic-mcp-cli find` | Resolve the best lyric (prefers synced) and print/export it. | `--providers` (CSV priority list), `--synced-only`, `--export`, `--format` (repeatable), `--output`, `--no-romanize`, `--choose`/`--index` |
+| `mr-magic-mcp-cli select` | Pick the first match from a prioritized provider list. | `--providers` (CSV), `--artist`, `--title`, `--require-synced` |
+| `mr-magic-mcp-cli server` | Run the JSON automation API (same as `npm run server:http`). | `--host` (default `127.0.0.1`), `--port` (default `3333`), `--remote` (bind `0.0.0.0`) |
+| `mr-magic-mcp-cli server:mcp` | Start the MCP stdio server (stdio transport). | *(inherits env vars, no flags)* |
+| `mr-magic-mcp-cli server:mcp:http` | Start the Streamable HTTP MCP server. | `--host` (default `127.0.0.1`), `--port` (default `3444`), `--remote` (bind `0.0.0.0`), `--sessionless` (disable per-session IDs) |
+| `mr-magic-mcp-cli search-provider` | Query a single provider only. | `--provider`, `--artist`, `--title` |
+| `mr-magic-mcp-cli status` | Print provider readiness information. | *(none)* |
+
+
+#### Command Examples
+
+- `mr-magic-mcp-cli search --artist "BLACKPINK" --title "Kill This Love"`
   – list candidates across all providers.
-- `mr-magic-mcp-server find --artist "Nayeon" --title "POP!"` – download the
+- `mr-magic-mcp-cli find --artist "Nayeon" --title "POP!"` – download the
   best lyric (prefers synced LRC when possible).
-- `mr-magic-mcp-server select --provider lrclib --index 1 --file
+- `mr-magic-mcp-cli select --provider lrclib --index 1 --file
   ./search-results.json` – pick a result from a previous search dump.
-- `mr-magic-mcp-server server --port 4000` – run the JSON automation API
+- `mr-magic-mcp-cli server --port 4000` – run the JSON automation API
   locally.
 - `npm run cli -- server --port 3333` – launch the same CLI via npm (handy when
   working inside the repo without a global install).
-
-Each command supports `--help` for detailed flags.
-
 ### Linting & formatting
 
 - `npm run lint` / `npm run lint:fix`
@@ -170,10 +186,10 @@ server:mcp`. For example, TypingMind expects a single command and doesn’t set
   }
 }
 ```
-
 If/when the project is published and installed globally (e.g., `npm install -g
-mr-magic-mcp-server`), MCP clients can invoke the installed binary directly
-(`mr-magic-mcp-server-mcp`) without the `cd`/shell workaround because the
+mr-magic-mcp-server`), MCP clients can invoke the installed binaries directly
+(`mr-magic-mcp-cli`, `mr-magic-mcp-server`, etc.) without the `cd`/shell
+workaround because the executables will already be on `PATH`.
 executable will already be on `PATH`.
 
 Note: `npm run server:mcp` keeps stdout clean (all logging goes to stderr), so
@@ -231,8 +247,8 @@ servers running.
 
 - **CLI** for ad-hoc/manual usage (one-off SSH sessions, CI jobs, or
   ephemeral workers). Invoke with `npm run cli -- <subcommand>` or
-  `npx mr-magic-mcp-server <subcommand>`; it isn’t designed to run as a
-  long-lived daemon because it exits after each command completes.
+  `npx mr-magic-mcp-cli <subcommand>`; it isn’t designed to run as a long-lived
+  daemon because it exits after each command completes.
 - **HTTP server** for container/remote automation (`npm run server:http`).
 - **MCP server (stdio)** for local Model Context Protocol clients (`node
   ./src/bin/mcp-server.js`).
