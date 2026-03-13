@@ -37,6 +37,11 @@ export async function buildSearchResponse(track) {
   return executeSearch(track);
 }
 
+export async function buildCatalogPayload(track, actionOptions = {}) {
+  const result = await executeFind(track, actionOptions);
+  return buildCatalogResponse(result, track, actionOptions);
+}
+
 export async function exportBestResult(result, context) {
   if (!context.shouldExport || !result?.best) return null;
   return exportLyrics(result.best, {
@@ -58,6 +63,78 @@ export async function buildPayloadFromResult(result, context) {
     }
   }
   return payload;
+}
+
+function buildCatalogResponse(findResult, requestedTrack = {}, options = {}) {
+  const best = findResult?.best;
+  if (!best) {
+    return { error: 'No match found' };
+  }
+
+  const catalogOptions = {
+    preferRomanized: options.preferRomanized ?? true,
+    includeSynced: options.includeSynced ?? false,
+    includeRomanizedSynced: options.includeRomanizedSynced ?? false
+  };
+
+  const formatted = formatRecord(best, {
+    includeRomanization: true,
+    includeSynced: catalogOptions.includeSynced
+  });
+
+  const trackSummary = {
+    title: best.title || requestedTrack.title || '',
+    artist: best.artist || requestedTrack.artist || '',
+    album: best.album || requestedTrack.album || null
+  };
+
+  const plainLyrics = formatted.plainLyrics || best.plainLyrics || '';
+  const romanizedPlainLyrics = formatted.romanizedPlain || null;
+  const lyrics =
+    catalogOptions.preferRomanized && romanizedPlainLyrics ? romanizedPlainLyrics : plainLyrics;
+
+  const response = {
+    track: trackSummary,
+    provider: best.provider,
+    providerId: best.providerId ?? null,
+    sourceUrl: best.sourceUrl ?? null,
+    songVideoTitle: formatSongVideoTitle(trackSummary.artist, trackSummary.title),
+    lyrics,
+    plainLyrics,
+    romanizedPlainLyrics,
+    syncedAvailable: Boolean(best.syncedLyrics)
+  };
+
+  if (catalogOptions.includeSynced && formatted.syncedLyrics) {
+    response.syncedLyrics = formatted.syncedLyrics;
+    if (catalogOptions.includeRomanizedSynced && formatted.romanizedSrt) {
+      response.romanizedSrtLyrics = formatted.romanizedSrt;
+    }
+    if (catalogOptions.includeRomanizedSynced && formatted.romanizedLrc) {
+      response.romanizedLrcLyrics = formatted.romanizedLrc;
+    }
+  }
+
+  return response;
+}
+
+function formatSongVideoTitle(artistValue, titleValue) {
+  const artist = normalizeArtistValue(artistValue) || 'Unknown Artist';
+  const title = (titleValue || '').toString().trim() || 'Unknown Title';
+  return `${artist} - ${title} (Lyrics)`;
+}
+
+function normalizeArtistValue(artistValue) {
+  if (Array.isArray(artistValue)) {
+    return artistValue
+      .map((entry) => (entry || '').toString().trim())
+      .filter(Boolean)
+      .join(', ');
+  }
+  if (typeof artistValue === 'string') {
+    return artistValue.trim();
+  }
+  return '';
 }
 
 export { formatRecord };

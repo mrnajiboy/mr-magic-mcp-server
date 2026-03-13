@@ -203,17 +203,18 @@ and provide allowed host/origin headers via the MCP SDK options if needed.
 
 Both STDIO and Streamable HTTP transports expose the same tool registry:
 
-| Tool name             | Purpose                                                       |
-| --------------------- | ------------------------------------------------------------- |
-| `find_lyrics`         | Fetch best lyrics (prefers synced) plus metadata and payload. |
-| `find_synced_lyrics`  | Like `find_lyrics` but rejects plain-only results.            |
-| `search_lyrics`       | List candidate matches across providers without hydration.    |
-| `search_provider`     | Query a single provider (requires the `provider` flag).       |
-| `get_provider_status` | Report readiness and notes for each provider.                 |
-| `export_lyrics`       | Download + write plain/LRC/SRT/romanized files to disk.       |
-| `format_lyrics`       | Format lyrics in memory (optional romanization) for display.  |
-| `select_match`        | Pick a prior result by provider/index/synced flag.            |
-| `runtime_status`      | Snapshot provider readiness plus present env vars.            |
+| Tool name                | Purpose                                                                 |
+| ------------------------ | ----------------------------------------------------------------------- |
+| `find_lyrics`            | Fetch best lyrics (prefers synced) plus metadata and payload.           |
+| `build_catalog_payload`  | Return a compact record (title/link/lyrics) for Airtable-style inserts. |
+| `find_synced_lyrics`     | Like `find_lyrics` but rejects plain-only results.                      |
+| `search_lyrics`          | List candidate matches across providers without hydration.              |
+| `search_provider`        | Query a single provider (requires the `provider` flag).                 |
+| `get_provider_status`    | Report readiness and notes for each provider.                           |
+| `export_lyrics`          | Download + write plain/LRC/SRT/romanized files to disk.                 |
+| `format_lyrics`          | Format lyrics in memory (optional romanization) for display.            |
+| `select_match`           | Pick a prior result by provider/index/synced flag.                      |
+| `runtime_status`         | Snapshot provider readiness plus present env vars.                      |
 
 ### MCP client configuration (local repo vs published npm)
 

@@ -4,6 +4,7 @@ import { runFind, runSearch, runProviderSearch } from '../core/find-service.js';
 import {
   buildActionContext,
   buildPayloadFromResult,
+  buildCatalogPayload,
   exportBestResult,
   formatRecord
 } from '../services/lyrics-service.js';
@@ -17,10 +18,11 @@ const trackSchema = {
     artist: { type: 'string', description: 'Primary artist or performer name.' },
     album: { type: 'string', description: 'Album or release name (optional).' },
     duration: {
-      type: ['number', 'string', 'null'],
-      description: 'Track length in seconds or MM:SS format (optional).'
+      type: 'string',
+      description: 'Track length as seconds or MM:SS string (optional).'
     }
-  }
+  },
+  additionalProperties: false
 };
 
 const exportOptionsSchema = {
@@ -37,7 +39,28 @@ const exportOptionsSchema = {
       type: 'boolean',
       description: 'When true, skip romanized lyrics even if available.'
     }
-  }
+  },
+  additionalProperties: false
+};
+
+const catalogOptionsSchema = {
+  type: 'object',
+  description: 'Catalog response preferences.',
+  properties: {
+    preferRomanized: {
+      type: 'boolean',
+      description: 'When true, prefer romanized plain lyrics for lyrics field.'
+    },
+    includeSynced: {
+      type: 'boolean',
+      description: 'Optionally include synced lyrics in the response.'
+    },
+    includeRomanizedSynced: {
+      type: 'boolean',
+      description: 'Include romanized synced lyrics (SRT/LRC) when available.'
+    }
+  },
+  additionalProperties: false
 };
 
 const formatOptionsSchema = {
@@ -52,7 +75,8 @@ const formatOptionsSchema = {
       type: 'boolean',
       description: 'Set to true to omit romanized text from the formatted output.'
     }
-  }
+  },
+  additionalProperties: false
 };
 
 const selectCriteriaSchema = {
@@ -68,7 +92,8 @@ const selectCriteriaSchema = {
       type: 'number',
       description: 'Zero-based index inside the filtered list (default 0).'
     }
-  }
+  },
+  additionalProperties: false
 };
 
 const normalizedLyricRecordSchema = {
@@ -76,22 +101,19 @@ const normalizedLyricRecordSchema = {
   description: 'Normalized lyric record as returned by a provider search.',
   properties: {
     provider: { type: 'string', description: 'Provider slug for the result.' },
-    providerId: {
-      type: ['string', 'number', 'null'],
-      description: 'Provider-specific identifier if available.'
-    },
-    title: { type: ['string', 'null'], description: 'Track title from the provider result.' },
-    artist: { type: ['string', 'null'], description: 'Artist name from the provider result.' },
-    album: { type: ['string', 'null'], description: 'Album name if provided.' },
+    providerId: { type: 'string', description: 'Provider-specific identifier if available.' },
+    title: { type: 'string', description: 'Track title from the provider result.' },
+    artist: { type: 'string', description: 'Artist name from the provider result.' },
+    album: { type: 'string', description: 'Album name if provided.' },
     duration: {
-      type: ['number', 'null'],
+      type: 'string',
       description: 'Duration (seconds) if reported.'
     },
-    plainLyrics: { type: ['string', 'null'], description: 'Plain lyric text if hydrated.' },
-    syncedLyrics: { type: ['string', 'null'], description: 'Synced lyric text if hydrated.' },
-    sourceUrl: { type: ['string', 'null'], description: 'Canonical URL to view the lyrics.' },
+    plainLyrics: { type: 'string', description: 'Plain lyric text if hydrated.' },
+    syncedLyrics: { type: 'string', description: 'Synced lyric text if hydrated.' },
+    sourceUrl: { type: 'string', description: 'Canonical URL to view the lyrics.' },
     confidence: {
-      type: ['number', 'null'],
+      type: 'number',
       description: 'Confidence score for the match (0-1 scale when available).'
     },
     synced: { type: 'boolean', description: 'True if synced lyrics exist for this result.' },
@@ -108,7 +130,8 @@ const normalizedLyricRecordSchema = {
       type: ['object', 'null'],
       description: 'Unmodified provider payload for debugging/reference.'
     }
-  }
+  },
+  additionalProperties: false
 };
 
 const matchSchema = {
@@ -117,7 +140,8 @@ const matchSchema = {
   properties: {
     provider: { type: 'string', description: 'Provider slug for the result.' },
     result: normalizedLyricRecordSchema
-  }
+  },
+  additionalProperties: false
 };
 
 export const mcpToolDefinitions = [
@@ -129,7 +153,24 @@ export const mcpToolDefinitions = [
       description: 'Provide a track description (and optional hints) to look up lyrics.',
       properties: {
         track: trackSchema,
-        options: { type: 'object', description: 'Optional provider hints or overrides.' }
+        options: {
+          type: 'object',
+          description: 'Optional provider hints or overrides.',
+          additionalProperties: false
+        }
+      },
+      required: ['track']
+    }
+  },
+  {
+    name: 'build_catalog_payload',
+    description: 'Return a compact payload suitable for Airtable inserts and exports.',
+    inputSchema: {
+      type: 'object',
+      description: 'Provide a track plus optional catalog preferences.',
+      properties: {
+        track: trackSchema,
+        options: catalogOptionsSchema
       },
       required: ['track']
     }
@@ -142,7 +183,11 @@ export const mcpToolDefinitions = [
       description: 'Provide a track description (and optional hints) to look up synced lyrics only.',
       properties: {
         track: trackSchema,
-        options: { type: 'object', description: 'Optional provider hints or overrides.' }
+        options: {
+          type: 'object',
+          description: 'Optional provider hints or overrides.',
+          additionalProperties: false
+        }
       },
       required: ['track']
     }
@@ -178,7 +223,7 @@ export const mcpToolDefinitions = [
   {
     name: 'get_provider_status',
     description: 'Report whether each provider is currently configured and reachable.',
-    inputSchema: { type: 'object', properties: {} }
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false }
   },
   {
     name: 'export_lyrics',
@@ -227,7 +272,7 @@ export const mcpToolDefinitions = [
   {
     name: 'runtime_status',
     description: 'Summarize provider readiness plus which credential env vars are present.',
-    inputSchema: { type: 'object', properties: {} }
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false }
   }
 ];
 
@@ -279,6 +324,10 @@ export async function handleMcpTool(name, args = {}) {
       includeSynced: options?.includeSynced ?? true
     });
     return { formatted, best };
+  }
+
+  if (name === 'build_catalog_payload') {
+    return buildCatalogPayload(track, options);
   }
 
   if (name === 'select_match') {

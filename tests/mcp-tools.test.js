@@ -11,6 +11,7 @@ async function testToolRegistry() {
   const toolNames = mcpToolDefinitions.map((tool) => tool.name);
   const expected = [
     'find_lyrics',
+    'build_catalog_payload',
     'find_synced_lyrics',
     'search_lyrics',
     'search_provider',
@@ -59,6 +60,16 @@ async function testFormatLyricsShape() {
   assert.ok(response?.formatted || response?.error, 'format_lyrics should format or report error');
 }
 
+async function testBuildCatalogPayload() {
+  const response = await handleMcpTool('build_catalog_payload', {
+    track: sampleTrack,
+    options: { preferRomanized: false }
+  });
+  assert.ok(response?.songVideoTitle, 'catalog payload should include songVideoTitle');
+  assert.ok(response?.lyrics, 'catalog payload should include lyrics');
+  assert.ok(response?.provider, 'catalog payload should include provider info');
+}
+
 async function testSelectMatchErrors() {
   const response = await handleMcpTool('select_match', { matches: [] });
   assert.equal(response.error, 'No matches provided');
@@ -78,6 +89,7 @@ async function run() {
   await testSearchProviderRequiresProvider();
   await testSearchProviderReturnsArray();
   await testFormatLyricsShape();
+  await testBuildCatalogPayload();
   await testSelectMatchErrors();
   await testRuntimeStatusIncludesEnvOverview();
 }
