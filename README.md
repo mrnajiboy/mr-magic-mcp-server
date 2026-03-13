@@ -93,6 +93,8 @@ common commands are:
   ./search-results.json` – pick a result from a previous search dump.
 - `mr-magic-mcp-server server --port 4000` – run the JSON automation API
   locally.
+- `npm start` (alias for `mr-magic-mcp-server`) – launch the CLI interactively;
+  combine with `server`, `search`, or `find` subcommands as needed.
 
 Each command supports `--help` for detailed flags.
 
@@ -188,7 +190,10 @@ you use.
 Ensure the deployment environment injects the same environment variables, then
 choose the transport you need:
 
-- **CLI** for ad-hoc/manual usage.
+- **CLI** for ad-hoc/manual usage (one-off SSH sessions, CI jobs, or
+  ephemeral workers). Invoke with `npm start -- <subcommand>` or
+  `npx mr-magic-mcp-server <subcommand>`; it isn’t designed to run as a
+  long-lived daemon because it exits after each command completes.
 - **HTTP server** for container/remote automation (`npm run server:http`).
 - **MCP server (stdio)** for local Model Context Protocol clients (`node
   ./src/bin/mcp-server.js`).
