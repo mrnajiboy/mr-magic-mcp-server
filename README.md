@@ -26,9 +26,9 @@ details, and the automated tests that protect the surface area.
 
 2. Install dependencies:
 
-  ```bash
-  npm install
-  ```
+    ```bash
+    npm install
+    ```
 
 3. Configure `.env` (see Environment variables below) or export env vars in
    your shell before running any commands.
