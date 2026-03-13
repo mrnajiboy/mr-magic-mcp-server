@@ -1,7 +1,7 @@
 # Mr. Magic MCP Server
 
-Mr. Magic bridges LRCLIB, Genius, Musixmatch, and Melon so MCP clients, HTTP 
-automations or CLI afficionados can all request lyrics from a single toolchain. 
+Mr. Magic bridges LRCLIB, Genius, Musixmatch, and Melon so MCP clients, Standard
+HTTP automations or CLI afficionados can all request lyrics from a single toolchain. 
 
 ## Prerequisites
 
@@ -32,10 +32,10 @@ automations or CLI afficionados can all request lyrics from a single toolchain.
    your shell before running any commands.
 
 4. Run the desired entrypoint:
+   - MCP Stdio server: `npm run server:mcp`
+   - MCP Streamable HTTP server: `npm run server:mcp:http`
+   - Standard JSON HTTP server: `npm run server:http`
    - CLI: `npm run cli -- --help`
-   - JSON HTTP server: `npm run server:http`
-   - MCP stdio server: `npm run server:mcp`
-   - MCP HTTP server: `npm run server:mcp:http`
 
 ## Environment variables
 
@@ -172,19 +172,17 @@ npm run server:http       # or server:mcp / server:mcp:http
 Use a process manager (systemd, PM2, Docker CMD, etc.) to keep long-lived
 servers running.
 
+- **MCP server (Stdio)** for local Model Context Protocol clients (use the
+  bundled CLI: `npm run server:mcp` or call `node ./src/bin/mcp-server.js`).
+- **MCP server (Streamable HTTP)** for remote MCP clients that speak the Streamable HTTP
+  transport (`npm run server:mcp:http`). When running the Streamable HTTP transport 
+in remote environments, restrict ingress (e.g., `0.0.0.0:3444` behind auth) 
+and provide allowed host/origin headers via the MCP SDK options if needed.
+- **Standard JSON HTTP server** for container/remote automation (`npm run server:http`).
 - **CLI** for ad-hoc/manual usage (one-off SSH sessions, CI jobs, or ephemeral
   workers). Invoke with `npm run cli -- <subcommand>` or `npx mr-magic-mcp-cli
 <subcommand>`; it isn’t designed to run as a long-lived daemon because it exits
   after each command completes.
-- **HTTP server** for container/remote automation (`npm run server:http`).
-- **MCP server (stdio)** for local Model Context Protocol clients (use the
-  bundled CLI: `npm run server:mcp` or call `node ./src/bin/mcp-server.js`).
-- **MCP server (HTTP)** for remote MCP clients that speak the Streamable HTTP
-  transport (`npm run server:mcp:http`).
-
-When running the Streamable HTTP transport in remote environments, restrict
-ingress (e.g., `0.0.0.0:3444` behind auth) and provide allowed host/origin
-headers via the MCP SDK options if needed.
 
 ## MCP tools
 
