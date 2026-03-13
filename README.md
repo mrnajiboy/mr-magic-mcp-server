@@ -1,9 +1,7 @@
 # Mr. Magic MCP Server
 
-Mr. Magic bridges LRCLIB, Genius, Musixmatch, and Melon so command-line users,
-HTTP automations, and MCP clients can all request lyrics from a single
-toolchain. This README covers local setup, deployment options, MCP transport
-details, and the automated tests that protect the surface area.
+Mr. Magic bridges LRCLIB, Genius, Musixmatch, and Melon so MCP clients, HTTP 
+automations or CLI afficionados can all request lyrics from a single toolchain. 
 
 ## Prerequisites
 
