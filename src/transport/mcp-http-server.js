@@ -67,7 +67,7 @@ export async function startMcpHttpServer(options = {}) {
   const port = Number(options.port) || 3444;
 
   const server = new Server(
-    { name: 'mcp-http-server', version: '0.1.3' },
+    { name: 'mcp-http-server', version: '0.1.4' },
     { capabilities: { tools: {} } }
   );
 

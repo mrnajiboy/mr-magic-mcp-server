@@ -210,34 +210,39 @@ function stripSummaryText(text) {
 }
 
 export async function fetchLyricsForGeniusSong(url) {
-  const response = await axios.get(url, {
-    timeout: HTTP_TIMEOUT_MS,
-    headers: {
-      'User-Agent': MOZILLA_USER_AGENT,
-      Accept:
-        'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-      'Accept-Language': 'en-US,en;q=0.9',
-      Referer: 'https://genius.com/',
-      'Sec-Fetch-Mode': 'navigate',
-      'Sec-Fetch-Site': 'same-origin'
+  try {
+    const response = await axios.get(url, {
+      timeout: HTTP_TIMEOUT_MS,
+      headers: {
+        'User-Agent': MOZILLA_USER_AGENT,
+        Accept:
+          'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        Referer: 'https://genius.com/',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'same-origin'
+      }
+    });
+
+    const $ = cheerio.load(response.data);
+    let blocks = extractFromNodes($('div[data-lyrics-container="true"]').toArray(), $);
+
+    if (!blocks.length) {
+      blocks = extractFromNodes($('div[class^="Lyrics__Container"]').toArray(), $);
     }
-  });
 
-  const $ = cheerio.load(response.data);
-  let blocks = extractFromNodes($('div[data-lyrics-container="true"]').toArray(), $);
-
-  if (!blocks.length) {
-    blocks = extractFromNodes($('div[class^="Lyrics__Container"]').toArray(), $);
-  }
-
-  if (!blocks.length) {
-    const fallback = $('.lyrics').text().trim();
-    if (fallback) {
-      blocks.push(fallback);
+    if (!blocks.length) {
+      const fallback = $('.lyrics').text().trim();
+      if (fallback) {
+        blocks.push(fallback);
+      }
     }
-  }
 
-  return blocks.join('\n\n');
+    return blocks.join('\n\n');
+  } catch (error) {
+    logger.error('fetchLyricsForGeniusSong failed', { error, url });
+    return null;
+  }
 }
 
 export async function checkGeniusTokenReady() {

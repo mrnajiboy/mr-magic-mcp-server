@@ -12,7 +12,7 @@ function shouldLog(targetLevel, activeLevel) {
   return LEVELS.indexOf(targetLevel) <= LEVELS.indexOf(activeLevel);
 }
 
-function resolveConsoleMethod(level) {
+function resolveConsoleMethod() {
   // Always emit structured logs to stderr so we never pollute stdout
   // when running inside stdio transports (e.g., MCP servers).
   // console.error writes to stderr in Node across every level.
@@ -28,7 +28,7 @@ function structuredLog(level, message, meta) {
     message,
     ...meta
   };
-  const method = resolveConsoleMethod(level);
+  const method = resolveConsoleMethod();
   method(JSON.stringify(payload));
 }
 

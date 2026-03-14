@@ -7,37 +7,14 @@ import {
   romanizeSrtLyrics,
   containsHangul
 } from '../utils/lyrics-format.js';
-import { createExportStorage } from '../utils/export-storage.js';
+import { slugify } from '../utils/slugify.js';
+import { createStorageCache } from '../utils/storage-cache.js';
 
-function sanitizeFilename(value) {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/gi, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 80);
-}
-
-const storageCache = new Map();
-
-async function getStorage(outputDir) {
-  const key = `${process.env.MR_MAGIC_EXPORT_BACKEND || 'local'}:${outputDir || 'default'}`;
-  if (!storageCache.has(key)) {
-    const storage = await createExportStorage({
-      local: { baseDir: outputDir },
-      redis: {
-        url: process.env.UPSTASH_REDIS_REST_URL,
-        token: process.env.UPSTASH_REDIS_REST_TOKEN,
-        ttl: process.env.MR_MAGIC_EXPORT_TTL_SECONDS
-      }
-    });
-    storageCache.set(key, storage);
-  }
-  return storageCache.get(key);
-}
+const getStorage = createStorageCache(`${process.env.MR_MAGIC_EXPORT_BACKEND || 'local'}:`);
 
 async function storeExport(outputDir, baseName, extension, contents) {
   if (!contents) return null;
-  const safe = sanitizeFilename(baseName || 'lyrics');
+  const safe = slugify(baseName || 'lyrics', 'lyrics');
   const storage = await getStorage(outputDir);
   return storage.store({ content: contents, extension, baseName: safe });
 }

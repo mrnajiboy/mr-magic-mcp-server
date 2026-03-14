@@ -1,14 +1,15 @@
-import { runFind, runSearch } from '../core/find-service.js';
+import { runFind } from '../core/find-service.js';
 import { formatRecord } from '../core/formatting.js';
 import { exportLyrics, deriveFormatSet } from '../core/export.js';
-import { createExportStorage } from '../utils/export-storage.js';
+import { slugify } from '../utils/slugify.js';
+import { createStorageCache } from '../utils/storage-cache.js';
 
 export function buildActionContext(options = {}) {
   const defaultFormats = ['plain', 'srt'];
   const requestedFormats = options.formats ?? options.format ?? [];
   const baseExportDir = options.exportDir || process.env.MR_MAGIC_EXPORT_DIR;
   return {
-    includeRomanization: options.noRomanize ? false : true,
+    includeRomanization: !options.noRomanize,
     includeSynced: options.includeSynced ?? true,
     shouldExport: Boolean(options.export),
     outputDir: options.output || baseExportDir,
@@ -22,20 +23,6 @@ export function buildActionContext(options = {}) {
 
 export async function executeFind(track, options = {}) {
   return runFind(track, options);
-}
-
-export async function executeSearch(track) {
-  return runSearch(track);
-}
-
-export async function buildFindResponse(track, actionOptions = {}) {
-  const result = await executeFind(track, actionOptions);
-  const context = buildActionContext(actionOptions);
-  return buildPayloadFromResult(result, context);
-}
-
-export async function buildSearchResponse(track) {
-  return executeSearch(track);
 }
 
 export async function buildCatalogPayload(track, actionOptions = {}) {
@@ -66,26 +53,10 @@ export async function buildPayloadFromResult(result, context) {
   return payload;
 }
 
-const lyricPayloadStorageCache = new Map();
+const getLyricPayloadStorage = createStorageCache();
 const DEFAULT_INLINE_PAYLOAD_MAX_CHARS = Number(
   process.env.MR_MAGIC_INLINE_PAYLOAD_MAX_CHARS || 1500
 );
-
-async function getLyricPayloadStorage(outputDir) {
-  const key = outputDir || '__default__';
-  if (!lyricPayloadStorageCache.has(key)) {
-    const storage = await createExportStorage({
-      local: { baseDir: outputDir },
-      redis: {
-        url: process.env.UPSTASH_REDIS_REST_URL,
-        token: process.env.UPSTASH_REDIS_REST_TOKEN,
-        ttl: process.env.MR_MAGIC_EXPORT_TTL_SECONDS
-      }
-    });
-    lyricPayloadStorageCache.set(key, storage);
-  }
-  return lyricPayloadStorageCache.get(key);
-}
 
 async function buildCatalogResponse(findResult, requestedTrack = {}, options = {}) {
   const best = findResult?.best;
@@ -194,15 +165,6 @@ function buildLyricsBaseName(trackSummary = {}) {
   const artist = (trackSummary.artist || 'unknown').toString().toLowerCase();
   const title = (trackSummary.title || 'song').toString().toLowerCase();
   return `${slugify(artist)}-${slugify(title)}` || 'lyrics';
-}
-
-function slugify(value) {
-  return (
-    value
-      .replace(/[^a-z0-9]+/gi, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 80) || 'value'
-  );
 }
 
 function countLines(value) {

@@ -26,7 +26,7 @@ export function getEnvValue(name) {
 const DEFAULT_REQUIRED = ['GENIUS_ACCESS_TOKEN'];
 const warnedMissingEnvCache = new Set();
 
-export function getMissingEnvVars(requiredVars = DEFAULT_REQUIRED) {
+function getMissingEnvVars(requiredVars = DEFAULT_REQUIRED) {
   return requiredVars.filter((name) => !getEnvValue(name));
 }
 
@@ -52,16 +52,6 @@ export function warnMissingEnv(requiredVars = DEFAULT_REQUIRED) {
     warnedMissingEnvCache.add(cacheKey);
     console.warn(`[env] Missing recommended variables: ${missing.join(', ')}`);
   }
-}
-
-export function getEnvSnapshot() {
-  return {
-    GENIUS_ACCESS_TOKEN: getEnvValue('GENIUS_ACCESS_TOKEN'),
-    GENIUS_CLIENT_ID: getEnvValue('GENIUS_CLIENT_ID'),
-    GENIUS_CLIENT_SECRET: getEnvValue('GENIUS_CLIENT_SECRET'),
-    MUSIXMATCH_TOKEN: getEnvValue('MUSIXMATCH_TOKEN'),
-    MELON_COOKIE: getEnvValue('MELON_COOKIE')
-  };
 }
 
 export const MELON_COOKIE = () => getEnvValue('MELON_COOKIE');

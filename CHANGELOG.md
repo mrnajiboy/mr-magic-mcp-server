@@ -1,5 +1,35 @@
 ## Changelog
 
+### 0.1.4 - 2026-03-15
+
+#### 🐛 Bugs Fixed
+- **`mcp-response.js`** — `buildMcpResponse()` previously emitted two `content` blocks for
+  responses that didn't look like lyric payloads (e.g. `build_catalog_payload` with
+  `omitInlineLyrics: true`): a truncated 220-char preview first, then the full JSON.
+  LLMs reading the response encountered the truncated text *first*, producing unterminated
+  strings in downstream Airtable payloads. Fixed: always exactly **one** `content` block —
+  the complete pretty-printed JSON. Preview/summary logic is now CLI-only.
+- **Cline MCP server refresh error** — Using `npm run server:mcp` as the Cline command
+  caused `> mr-magic-mcp-server@x.x.x server:mcp` npm echo lines to pollute stdout,
+  which Cline tried to JSON-parse, producing "Unexpected token '>'..." errors on every
+  refresh. Fixed: Cline config now invokes `node src/bin/mcp-server.js` directly.
+
+#### 🗑️ Dead Code / Stale Config Removed
+- **`src/transport/mcp-response.js`** — Removed `buildResultSummary`, `extractPreviewText`,
+  `looksLikeLyricPayload`, `truncate`, `truncateInline`, and all the preview-injection
+  branch from `buildMcpResponse`. None of those are needed for programmatic MCP consumers.
+- **`.env.example`** — Removed `MR_MAGIC_TMP_DIR` (never referenced in source code).
+
+#### 📦 Environment Variables
+- **`.env.example`** — Added `MUSIXMATCH_USER_TOKEN` (surfaced by `runtime_status` credential
+  scan in `mcp-tools.js`) and `MR_MAGIC_INLINE_PAYLOAD_MAX_CHARS` (referenced in
+  `lyrics-service.js`). Both were in the README and code but missing from the example file.
+
+#### 🔖 Version
+- Bumped to `0.1.4` across `package.json`, `mcp-server.js`, `mcp-http-server.js`.
+
+---
+
 ### 0.1.3 - 2026-03-14
 
 - Restored CLI invocation compatibility for npm argument-forwarding edge cases:

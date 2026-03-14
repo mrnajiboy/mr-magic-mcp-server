@@ -59,18 +59,18 @@ GENIUS_CLIENT_SECRET= # Get from https://genius.com/api-clients, required for Ge
 GENIUS_ACCESS_TOKEN= # Get from https://genius.com/api-clients, required for Genius lyrics support when client credentials are not supplied.
 MUSIXMATCH_AUTO_FETCH=0 # Optional. When 1, provider will attempt to rerun the fetch script automatically (headless) if no token is available.
 MUSIXMATCH_TOKEN= # Get from https://developer.musixmatch.com or see README for fetching from Public API.
+MUSIXMATCH_USER_TOKEN= # Optional. Musixmatch user token captured via the fetch script (stored in the token cache). Surfaced by runtime_status diagnostics.
 MUSIXMATCH_TOKEN_CACHE=.cache/musixmatch-token.json
-MELON_COOKIE= # Optional
+MELON_COOKIE= # Optional. Pin a session cookie for consistent Melon results; anonymous access generally works without it.
 MR_MAGIC_EXPORT_BACKEND= # local|inline|redis
 MR_MAGIC_EXPORT_DIR=/absolute/path/to/exports # Required if MR_MAGIC_EXPORT_BACKEND=local
 MR_MAGIC_EXPORT_TTL_SECONDS=3600 # Optional, default 3600 (1 hour). Only applies to local and redis backends, ignored for inline.
 MR_MAGIC_DOWNLOAD_BASE_URL=https://yourserver.com|http://localhost:GIVEN_PORT # Used for generating download links for exported files. See README for details.
-MR_MAGIC_TMP_DIR=/tmp/ # Optional, default /tmp/. Used for temporary file storage during export generation. Only applies to local and redis backends, ignored for inline.
-MR_MAGIC_QUIET_STDIO=0 # Optional, default 0. If set to 1, suppresses all non-error logs to stdout.
+MR_MAGIC_INLINE_PAYLOAD_MAX_CHARS=1500 # Optional, default 1500. build_catalog_payload auto-promotes payload transport to reference when omitInlineLyrics is true and lyrics exceed this threshold.
+MR_MAGIC_QUIET_STDIO=0 # Optional, default 0. If set to 1, suppresses all non-error logs to stdout. Recommended when running under MCP clients that read stdio (forces LOG_LEVEL=error).
 MR_MAGIC_HTTP_TIMEOUT_MS=10000 # Optional, default 10000. Global outbound HTTP timeout (ms) to prevent hanging provider/storage requests.
 MR_MAGIC_LOG_TOOL_ARGS_CHUNKS=0 # Optional, default 0. Set to 1/true to emit chunk-by-chunk MCP tool argument previews for truncation debugging.
 MR_MAGIC_TOOL_ARG_CHUNK_SIZE=400 # Optional, default 400. Chunk size used when MR_MAGIC_LOG_TOOL_ARGS_CHUNKS is enabled.
-MR_MAGIC_INLINE_PAYLOAD_MAX_CHARS=1500 # Optional, default 1500. build_catalog_payload auto-promotes payload transport to reference when omitInlineLyrics is true and lyrics exceed this threshold.
 MR_MAGIC_MCP_HTTP_DIAGNOSTICS=0 # Optional, default 0. Set to 1 to log enriched Streamable HTTP MCP request diagnostics at transport ingress.
 MR_MAGIC_SDK_REPRO_HTTP_DEBUG=0 # Optional, default 0. Set to 1 for verbose HTTP request/response previews in the SDK repro harness script.
 UPSTASH_REDIS_REST_URL= # Get from https://console.upstash.com/redis/rest, required if MR_MAGIC_EXPORT_BACKEND=redis
@@ -220,9 +220,6 @@ complete cookie header you already trust.
   returned inline in the tool/server response with `content` populated and
   `skipped: true` to signal that persistence was intentionally bypassed (not
   that the export failed).
-- **Temporary files:** `MR_MAGIC_TMP_DIR` controls where internal debug
-  artifacts land (defaults to `os.tmpdir()`), so remote runners that disallow
-  root writes can set `/tmp/mr-magic` or similar.
 
 ## Local deployment
 
@@ -445,19 +442,25 @@ then switch chunk logging back off to keep logs compact.
 
 ### MCP client configuration (local repo vs published npm)
 
-Until the package is published to npm, most MCP clients need to launch the stdio
-server via a shell so they can `cd` into the repo before running `npm run
-server:mcp`. For example, TypingMind expects a single command and doesn’t set
-`cwd`, so configure it like this:
+> ⚠️ **Important for stdio MCP clients:** Always invoke the server via
+> `node src/bin/mcp-server.js` (or the equivalent direct binary) rather than
+> `npm run server:mcp`. When `npm` runs a script it echoes a preamble like
+> `> mr-magic-mcp-server@x.x.x server:mcp` to stdout before the Node process
+> starts. Cline and other stdio MCP clients try to parse every stdout line as
+> JSON-RPC, so those `>` lines cause "Unexpected token '>'" parse errors on
+> every connection attempt. Direct `node` invocation produces no such preamble.
 
 #### Standard Config
+
+For clients like TypingMind that don't support a `cwd` field, use a shell
+wrapper with the absolute path:
 
 ```json
 {
   "mcpServers": {
     "Mr. Magic": {
       "command": "/bin/sh",
-      "args": ["-c", "cd /Users/you/Code/mr-magic-mcp-server && npm run server:mcp"]
+      "args": ["-c", "cd /Users/you/Code/mr-magic-mcp-server && node src/bin/mcp-server.js"]
     }
   }
 }
@@ -465,29 +468,27 @@ server:mcp`. For example, TypingMind expects a single command and doesn’t set
 
 #### Cline Config
 
+Cline supports `cwd`, so you can call `node` directly — **do not use `npm run`
+here**, as npm's script echo will corrupt the stdio stream:
+
 ```json
 {
   "mcpServers": {
     "Mr. Magic": {
-      "disabled": true,
+      "disabled": false,
       "timeout": 60,
       "type": "stdio",
-      "command": "npm",
-      "args": ["run", "server:mcp"],
-      "cwd": "/Users/naji/Documents/Code/MCP/mr-magic-mcp-server"
+      "command": "node",
+      "args": ["src/bin/mcp-server.js"],
+      "cwd": "/Users/you/Documents/Code/MCP/mr-magic-mcp-server"
     }
   }
 }
 ```
 
 If/when the project is published and installed globally (e.g., `npm install -g
-mr-magic-mcp-server`), MCP clients can invoke the installed binaries directly
-(`mrmagic-cli`, `http-server`, `mcp-server`, `mcp-http-server`) without the `cd`/shell
-workaround because the executables will already be on `PATH`.
-
-Note: `npm run server:mcp` keeps stdout clean (all logging goes to stderr), so
-stdio-based clients see only the JSON responses regardless of which launch style
-you use.
+mr-magic-mcp-server`), MCP clients can invoke the installed binary
+(`mcp-server`) directly without a `cwd` workaround, since it will be on `PATH`.
 
 ### Manual Testing
 
@@ -649,7 +650,7 @@ curl -sS -X POST http://127.0.0.1:3444/mcp \
   }' | jq
 ```
 
-##### C. Call `export_lyrics`
+##### C. Call `find_synced_lyrics`
 
 ```bash
 curl -sS -X POST http://127.0.0.1:3444/mcp \
@@ -660,19 +661,199 @@ curl -sS -X POST http://127.0.0.1:3444/mcp \
     "id":3,
     "method":"tools/call",
     "params":{
-      "name":"export_lyrics",
+      "name":"find_synced_lyrics",
+      "arguments":{"track":{"artist":"Coldplay","title":"Yellow"}}
+    }
+  }' | jq
+```
+
+##### D. Call `build_catalog_payload` (default — inline lyrics)
+
+```bash
+curl -sS -X POST http://127.0.0.1:3444/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{
+    "jsonrpc":"2.0",
+    "id":4,
+    "method":"tools/call",
+    "params":{
+      "name":"build_catalog_payload",
       "arguments":{
-        "track":{"artist":"Coldplay","title":"Yellow"},
-        "options":{"formats":["plain"]}
+        "track":{"artist":"K/DA","title":"I'\''LL SHOW YOU"},
+        "options":{"preferRomanized":false}
       }
     }
   }' | jq
 ```
 
-MCP tool responses include:
+##### E. Call `build_catalog_payload` (compact Airtable-safe mode)
 
-- `result.structuredContent` (machine-friendly object)
-- `result.content` (human-readable summary + pretty JSON text)
+```bash
+curl -sS -X POST http://127.0.0.1:3444/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{
+    "jsonrpc":"2.0",
+    "id":5,
+    "method":"tools/call",
+    "params":{
+      "name":"build_catalog_payload",
+      "arguments":{
+        "track":{"artist":"K/DA","title":"I'\''LL SHOW YOU"},
+        "options":{
+          "omitInlineLyrics":true,
+          "lyricsPayloadMode":"payload",
+          "airtableSafePayload":true
+        }
+      }
+    }
+  }' | jq
+```
+
+##### F. Call `search_lyrics` (all providers, no hydration)
+
+```bash
+curl -sS -X POST http://127.0.0.1:3444/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{
+    "jsonrpc":"2.0",
+    "id":6,
+    "method":"tools/call",
+    "params":{
+      "name":"search_lyrics",
+      "arguments":{"track":{"artist":"Coldplay","title":"Yellow"}}
+    }
+  }' | jq
+```
+
+##### G. Call `search_provider` (single provider)
+
+```bash
+curl -sS -X POST http://127.0.0.1:3444/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{
+    "jsonrpc":"2.0",
+    "id":7,
+    "method":"tools/call",
+    "params":{
+      "name":"search_provider",
+      "arguments":{
+        "provider":"lrclib",
+        "track":{"artist":"Coldplay","title":"Yellow"}
+      }
+    }
+  }' | jq
+```
+
+##### H. Call `format_lyrics` (in-memory with romanization)
+
+```bash
+curl -sS -X POST http://127.0.0.1:3444/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{
+    "jsonrpc":"2.0",
+    "id":8,
+    "method":"tools/call",
+    "params":{
+      "name":"format_lyrics",
+      "arguments":{
+        "track":{"artist":"aespa","title":"Supernova"},
+        "options":{"includeSynced":true}
+      }
+    }
+  }' | jq
+```
+
+##### I. Call `export_lyrics`
+
+```bash
+curl -sS -X POST http://127.0.0.1:3444/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{
+    "jsonrpc":"2.0",
+    "id":9,
+    "method":"tools/call",
+    "params":{
+      "name":"export_lyrics",
+      "arguments":{
+        "track":{"artist":"Coldplay","title":"Yellow"},
+        "options":{"formats":["plain","lrc","srt"]}
+      }
+    }
+  }' | jq
+```
+
+##### J. Call `get_provider_status`
+
+```bash
+curl -sS -X POST http://127.0.0.1:3444/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{
+    "jsonrpc":"2.0",
+    "id":10,
+    "method":"tools/call",
+    "params":{"name":"get_provider_status","arguments":{}}
+  }' | jq
+```
+
+##### K. Call `runtime_status`
+
+```bash
+curl -sS -X POST http://127.0.0.1:3444/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{
+    "jsonrpc":"2.0",
+    "id":11,
+    "method":"tools/call",
+    "params":{"name":"runtime_status","arguments":{}}
+  }' | jq
+```
+
+##### L. Call `select_match` (pick from a prior search result)
+
+First run `search_lyrics` (section F above) and capture the matches, then
+pick the first synced result:
+
+```bash
+curl -sS -X POST http://127.0.0.1:3444/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{
+    "jsonrpc":"2.0",
+    "id":12,
+    "method":"tools/call",
+    "params":{
+      "name":"select_match",
+      "arguments":{
+        "matches": [
+          {
+            "provider":"lrclib",
+            "result":{
+              "title":"Yellow","artist":"Coldplay",
+              "synced":true,"plainOnly":false
+            }
+          }
+        ],
+        "criteria":{"requireSynced":true,"index":0}
+      }
+    }
+  }' | jq
+```
+
+> **MCP tool response shape:**
+> - `result.structuredContent` — machine-friendly object (all fields present, full values)
+> - `result.content[0].text` — complete pretty-printed JSON (identical to `structuredContent`)
+>
+> Both channels carry the same complete payload. There is no truncated preview
+> block. Programmatic consumers should prefer `structuredContent`; LLM agents
+> reading `content[0].text` get the full JSON string.
 
 > Tip: if your manual client has trouble with MCP sessions, start with
 > `npm run cli -- server:mcp:http --sessionless` for easier stateless testing.
@@ -703,8 +884,8 @@ with descriptions, defaults, and examples.
 
 ### Command summary
 
-| Command                            | Purpose                                                             | Notable flags                                                                                                                                                                                                                               |
-| ---------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Command                       | Purpose                                                             | Notable flags                                                                                                                                                                                                                               |
+| ----------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `mrmagic-cli search`          | List candidate matches across providers without downloading lyrics. | `--artist`/`--title` (required track metadata), `--provider` (limit providers), `--duration` (match duration in ms), `--show-all` (print table), `--pick` (auto-select provider result).                                                    |
 | `mrmagic-cli find`            | Resolve the best lyric (prefers synced) and print/export it.        | `--providers` (CSV priority list), `--synced-only` (reject plain results), `--export` (write files), `--format` (repeatable; e.g., lrc,srt), `--output` (custom export dir), `--no-romanize`, `--choose`/`--index` (select specific match). |
 | `mrmagic-cli select`          | Pick the first match from a prioritized provider list.              | `--providers` (CSV order), `--artist`, `--title`, `--require-synced` (only accept synced lyrics).                                                                                                                                           |

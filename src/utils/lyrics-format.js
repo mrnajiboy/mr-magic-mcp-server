@@ -163,10 +163,6 @@ export function buildSrt(syncedLyrics) {
     .join('\n\n');
 }
 
-export function romanizeText(source) {
-  return romanizePlainLyrics(source, { formatted: true });
-}
-
 export function romanizeSrtLyrics(syncedLyrics) {
   if (!syncedLyrics) return '';
   const romanizedLrc = romanizeSyncedLyrics(syncedLyrics);

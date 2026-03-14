@@ -14,7 +14,10 @@ import { buildMcpResponse } from './mcp-response.js';
 import { logTokenStatus } from './token-startup-log.js';
 import { normalizeToolArgs } from './tool-args.js';
 
-const server = new Server({ name: 'mcp-server', version: '0.1.3' }, { capabilities: { tools: {} } });
+const server = new Server(
+  { name: 'mcp-server', version: '0.1.4' },
+  { capabilities: { tools: {} } }
+);
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: mcpToolDefinitions }));
 

@@ -73,9 +73,7 @@ function buildTrackFromOptions(options) {
 }
 
 function hasOption(argv, names) {
-  return argv.some((token) =>
-    names.some((name) => token === name || token.startsWith(`${name}=`))
-  );
+  return argv.some((token) => names.some((name) => token === name || token.startsWith(`${name}=`)));
 }
 
 function normalizeLegacyNpmInvocation(argv) {
@@ -98,14 +96,7 @@ function normalizeLegacyNpmInvocation(argv) {
   // npm run <script> <command> -a "..." -t "..." can strip the short options,
   // leaving positional tokens only. Recover the common case safely.
   if (!hasArtist && !hasTitle && !hasAnyOption && args.length >= 2) {
-    return [
-      ...base.slice(0, 3),
-      '--artist',
-      args[0],
-      '--title',
-      args[1],
-      ...args.slice(2)
-    ];
+    return [...base.slice(0, 3), '--artist', args[0], '--title', args[1], ...args.slice(2)];
   }
 
   return base;
@@ -368,6 +359,8 @@ program
   .option('--no-romanize', 'Disable romanized lyrics', false)
   .action(async (options) => {
     const track = buildTrackFromOptions(options);
+    const searchLabel = [track.artist, track.title].filter(Boolean).join(' - ');
+    process.stderr.write(`Searching: ${searchLabel}...\n`);
     const queries = await runSearch(track);
     const filtered = options.provider
       ? queries.filter((entry) => entry.provider === options.provider)
@@ -516,6 +509,8 @@ program
   .option('--no-romanize', 'Disable romanized lyrics', false)
   .action(async (options) => {
     const track = buildTrackFromOptions(options);
+    const searchLabel = [track.artist, track.title].filter(Boolean).join(' - ');
+    process.stderr.write(`Searching: ${searchLabel}...\n`);
     const providerNames = options.providers
       ? options.providers.split(',').map((value) => value.trim())
       : [];

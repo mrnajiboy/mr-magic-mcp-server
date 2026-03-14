@@ -67,10 +67,6 @@ export async function getMusixmatchToken() {
   return readCachedToken();
 }
 
-export function getCachedDesktopCookie() {
-  return cachedDesktopCookie;
-}
-
 export async function setMusixmatchToken(token, { desktopCookie } = {}) {
   if (!token) return;
   cachedToken = token;
@@ -89,12 +85,6 @@ export function invalidateMusixmatchToken() {
 
 export function describeMusixmatchTokenSource() {
   return lastLoadedFrom;
-}
-
-export function resetMusixmatchTokenCache() {
-  cachedToken = null;
-  cachedDesktopCookie = null;
-  lastLoadedFrom = 'unknown';
 }
 
 export async function getMusixmatchTokenDiagnostics() {

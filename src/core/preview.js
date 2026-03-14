@@ -1,5 +1,3 @@
-import { formatPlainStanzas } from '../utils/lyrics-format.js';
-
 const PREVIEW_MAX_LENGTH = 140;
 
 function truncatePreview(text) {
@@ -53,9 +51,4 @@ export function extractSyncedPreview(record) {
   }
 
   return truncatePreview(preview.join(' | '));
-}
-
-export function formatPlainLyricsForOutput(plainLyrics) {
-  if (!plainLyrics) return '';
-  return formatPlainStanzas(plainLyrics);
 }

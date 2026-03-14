@@ -42,7 +42,7 @@ export function startHttpServer(options = {}) {
         res.end(
           JSON.stringify({
             status: 'ok',
-            providers: getProviderStatus()
+            providers: await getProviderStatus()
           })
         );
         return;
@@ -131,7 +131,7 @@ export function startHttpServer(options = {}) {
       }
     });
 
-    server.listen(port, host, () => {
+    server.listen(port, host, async () => {
       const readyMessage = {
         jsonrpc: '2.0',
         method: 'ready',
@@ -144,7 +144,7 @@ export function startHttpServer(options = {}) {
       };
       process.stdout.write(`${JSON.stringify(readyMessage)}\n`);
       logger.info('Lyrics HTTP server listening', { host, port });
-      logger.info('Provider readiness snapshot', { providers: getProviderStatus() });
+      logger.info('Provider readiness snapshot', { providers: await getProviderStatus() });
       resolve(server);
     });
   });

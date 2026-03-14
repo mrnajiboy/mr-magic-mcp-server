@@ -1,6 +1,6 @@
 {
   "name": "mr-magic-mcp-server",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Lyrics MCP server connecting LRCLIB, Genius, Musixmatch, and Melon",
   "type": "module",
   "main": "src/index.js",
@@ -62,14 +62,13 @@
     "cheerio": "^1.0.0-rc.12",
     "commander": "^10.0.0",
     "dotenv": "^16.4.0",
-    "hangul-js": "^0.2.6",
-    "playwright-chromium": "^1.44.0",
-    "undici": "^7.22.0"
+    "hangul-js": "^0.2.6"
   },
   "devDependencies": {
     "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
+    "playwright-chromium": "^1.58.2",
     "prettier": "^3.8.1"
   }
 }

@@ -344,7 +344,7 @@ export async function handleMcpTool(name, args = {}) {
       return { error: 'No match found' };
     }
     const formatted = formatRecord(best, {
-      includeRomanization: options?.noRomanize ? false : true,
+      includeRomanization: !options?.noRomanize,
       includeSynced: options?.includeSynced ?? true
     });
     return { formatted, best };
@@ -375,11 +375,17 @@ export async function handleMcpTool(name, args = {}) {
   }
 
   if (name === 'runtime_status') {
+    const CREDENTIAL_KEYS = [
+      'GENIUS_ACCESS_TOKEN',
+      'GENIUS_CLIENT_ID',
+      'GENIUS_CLIENT_SECRET',
+      'MUSIXMATCH_TOKEN',
+      'MUSIXMATCH_USER_TOKEN',
+      'MELON_COOKIE'
+    ];
     return {
       providers: await getProviderStatus(),
-      env: Object.keys(process.env).filter((key) =>
-        ['GENIUS_ACCESS_TOKEN', 'MUSIXMATCH_TOKEN', 'MELON_COOKIE'].includes(key)
-      )
+      env: Object.keys(process.env).filter((key) => CREDENTIAL_KEYS.includes(key))
     };
   }
 
