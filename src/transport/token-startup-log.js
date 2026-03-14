@@ -114,7 +114,7 @@ async function logMusixmatchStatus(context) {
     logger.warn('Musixmatch token missing', {
       context,
       provider: 'musixmatch',
-      details: 'run scripts/fetch_musixmatch_token.mjs to capture cookies'
+      details: 'run scripts/fetch_MUSIXMATCH_ALT_USER_TOKEN.mjs to capture cookies'
     });
   }
 }

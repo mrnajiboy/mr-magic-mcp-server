@@ -85,9 +85,9 @@ GENIUS_CLIENT_ID= # Get from https://genius.com/api-clients, required for Genius
 GENIUS_CLIENT_SECRET= # Get from https://genius.com/api-clients, required for Genius client-credentials auth.
 GENIUS_ACCESS_TOKEN= # Get from https://genius.com/api-clients, required for Genius lyrics support when client credentials are not supplied.
 MUSIXMATCH_USER_TOKEN= # Fallback token (1st priority). Set as env var for production/ephemeral hosts where the filesystem is not persistent.
-MUSIXMATCH_TOKEN= # Fallback token (2nd priority). Alternative env var; same token value, second-choice source.
+MUSIXMATCH_ALT_USER_TOKEN= # Fallback token (2nd priority). Alternative env var; same token value, second-choice source.
 MUSIXMATCH_AUTO_FETCH=0 # Optional. When 1, provider will attempt to re-run the fetch script automatically (headless) if no token is available.
-MUSIXMATCH_TOKEN_CACHE=.cache/musixmatch-token.json
+MUSIXMATCH_ALT_USER_TOKEN_CACHE=.cache/musixmatch-token.json
 MELON_COOKIE= # Optional. Pin a session cookie for consistent Melon results; anonymous access generally works without it.
 MR_MAGIC_EXPORT_BACKEND= # local|inline|redis
 MR_MAGIC_EXPORT_DIR=/absolute/path/to/exports # Required if MR_MAGIC_EXPORT_BACKEND=local
@@ -113,17 +113,17 @@ AIRTABLE_PERSONAL_ACCESS_TOKEN= # Required for push_catalog_to_airtable tool. Ge
   static access token.
 - **Musixmatch token sources** — the server resolves the Musixmatch token using
   two named sources, tried in order:
-  - **Fallback token** (`MUSIXMATCH_USER_TOKEN`, then `MUSIXMATCH_TOKEN`) — the
+  - **Fallback token** (`MUSIXMATCH_USER_TOKEN`, then `MUSIXMATCH_ALT_USER_TOKEN`) — the
     token value is set directly as an environment variable. This is the
     recommended approach for production and ephemeral hosts (e.g. Render free
     tier, containers) where the filesystem cannot be relied upon between
-    restarts. Set `MUSIXMATCH_USER_TOKEN` first; `MUSIXMATCH_TOKEN` is the
+    restarts. Set `MUSIXMATCH_USER_TOKEN` first; `MUSIXMATCH_ALT_USER_TOKEN` is the
     legacy/alternative env var for the same value.
   - **Cache token** (on-disk `.cache/musixmatch-token.json`) — written by the
     `fetch:musixmatch-token` script after a browser sign-in. Used for local
     development when a persistent writable filesystem is available. Not suitable
     for ephemeral hosts.
-- **MUSIXMATCH_TOKEN_CACHE** controls where the on-disk cache token file is
+- **MUSIXMATCH_ALT_USER_TOKEN_CACHE** controls where the on-disk cache token file is
   read/written (default `<project root>/.cache/musixmatch-token.json`).
 - **MELON_COOKIE** is optional—anonymous access generally works, but pinning a
   cookie can improve consistency.
@@ -188,7 +188,7 @@ in one of two ways depending on your deployment:
   `.cache/musixmatch-token.json`. The server loads it on startup whenever a
   persistent, writable filesystem is available.
 - **Fallback token** (production/ephemeral): copy the captured token value and
-  set it as `MUSIXMATCH_USER_TOKEN` (recommended) or `MUSIXMATCH_TOKEN` in your
+  set it as `MUSIXMATCH_USER_TOKEN` (recommended) or `MUSIXMATCH_ALT_USER_TOKEN` in your
   platform's environment. This is the only reliable option on ephemeral hosts
   (Render free tier, containers without a mounted volume) where the filesystem
   is wiped between restarts.
@@ -1121,9 +1121,9 @@ For direct binary usage, use `mrmagic-cli search --artist ... --title ...`.
 - **Genius**: Requires `GENIUS_ACCESS_TOKEN`. Provides metadata-rich plain
   lyrics.
 - **Musixmatch**: Requires a token — either a **fallback token** set via
-  `MUSIXMATCH_USER_TOKEN` (recommended for production) or `MUSIXMATCH_TOKEN`
+  `MUSIXMATCH_USER_TOKEN` (recommended for production) or `MUSIXMATCH_ALT_USER_TOKEN`
   env vars, or a **cache token** written to disk by
-  `scripts/fetch_musixmatch_token.mjs` (local dev). See "Getting the Musixmatch
+  `scripts/fetch_MUSIXMATCH_ALT_USER_TOKEN.mjs` (local dev). See "Getting the Musixmatch
   token" above for the full workflow.
 - **Melon**: Works anonymously but benefits from `MELON_COOKIE` for reliability
   if needed.

@@ -12,11 +12,11 @@ const logger = createLogger('musixmatch-token-manager');
 //                     (i.e. local development). Ephemeral hosts (Render free tier, etc.)
 //                     may not have a writable FS, so the cache token is unavailable there.
 //   • Fallback token — the token value supplied directly via MUSIXMATCH_USER_TOKEN or
-//                     MUSIXMATCH_TOKEN environment variables.  This is the recommended
+//                     MUSIXMATCH_ALT_USER_TOKEN environment variables.  This is the recommended
 //                     approach for production and remote deployments where the filesystem
 //                     cannot be relied upon for persistence.
 const TOKEN_CACHE_PATH =
-  process.env.MUSIXMATCH_TOKEN_CACHE ||
+  process.env.MUSIXMATCH_ALT_USER_TOKEN_CACHE ||
   path.join(getProjectRoot(), '.cache', 'musixmatch-token.json');
 
 let cachedToken = null;
@@ -79,7 +79,7 @@ async function writeCachedToken(token, desktopCookie) {
  * Resolve the Musixmatch token using the following priority order:
  *   1. In-memory runtime cache (already resolved this session)
  *   2. MUSIXMATCH_USER_TOKEN env var  — fallback token, first-priority env source
- *   3. MUSIXMATCH_TOKEN env var       — fallback token, second-priority env source
+ *   3. MUSIXMATCH_ALT_USER_TOKEN env var       — fallback token, second-priority env source
  *   4. On-disk cache file             — cache token, local dev only
  */
 export async function getMusixmatchToken() {
@@ -96,10 +96,10 @@ export async function getMusixmatchToken() {
     return cachedToken;
   }
 
-  const envToken = getEnvValue('MUSIXMATCH_TOKEN');
+  const envToken = getEnvValue('MUSIXMATCH_ALT_USER_TOKEN');
   if (envToken) {
     cachedToken = envToken;
-    lastLoadedFrom = 'env:MUSIXMATCH_TOKEN';
+    lastLoadedFrom = 'env:MUSIXMATCH_ALT_USER_TOKEN';
     cachedDesktopCookie = null;
     return cachedToken;
   }
@@ -130,7 +130,7 @@ export function describeMusixmatchTokenSource() {
 
 export async function getMusixmatchTokenDiagnostics() {
   const userEnvToken = getEnvValue('MUSIXMATCH_USER_TOKEN');
-  const envToken = getEnvValue('MUSIXMATCH_TOKEN');
+  const envToken = getEnvValue('MUSIXMATCH_ALT_USER_TOKEN');
 
   const diagnostics = {
     cachePath: TOKEN_CACHE_PATH,
@@ -163,7 +163,7 @@ export async function getMusixmatchTokenDiagnostics() {
   } else if (userEnvToken) {
     diagnostics.resolvedSource = 'env:MUSIXMATCH_USER_TOKEN';
   } else if (envToken) {
-    diagnostics.resolvedSource = 'env:MUSIXMATCH_TOKEN';
+    diagnostics.resolvedSource = 'env:MUSIXMATCH_ALT_USER_TOKEN';
   } else if (diagnostics.cacheTokenPresent) {
     diagnostics.resolvedSource = 'cache';
   } else {

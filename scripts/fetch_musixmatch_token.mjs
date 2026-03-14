@@ -9,7 +9,7 @@ const AUTH_URL = 'https://auth.musixmatch.com/';
 
 async function saveToken(token, desktopCookie) {
   const cachePath =
-    process.env.MUSIXMATCH_TOKEN_CACHE || path.resolve('.cache', 'musixmatch-token.json');
+    process.env.MUSIXMATCH_ALT_USER_TOKEN_CACHE || path.resolve('.cache', 'musixmatch-token.json');
   await mkdir(path.dirname(cachePath), { recursive: true });
   const payload = { token };
   if (desktopCookie) {

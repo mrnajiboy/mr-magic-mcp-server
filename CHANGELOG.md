@@ -8,12 +8,12 @@ Introduced clear, source-based names for the two ways the Musixmatch token can
 be supplied. Both hold the same token value; the label describes where it comes
 from:
 
-- **Fallback token** (`MUSIXMATCH_USER_TOKEN` or `MUSIXMATCH_TOKEN` env vars) —
+- **Fallback token** (`MUSIXMATCH_USER_TOKEN` or `MUSIXMATCH_ALT_USER_TOKEN` env vars) —
   the token is set directly as an environment variable. This is the only
   reliable option on ephemeral/production hosts (Render free tier, containers
   without a persistent volume) where the filesystem is wiped between restarts.
   `MUSIXMATCH_USER_TOKEN` is checked first (1st priority);
-  `MUSIXMATCH_TOKEN` is the legacy/alternative env var (2nd priority).
+  `MUSIXMATCH_ALT_USER_TOKEN` is the legacy/alternative env var (2nd priority).
 - **Cache token** (on-disk `.cache/musixmatch-token.json`) — written by the
   `fetch:musixmatch-token` script after a browser sign-in. Loaded on startup
   when a persistent, writable filesystem is available. Not suitable for
@@ -31,7 +31,7 @@ This terminology is now applied consistently across:
 
 #### 🐛 Fixes
 
-- **`src/providers/musixmatch.js`** — replaced `assertEnv(['MUSIXMATCH_TOKEN'])`
+- **`src/providers/musixmatch.js`** — replaced `assertEnv(['MUSIXMATCH_ALT_USER_TOKEN'])`
   with a descriptive `throw` that names both env vars and the cache token path,
   so the error message is actionable regardless of which source the operator
   intended to use. Also removed the now-unused `assertEnv` import.
@@ -40,7 +40,7 @@ This terminology is now applied consistently across:
 
 - **`.env.example`** — `MUSIXMATCH_USER_TOKEN` is now listed first (matching
   the 1st-priority resolution order) with a clear "Fallback token" label.
-  `MUSIXMATCH_TOKEN` is listed second with a "Fallback token (2nd priority)"
+  `MUSIXMATCH_ALT_USER_TOKEN` is listed second with a "Fallback token (2nd priority)"
   label. The section header explains both source types rather than mixing env
   vars and cache in a single generic note.
 
