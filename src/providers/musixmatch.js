@@ -1,7 +1,6 @@
 import axios from 'axios';
 
 import { normalizeLyricRecord } from '../provider-result-schema.js';
-import { assertEnv } from '../utils/config.js';
 import { createLogger } from '../utils/logger.js';
 import {
   getMusixmatchToken,
@@ -139,7 +138,14 @@ async function macroRequest(track) {
 async function ensureMusixmatchToken() {
   const token = await getMusixmatchToken();
   if (!token) {
-    assertEnv(['MUSIXMATCH_TOKEN']);
+    // Neither a fallback token (MUSIXMATCH_USER_TOKEN / MUSIXMATCH_TOKEN env vars) nor a
+    // cache token (on-disk .cache/musixmatch-token.json) could be found.
+    throw new Error(
+      'Musixmatch token not found. ' +
+        'Set MUSIXMATCH_USER_TOKEN (fallback token — recommended for production/ephemeral hosts) ' +
+        'or MUSIXMATCH_TOKEN as an environment variable, ' +
+        'or run `npm run fetch:musixmatch-token` to populate the on-disk cache token.'
+    );
   }
 }
 

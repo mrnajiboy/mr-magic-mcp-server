@@ -84,6 +84,7 @@ async function logMusixmatchStatus(context) {
     context,
     provider: 'musixmatch',
     cachePath: diagnostics.cachePath,
+    userEnvPresent: diagnostics.userEnvPresent,
     envPresent: diagnostics.envPresent,
     runtimeTokenCached: diagnostics.runtimeTokenCached,
     lastLoadedFrom: diagnostics.lastLoadedFrom

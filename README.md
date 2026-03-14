@@ -84,9 +84,9 @@ MR_MAGIC_ENV_PATH= # Optional. Custom path to an env file when the default isn't
 GENIUS_CLIENT_ID= # Get from https://genius.com/api-clients, required for Genius client-credentials auth.
 GENIUS_CLIENT_SECRET= # Get from https://genius.com/api-clients, required for Genius client-credentials auth.
 GENIUS_ACCESS_TOKEN= # Get from https://genius.com/api-clients, required for Genius lyrics support when client credentials are not supplied.
-MUSIXMATCH_AUTO_FETCH=0 # Optional. When 1, provider will attempt to rerun the fetch script automatically (headless) if no token is available.
-MUSIXMATCH_TOKEN= # Get from https://developer.musixmatch.com or see README for fetching from Public API.
-MUSIXMATCH_USER_TOKEN= # Optional. Musixmatch user token captured via the fetch script (stored in the token cache). Surfaced by runtime_status diagnostics.
+MUSIXMATCH_USER_TOKEN= # Fallback token (1st priority). Set as env var for production/ephemeral hosts where the filesystem is not persistent.
+MUSIXMATCH_TOKEN= # Fallback token (2nd priority). Alternative env var; same token value, second-choice source.
+MUSIXMATCH_AUTO_FETCH=0 # Optional. When 1, provider will attempt to re-run the fetch script automatically (headless) if no token is available.
 MUSIXMATCH_TOKEN_CACHE=.cache/musixmatch-token.json
 MELON_COOKIE= # Optional. Pin a session cookie for consistent Melon results; anonymous access generally works without it.
 MR_MAGIC_EXPORT_BACKEND= # local|inline|redis
@@ -105,14 +105,26 @@ UPSTASH_REDIS_REST_TOKEN= # Get from https://console.upstash.com/redis/rest, req
 AIRTABLE_PERSONAL_ACCESS_TOKEN= # Required for push_catalog_to_airtable tool. Get from https://airtable.com/create/tokens
 ```
 
-- **GENIUS_ACCESS_TOKEN** and **MUSIXMATCH_TOKEN** are required for their
-  respective providers. The CLI/servers will reject requests that need them if
-  they are unset.
+- **GENIUS_ACCESS_TOKEN** is required for Genius lyrics support. The
+  CLI/servers will reject Genius requests if it is unset (unless
+  `GENIUS_CLIENT_ID`/`GENIUS_CLIENT_SECRET` are set for auto-refresh).
 - **GENIUS_CLIENT_ID**/**GENIUS_CLIENT_SECRET** can be supplied as an
   alternative Genius auth path when you want runtime token refresh instead of a
   static access token.
-- **MUSIXMATCH_TOKEN_CACHE** controls where the Musixmatch session cache file
-  is read/written (default `<project root>/.cache/musixmatch-token.json`).
+- **Musixmatch token sources** — the server resolves the Musixmatch token using
+  two named sources, tried in order:
+  - **Fallback token** (`MUSIXMATCH_USER_TOKEN`, then `MUSIXMATCH_TOKEN`) — the
+    token value is set directly as an environment variable. This is the
+    recommended approach for production and ephemeral hosts (e.g. Render free
+    tier, containers) where the filesystem cannot be relied upon between
+    restarts. Set `MUSIXMATCH_USER_TOKEN` first; `MUSIXMATCH_TOKEN` is the
+    legacy/alternative env var for the same value.
+  - **Cache token** (on-disk `.cache/musixmatch-token.json`) — written by the
+    `fetch:musixmatch-token` script after a browser sign-in. Used for local
+    development when a persistent writable filesystem is available. Not suitable
+    for ephemeral hosts.
+- **MUSIXMATCH_TOKEN_CACHE** controls where the on-disk cache token file is
+  read/written (default `<project root>/.cache/musixmatch-token.json`).
 - **MELON_COOKIE** is optional—anonymous access generally works, but pinning a
   cookie can improve consistency.
 - **MR_MAGIC_EXPORT_BACKEND** controls where formatted lyrics land:
@@ -168,10 +180,18 @@ AIRTABLE_PERSONAL_ACCESS_TOKEN= # Required for push_catalog_to_airtable tool. Ge
 
 ### Getting the Musixmatch token
 
-All Musixmatch support in this project assumes you capture a browser session
-and hand that token to the server. There is no OAuth callback – instead the
-fetch script writes the captured session data into `.cache/musixmatch-token.json`
-so the server can reuse it later.
+All Musixmatch support in this project uses a captured browser session token.
+There is no OAuth callback — the fetch script captures and persists the token
+in one of two ways depending on your deployment:
+
+- **Cache token** (local dev): the fetch script writes the token to
+  `.cache/musixmatch-token.json`. The server loads it on startup whenever a
+  persistent, writable filesystem is available.
+- **Fallback token** (production/ephemeral): copy the captured token value and
+  set it as `MUSIXMATCH_USER_TOKEN` (recommended) or `MUSIXMATCH_TOKEN` in your
+  platform's environment. This is the only reliable option on ephemeral hosts
+  (Render free tier, containers without a mounted volume) where the filesystem
+  is wiped between restarts.
 
 #### Workflow
 
@@ -181,34 +201,40 @@ so the server can reuse it later.
    npm run fetch:musixmatch-token
    ```
 
-   - Locally this pops up a Playwright-controlled Chromium window
+   - Locally this pops up a Playwright-controlled Chromium window.
    - Remotely you can run the same command wherever you have GUI access (SSH + X11,
-     VNC, RDP, etc.)
+     VNC, RDP, etc.).
 
 2. Sign in with Musixmatch (Google sign-in works) when prompted.
 
 3. After the redirect to `https://www.musixmatch.com/discover`, the script logs
-   the captured token JSON and writes a cache file (default
-   `<project>/.cache/musixmatch-token.json`). That file contains both the
-   `musixmatchUserToken` payload and the `web-desktop-app-v1.0` cookie so the
-   server can replay the session.
+   the captured token and writes the cache token file (default
+   `<project>/.cache/musixmatch-token.json`). The file contains both the token
+   value and the `web-desktop-app-v1.0` desktop cookie so the server can replay
+   the session.
 
-4. For remote deployments, copy the resulting cache file (or set
-   `MUSIXMATCH_TOKEN` in env) onto the server host so the runtime can load it. If
-   `MUSIXMATCH_AUTO_FETCH=1`, the provider can re-run the script headlessly when
-   it detects a missing token, but the initial login still requires a browser.
+4. **For remote/ephemeral deployments:** copy the `token` value from the
+   printed JSON and set it as `MUSIXMATCH_USER_TOKEN` in your platform
+   environment (the fallback token). Do **not** rely on the cache file
+   surviving a restart on ephemeral hosts.
+   If `MUSIXMATCH_AUTO_FETCH=1`, the provider can attempt to re-run the fetch
+   script headlessly when no token is found, but the initial sign-in still
+   requires a browser.
 
 #### Developer Accounts
 
 1. Get API access from `https://developer.musixmatch.com`
-2. Run the script above and keep the cached file or env variable in sync.
+2. Run the script above and set the resulting token as `MUSIXMATCH_USER_TOKEN`
+   (fallback token) in your environment, or keep the on-disk cache token in sync
+   for local development.
 
 #### Public Account (WARNING: MAY RESULT IN BAN)
 
 1. Visit `https://auth.musixmatch.com/`
 2. Sign in with a Musixmatch account and allow the app. When redirected, the
-   helper script above will capture the cookies and write them to the cache.
-3. Copy the cache file or env token to whatever environment needs it.
+   helper script above will capture the session and write the cache token.
+3. Copy the `token` value and set it as `MUSIXMATCH_USER_TOKEN` for any remote
+   environment that needs it.
 
 **WARNING: CALLING THE API FROM AN UNAUTHORIZED ACCOUNT MAY RESULT IN A BAN.**
 
@@ -568,7 +594,7 @@ Add env vars inline if your client supports the `env` field:
       "args": ["-y", "mr-magic-mcp-server"],
       "env": {
         "GENIUS_ACCESS_TOKEN": "...",
-        "MUSIXMATCH_TOKEN": "...",
+        "MUSIXMATCH_USER_TOKEN": "...",
         "AIRTABLE_PERSONAL_ACCESS_TOKEN": "..."
       }
     }
@@ -1094,8 +1120,11 @@ For direct binary usage, use `mrmagic-cli search --artist ... --title ...`.
 - **LRCLIB**: Public API with synced lyric coverage; no auth required.
 - **Genius**: Requires `GENIUS_ACCESS_TOKEN`. Provides metadata-rich plain
   lyrics.
-- **Musixmatch**: Requires `MUSIXMATCH_TOKEN`.
-  `scripts/fetch_musixmatch_token.mjs` helps recover tokens using a browser session capture flow.
+- **Musixmatch**: Requires a token — either a **fallback token** set via
+  `MUSIXMATCH_USER_TOKEN` (recommended for production) or `MUSIXMATCH_TOKEN`
+  env vars, or a **cache token** written to disk by
+  `scripts/fetch_musixmatch_token.mjs` (local dev). See "Getting the Musixmatch
+  token" above for the full workflow.
 - **Melon**: Works anonymously but benefits from `MELON_COOKIE` for reliability
   if needed.
 

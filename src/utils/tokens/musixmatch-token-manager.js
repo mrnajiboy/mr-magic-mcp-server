@@ -5,6 +5,16 @@ import { getEnvValue, getProjectRoot } from '../config.js';
 import { createLogger } from '../logger.js';
 
 const logger = createLogger('musixmatch-token-manager');
+
+// Token source terminology used throughout this module:
+//   • Cache token   — loaded from the on-disk cache file written by the fetch script.
+//                     Only reliable when a persistent, writable filesystem is available
+//                     (i.e. local development). Ephemeral hosts (Render free tier, etc.)
+//                     may not have a writable FS, so the cache token is unavailable there.
+//   • Fallback token — the token value supplied directly via MUSIXMATCH_USER_TOKEN or
+//                     MUSIXMATCH_TOKEN environment variables.  This is the recommended
+//                     approach for production and remote deployments where the filesystem
+//                     cannot be relied upon for persistence.
 const TOKEN_CACHE_PATH =
   process.env.MUSIXMATCH_TOKEN_CACHE ||
   path.join(getProjectRoot(), '.cache', 'musixmatch-token.json');
@@ -17,14 +27,19 @@ function getCacheDir() {
   return path.dirname(TOKEN_CACHE_PATH);
 }
 
+// Returns true only when the directory exists or was successfully created.
+// On read-only / restricted filesystems this will return false silently.
 async function ensureCacheDir() {
-  const dir = getCacheDir();
-  await fs.mkdir(dir, { recursive: true }).catch(() => {});
+  try {
+    await fs.mkdir(path.dirname(TOKEN_CACHE_PATH), { recursive: true });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function readCachedToken() {
   try {
-    await ensureCacheDir();
     const raw = await fs.readFile(TOKEN_CACHE_PATH, 'utf8');
     const parsed = JSON.parse(raw);
     if (parsed?.token) {
@@ -33,37 +48,63 @@ async function readCachedToken() {
       lastLoadedFrom = 'cache';
       return cachedToken;
     }
-  } catch (error) {
-    // ignore missing cache
+  } catch {
+    // Cache file absent or unreadable — not an error in remote environments.
   }
   return null;
 }
 
 async function writeCachedToken(token, desktopCookie) {
   if (!token) return;
+  const dirOk = await ensureCacheDir();
+  if (!dirOk) {
+    logger.warn(
+      'Musixmatch token cache directory unavailable (read-only or restricted filesystem). ' +
+        'Token was NOT persisted to disk. Set MUSIXMATCH_USER_TOKEN as an environment variable ' +
+        'to ensure the token survives restarts in remote/ephemeral deployments.',
+      { cachePath: TOKEN_CACHE_PATH }
+    );
+    return;
+  }
   try {
-    await ensureCacheDir();
     const payload = { token };
-    if (desktopCookie) {
-      payload.desktopCookie = desktopCookie;
-    }
+    if (desktopCookie) payload.desktopCookie = desktopCookie;
     await fs.writeFile(TOKEN_CACHE_PATH, JSON.stringify(payload, null, 2), 'utf8');
   } catch (error) {
-    logger.warn('Failed to persist Musixmatch token cache', { error });
+    logger.warn('Failed to persist Musixmatch token cache', { error: error?.message });
   }
 }
 
+/**
+ * Resolve the Musixmatch token using the following priority order:
+ *   1. In-memory runtime cache (already resolved this session)
+ *   2. MUSIXMATCH_USER_TOKEN env var  — fallback token, first-priority env source
+ *   3. MUSIXMATCH_TOKEN env var       — fallback token, second-priority env source
+ *   4. On-disk cache file             — cache token, local dev only
+ */
 export async function getMusixmatchToken() {
   if (cachedToken) {
     return cachedToken;
   }
-  const envToken = getEnvValue('MUSIXMATCH_TOKEN');
-  if (envToken) {
-    cachedToken = envToken;
-    lastLoadedFrom = 'env';
+
+  // Prioritize env vars — these survive restarts on ephemeral hosts
+  const userToken = getEnvValue('MUSIXMATCH_USER_TOKEN');
+  if (userToken) {
+    cachedToken = userToken;
+    lastLoadedFrom = 'env:MUSIXMATCH_USER_TOKEN';
     cachedDesktopCookie = null;
     return cachedToken;
   }
+
+  const envToken = getEnvValue('MUSIXMATCH_TOKEN');
+  if (envToken) {
+    cachedToken = envToken;
+    lastLoadedFrom = 'env:MUSIXMATCH_TOKEN';
+    cachedDesktopCookie = null;
+    return cachedToken;
+  }
+
+  // Fall back to disk cache for local development
   return readCachedToken();
 }
 
@@ -88,7 +129,9 @@ export function describeMusixmatchTokenSource() {
 }
 
 export async function getMusixmatchTokenDiagnostics() {
+  const userEnvToken = getEnvValue('MUSIXMATCH_USER_TOKEN');
   const envToken = getEnvValue('MUSIXMATCH_TOKEN');
+
   const diagnostics = {
     cachePath: TOKEN_CACHE_PATH,
     cacheDir: getCacheDir(),
@@ -97,6 +140,7 @@ export async function getMusixmatchTokenDiagnostics() {
     cacheBytes: 0,
     cacheTokenPresent: false,
     cacheError: null,
+    userEnvPresent: Boolean(userEnvToken),
     envPresent: Boolean(envToken),
     runtimeTokenCached: Boolean(cachedToken),
     lastLoadedFrom,
@@ -104,7 +148,6 @@ export async function getMusixmatchTokenDiagnostics() {
   };
 
   try {
-    await ensureCacheDir();
     diagnostics.cacheAttempted = true;
     const raw = await fs.readFile(TOKEN_CACHE_PATH);
     diagnostics.cacheFound = true;
@@ -112,13 +155,15 @@ export async function getMusixmatchTokenDiagnostics() {
     const parsed = JSON.parse(raw.toString('utf8'));
     diagnostics.cacheTokenPresent = Boolean(parsed?.token);
   } catch (error) {
-    diagnostics.cacheError = error?.code === 'ENOENT' ? null : error?.message;
+    diagnostics.cacheError = error?.code === 'ENOENT' ? null : (error?.message ?? null);
   }
 
   if (cachedToken) {
     diagnostics.resolvedSource = lastLoadedFrom;
+  } else if (userEnvToken) {
+    diagnostics.resolvedSource = 'env:MUSIXMATCH_USER_TOKEN';
   } else if (envToken) {
-    diagnostics.resolvedSource = 'env';
+    diagnostics.resolvedSource = 'env:MUSIXMATCH_TOKEN';
   } else if (diagnostics.cacheTokenPresent) {
     diagnostics.resolvedSource = 'cache';
   } else {
