@@ -349,31 +349,201 @@ you use.
 
 ### Manual Testing
 
-- `npm run test` – invokes the repo’s bundled test runner (`tests/run-tests.js`).
-  Use this when you want the full chooser/CLI regression suite plus MCP surface
-  sanity checks in one command.
-- `node tests/mcp-tools.test.js` – runs the raw MCP integration harness directly
-  with Node. There isn’t a dedicated npm script for this file, so call it with
-  `node` (or add your own script alias) when you only need to validate the MCP
-  tool registry.
-- `npm run lint` – runs ESLint (flat config) to enforce import order and other
-  Node best practices.
-- `npm run format:check` – runs Prettier in check mode so CI fails on drift.
-  Use the HTTP/MCP transports locally to confirm JSONRPC traffic end to end. The
-  snippet below launches both transports with npm scripts (so the repo’s env and
-  Node options are respected) and then calls the HTTP transport with `curl`:
+This section documents **manual, copy/paste HTTP tests** for both transports:
+
+- JSON automation API (`npm run server:http`, default `http://127.0.0.1:3333`)
+- MCP Streamable HTTP API (`npm run server:mcp:http`, default `http://127.0.0.1:3444/mcp`)
+
+If you want automated checks too, keep these handy:
+
+- `npm run test` – full bundled test runner (`tests/run-tests.js`)
+- `node tests/mcp-tools.test.js` – raw MCP integration harness
+- `npm run lint` – ESLint
+- `npm run format:check` – Prettier check mode
+
+#### 1) Manual JSON HTTP testing (`server:http`)
+
+Start the server in one terminal:
 
 ```bash
-npm run server:mcp &
-npm run server:mcp:http
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json, text/event-stream" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' \
-  http://127.0.0.1:3444/mcp
-
-> Stop the backgrounded servers (`fg` + `Ctrl+C` or `kill`) once you’re done.
-
+npm run server:http
 ```
+
+The JSON API accepts:
+
+- `GET /health`
+- `POST /` with body shape:
+
+```json
+{
+  "action": "find | findSynced | search",
+  "track": { "artist": "...", "title": "...", "album": "..." },
+  "options": { "...": "..." }
+}
+```
+
+##### A. Health check
+
+```bash
+curl -sS http://127.0.0.1:3333/health | jq
+```
+
+##### B. Basic lyric lookup (`action=find`)
+
+```bash
+curl -sS -X POST http://127.0.0.1:3333 \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "action":"find",
+    "track":{"artist":"Coldplay","title":"Yellow"},
+    "options":{}
+  }' | jq
+```
+
+##### C. Synced-only lookup (`action=findSynced`)
+
+```bash
+curl -sS -X POST http://127.0.0.1:3333 \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "action":"findSynced",
+    "track":{"artist":"Coldplay","title":"Yellow"},
+    "options":{}
+  }' | jq
+```
+
+##### D. Search-only candidates (`action=search`)
+
+```bash
+curl -sS -X POST http://127.0.0.1:3333 \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "action":"search",
+    "track":{"artist":"Coldplay","title":"Yellow"}
+  }' | jq
+```
+
+##### E. Export flow test (what we used for Redis/manual verification)
+
+```bash
+curl -sS -X POST http://127.0.0.1:3333 \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "action":"find",
+    "track":{"artist":"Coldplay","title":"Yellow"},
+    "options":{"export":true,"formats":["plain"]}
+  }' | jq
+```
+
+Look for `exports.plain` in the response:
+
+- **redis backend:** `url` should be `/downloads/<id>/txt`, `skipped: false`
+- **local backend:** `filePath` should be present
+- **inline backend:** `content` should be present and `skipped: true`
+
+##### F. Verify the exported download URL
+
+If using Redis + HTTP downloads, fetch the URL returned from `exports.*.url`:
+
+```bash
+curl -sS 'http://127.0.0.1:3333/downloads/<export-id>/txt' | head -n 10
+```
+
+If you prefer one-liner extraction with `jq`:
+
+```bash
+EXPORT_URL=$(curl -sS -X POST http://127.0.0.1:3333 \
+  -H 'Content-Type: application/json' \
+  -d '{"action":"find","track":{"artist":"Coldplay","title":"Yellow"},"options":{"export":true,"formats":["plain"]}}' \
+  | jq -r '.exports.plain.url')
+
+curl -sS "$EXPORT_URL" | head -n 10
+```
+
+> Note: for Redis exports, ensure `MR_MAGIC_EXPORT_BACKEND=redis`, Upstash creds are set,
+> and `MR_MAGIC_DOWNLOAD_BASE_URL` matches the HTTP server base URL.
+
+#### 2) Manual MCP Streamable HTTP testing (`server:mcp:http`)
+
+Start MCP HTTP server in one terminal:
+
+```bash
+npm run server:mcp:http
+```
+
+Default endpoint:
+
+- `http://127.0.0.1:3444/mcp`
+
+All manual calls are JSON-RPC 2.0 requests.
+
+##### A. List tools (`tools/list`)
+
+```bash
+curl -sS -X POST http://127.0.0.1:3444/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | jq
+```
+
+##### B. Call `find_lyrics`
+
+```bash
+curl -sS -X POST http://127.0.0.1:3444/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{
+    "jsonrpc":"2.0",
+    "id":2,
+    "method":"tools/call",
+    "params":{
+      "name":"find_lyrics",
+      "arguments":{"track":{"artist":"Coldplay","title":"Yellow"}}
+    }
+  }' | jq
+```
+
+##### C. Call `export_lyrics`
+
+```bash
+curl -sS -X POST http://127.0.0.1:3444/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{
+    "jsonrpc":"2.0",
+    "id":3,
+    "method":"tools/call",
+    "params":{
+      "name":"export_lyrics",
+      "arguments":{
+        "track":{"artist":"Coldplay","title":"Yellow"},
+        "options":{"formats":["plain"]}
+      }
+    }
+  }' | jq
+```
+
+MCP tool responses include:
+
+- `result.structuredContent` (machine-friendly object)
+- `result.content` (human-readable summary + pretty JSON text)
+
+> Tip: if your manual client has trouble with MCP sessions, start with
+> `npm run cli -- server:mcp:http --sessionless` for easier stateless testing.
+
+#### 3) Running both servers side-by-side
+
+For export scenarios with Redis-backed downloads, run both servers in separate terminals:
+
+```bash
+# Terminal 1
+npm run server:http
+
+# Terminal 2
+npm run server:mcp:http
+```
+
+Stop servers with `Ctrl+C` when done.
 
 ## CLI overview
 
