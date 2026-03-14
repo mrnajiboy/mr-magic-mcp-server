@@ -1,12 +1,50 @@
 ## Changelog
 
+### 0.1.5 - 2026-03-15
+
+#### ✨ New Features
+
+- **`push_catalog_to_airtable` MCP tool** — Writes Airtable catalog records with server-side
+  lyric resolution so lyrics never pass through LLM tool-call arguments. The tool reads from
+  an in-memory catalog cache populated by `build_catalog_payload`, looks up the correct entry
+  via the returned `lyricsCacheKey`, and calls the Airtable REST API directly. Supports:
+  - single-call create (all fields at once) or PATCH update of existing records
+  - `splitLyricsUpdate: true` for a two-step create → PATCH flow when combined payloads are too large
+  - `preferRomanized` flag for automatic romanized vs. original lyrics selection
+- **Catalog cache in `lyrics-service.js`** — `build_catalog_payload` now stores each resolved
+  lyric record in a bounded LRU cache (20 entries). The `lyricsCacheKey` returned in the
+  response identifies the cached entry so downstream tools like `push_catalog_to_airtable` can
+  look it up server-side without re-fetching.
+- **`src/services/airtable-writer.js`** — New REST client for the Airtable API:
+  `createAirtableRecord`, `updateAirtableRecord`, and the high-level `pushCatalogToAirtable`
+  orchestrator that handles create/update/split flows with logging and timeout support.
+- **Bundled system-prompt template** (`prompts/airtable-song-importer.md`) — A ready-to-use
+  MCP assistant prompt for batch song importing into Airtable. Covers tool responsibility
+  breakdown, bulk-write phasing (Phase 1–4), Spotify link resolution, romanized lyric priority,
+  SRT export requirements, and error-recovery via `splitLyricsUpdate`. Shipped in the npm
+  package under the `prompts/` directory.
+- **`npx` / global-install usage** — README and MCP client configs updated to document
+  `npx -y mr-magic-mcp-server` as the zero-clone entry point alongside the local-repo workflow.
+
+#### 📦 Environment Variables
+
+- **`.env.example`** — Added `AIRTABLE_PERSONAL_ACCESS_TOKEN` (required for
+  `push_catalog_to_airtable`; get from <https://airtable.com/create/tokens>).
+
+#### 🔖 Version
+
+- Bumped to `0.1.5` across `package.json`.
+
+---
+
 ### 0.1.4 - 2026-03-15
 
 #### 🐛 Bugs Fixed
+
 - **`mcp-response.js`** — `buildMcpResponse()` previously emitted two `content` blocks for
   responses that didn't look like lyric payloads (e.g. `build_catalog_payload` with
   `omitInlineLyrics: true`): a truncated 220-char preview first, then the full JSON.
-  LLMs reading the response encountered the truncated text *first*, producing unterminated
+  LLMs reading the response encountered the truncated text _first_, producing unterminated
   strings in downstream Airtable payloads. Fixed: always exactly **one** `content` block —
   the complete pretty-printed JSON. Preview/summary logic is now CLI-only.
 - **Cline MCP server refresh error** — Using `npm run server:mcp` as the Cline command
@@ -15,17 +53,20 @@
   refresh. Fixed: Cline config now invokes `node src/bin/mcp-server.js` directly.
 
 #### 🗑️ Dead Code / Stale Config Removed
+
 - **`src/transport/mcp-response.js`** — Removed `buildResultSummary`, `extractPreviewText`,
   `looksLikeLyricPayload`, `truncate`, `truncateInline`, and all the preview-injection
   branch from `buildMcpResponse`. None of those are needed for programmatic MCP consumers.
 - **`.env.example`** — Removed `MR_MAGIC_TMP_DIR` (never referenced in source code).
 
 #### 📦 Environment Variables
+
 - **`.env.example`** — Added `MUSIXMATCH_USER_TOKEN` (surfaced by `runtime_status` credential
   scan in `mcp-tools.js`) and `MR_MAGIC_INLINE_PAYLOAD_MAX_CHARS` (referenced in
   `lyrics-service.js`). Both were in the README and code but missing from the example file.
 
 #### 🔖 Version
+
 - Bumped to `0.1.4` across `package.json`, `mcp-server.js`, `mcp-http-server.js`.
 
 ---

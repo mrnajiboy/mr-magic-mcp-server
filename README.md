@@ -12,6 +12,33 @@ HTTP automations or CLI afficionados can all request lyrics from a single toolch
 
 ## Installation
 
+### Quick start — no clone required
+
+The easiest way to use Mr. Magic in an MCP client is via `npx`. No clone or
+local install needed — the package is fetched from npm on first run and cached
+locally:
+
+```bash
+npx -y mr-magic-mcp-server
+```
+
+Or install globally so the binaries are always on `PATH`:
+
+```bash
+npm install -g mr-magic-mcp-server
+```
+
+When installed globally, start any server directly:
+
+```bash
+mcp-server          # MCP stdio server (recommended for local MCP clients)
+mcp-http-server     # Streamable HTTP MCP server
+http-server         # JSON HTTP automation server
+mrmagic-cli --help  # CLI
+```
+
+### Local repo (development / contribution)
+
 1. Clone or download the repository:
 
    ```bash
@@ -75,6 +102,7 @@ MR_MAGIC_MCP_HTTP_DIAGNOSTICS=0 # Optional, default 0. Set to 1 to log enriched 
 MR_MAGIC_SDK_REPRO_HTTP_DEBUG=0 # Optional, default 0. Set to 1 for verbose HTTP request/response previews in the SDK repro harness script.
 UPSTASH_REDIS_REST_URL= # Get from https://console.upstash.com/redis/rest, required if MR_MAGIC_EXPORT_BACKEND=redis
 UPSTASH_REDIS_REST_TOKEN= # Get from https://console.upstash.com/redis/rest, required if MR_MAGIC_EXPORT_BACKEND=redis
+AIRTABLE_PERSONAL_ACCESS_TOKEN= # Required for push_catalog_to_airtable tool. Get from https://airtable.com/create/tokens
 ```
 
 - **GENIUS_ACCESS_TOKEN** and **MUSIXMATCH_TOKEN** are required for their
@@ -131,6 +159,10 @@ UPSTASH_REDIS_REST_TOKEN= # Get from https://console.upstash.com/redis/rest, req
   Useful when an MCP host launches the server from another directory.
 - **MR_MAGIC_ENV_PATH** lets you point to a specific `.env` file instead of the
   default `<project root>/.env`.
+- **AIRTABLE_PERSONAL_ACCESS_TOKEN** is required only when using the
+  `push_catalog_to_airtable` tool. Generate a personal access token at
+  https://airtable.com/create/tokens and grant it the `data.records:write` scope
+  for the bases you want to write to.
 - For hosted deployments, inject the variables via your platform dashboard so
   no `.env` file is required at runtime.
 
@@ -271,18 +303,78 @@ servers running.
 
 Both STDIO and Streamable HTTP transports expose the same tool registry:
 
-| Tool name               | Purpose                                                                                                      |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `find_lyrics`           | Fetch best lyrics (prefers synced) plus metadata and payload.                                                |
-| `build_catalog_payload` | Return a compact record (title/link/lyrics) for Airtable-style inserts (supports structured lyric payloads). |
-| `find_synced_lyrics`    | Like `find_lyrics` but rejects plain-only results.                                                           |
-| `search_lyrics`         | List candidate matches across providers without hydration.                                                   |
-| `search_provider`       | Query a single provider (requires the `provider` flag).                                                      |
-| `get_provider_status`   | Report readiness and notes for each provider.                                                                |
-| `export_lyrics`         | Download + write plain/LRC/SRT/romanized files to disk.                                                      |
-| `format_lyrics`         | Format lyrics in memory (optional romanization) for display.                                                 |
-| `select_match`          | Pick a prior result by provider/index/synced flag.                                                           |
-| `runtime_status`        | Snapshot provider readiness plus present env vars.                                                           |
+| Tool name                  | Purpose                                                                                                                                                            |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `find_lyrics`              | Fetch best lyrics (prefers synced) plus metadata and payload.                                                                                                      |
+| `build_catalog_payload`    | Return a compact record (title/link/lyrics) for Airtable-style inserts (supports structured lyric payloads).                                                       |
+| `find_synced_lyrics`       | Like `find_lyrics` but rejects plain-only results.                                                                                                                 |
+| `search_lyrics`            | List candidate matches across providers without hydration.                                                                                                         |
+| `search_provider`          | Query a single provider (requires the `provider` flag).                                                                                                            |
+| `get_provider_status`      | Report readiness and notes for each provider.                                                                                                                      |
+| `export_lyrics`            | Download + write plain/LRC/SRT/romanized files to disk.                                                                                                            |
+| `format_lyrics`            | Format lyrics in memory (optional romanization) for display.                                                                                                       |
+| `select_match`             | Pick a prior result by provider/index/synced flag.                                                                                                                 |
+| `runtime_status`           | Snapshot provider readiness plus present env vars.                                                                                                                 |
+| `push_catalog_to_airtable` | Write catalog records directly to Airtable with server-side lyric resolution — lyrics never pass through LLM arguments. Requires `AIRTABLE_PERSONAL_ACCESS_TOKEN`. |
+
+### Airtable integration (server-side lyrics)
+
+Mr. Magic ships a dedicated Airtable workflow that routes lyrics entirely
+server-side so long lyric text never passes through LLM tool-call arguments.
+This eliminates the JSON truncation and malformed-request errors that occur
+when multiline Korean / CJK lyrics are interpolated into automation payloads.
+
+#### How it works
+
+1. **Call `build_catalog_payload`** for each song. The response contains a
+   `lyricsCacheKey` — a short slug like `kda-ill-show-you` that identifies the
+   resolved lyrics in the server's in-memory LRU cache (20 entries, shared
+   across the MCP session).
+
+2. **Write non-lyric fields** (Song title, Spotify link, etc.) using your
+   Airtable MCP's bulk create/update tools. The Airtable MCP can send up to 10
+   records per call; use that fully. Capture the `recordId` returned for each
+   created record.
+
+3. **Call `push_catalog_to_airtable`** with the `recordId`, `lyricsFieldId`,
+   and `lyricsCacheKey`. The server looks up the cached lyrics and calls the
+   Airtable REST API directly. The lyric text **never leaves the server process**
+   as an MCP argument.
+
+#### push_catalog_to_airtable — call shape
+
+```json
+{
+  "baseId": "appeBUkVEp3N4RT0C",
+  "tableId": "tbl0y5XHFXpjUJXHu",
+  "recordId": "rec1234567890abcd",
+  "fields": {},
+  "lyricsFieldId": "fldHV1qmPYmsvglff",
+  "lyricsCacheKey": "kda-ill-show-you",
+  "preferRomanized": true
+}
+```
+
+Pass `"splitLyricsUpdate": true` if the combined create + lyrics payload is too
+large — this forces a two-step create → PATCH so the Airtable API never sees
+the full payload in one request.
+
+#### Bundled prompt template
+
+`prompts/airtable-song-importer.md` (shipped in the npm package under
+`prompts/`) is a ready-to-use system prompt for MCP assistants that import
+songs into Airtable in bulk. It covers:
+
+- Phased execution: resolve all data → bulk create (Song + Spotify link) →
+  write lyrics → SRT export
+- Bulk record creation up to 10 records per Airtable MCP call
+- Spotify link resolution via the Spotify MCP
+- Romanized lyric priority for K-pop / CJK content
+- `splitLyricsUpdate` fallback for oversized payloads
+- SRT export delivery requirements
+
+Copy the contents of `prompts/airtable-song-importer.md` into your MCP
+client's system prompt to deploy this workflow immediately.
 
 #### Safe lyric payload handoff (Airtable-friendly)
 
@@ -440,33 +532,66 @@ Recommended debugging presets:
 Use the truncation-focused preset only while investigating malformed JSON,
 then switch chunk logging back off to keep logs compact.
 
-### MCP client configuration (local repo vs published npm)
+### MCP client configuration
 
-> ⚠️ **Important for stdio MCP clients:** Always invoke the server via
-> `node src/bin/mcp-server.js` (or the equivalent direct binary) rather than
-> `npm run server:mcp`. When `npm` runs a script it echoes a preamble like
-> `> mr-magic-mcp-server@x.x.x server:mcp` to stdout before the Node process
-> starts. Cline and other stdio MCP clients try to parse every stdout line as
-> JSON-RPC, so those `>` lines cause "Unexpected token '>'" parse errors on
-> every connection attempt. Direct `node` invocation produces no such preamble.
+> ⚠️ **Important for stdio MCP clients:** Always invoke the server via the
+> binary directly rather than `npm run server:mcp`. When `npm` runs a script it
+> echoes a preamble like `> mr-magic-mcp-server@x.x.x server:mcp` to stdout
+> before the Node process starts. Cline and other stdio MCP clients try to parse
+> every stdout line as JSON-RPC, so those `>` lines cause "Unexpected token '>'"
+> parse errors on every connection attempt. Direct invocation produces no such
+> preamble.
 
-#### Standard Config
+#### npx (recommended — no clone needed)
 
-For clients like TypingMind that don't support a `cwd` field, use a shell
-wrapper with the absolute path:
+Works with any MCP client that supports `command`/`args`. The package is fetched
+from npm on first run and cached locally:
 
 ```json
 {
   "mcpServers": {
     "Mr. Magic": {
-      "command": "/bin/sh",
-      "args": ["-c", "cd /Users/you/Code/mr-magic-mcp-server && node src/bin/mcp-server.js"]
+      "command": "npx",
+      "args": ["-y", "mr-magic-mcp-server"]
     }
   }
 }
 ```
 
-#### Cline Config
+Add env vars inline if your client supports the `env` field:
+
+```json
+{
+  "mcpServers": {
+    "Mr. Magic": {
+      "command": "npx",
+      "args": ["-y", "mr-magic-mcp-server"],
+      "env": {
+        "GENIUS_ACCESS_TOKEN": "...",
+        "MUSIXMATCH_TOKEN": "...",
+        "AIRTABLE_PERSONAL_ACCESS_TOKEN": "..."
+      }
+    }
+  }
+}
+```
+
+#### Global install
+
+After `npm install -g mr-magic-mcp-server`, invoke the `mcp-server` binary
+directly (it's on `PATH`):
+
+```json
+{
+  "mcpServers": {
+    "Mr. Magic": {
+      "command": "mcp-server"
+    }
+  }
+}
+```
+
+#### Local repo — Cline config
 
 Cline supports `cwd`, so you can call `node` directly — **do not use `npm run`
 here**, as npm's script echo will corrupt the stdio stream:
@@ -486,9 +611,21 @@ here**, as npm's script echo will corrupt the stdio stream:
 }
 ```
 
-If/when the project is published and installed globally (e.g., `npm install -g
-mr-magic-mcp-server`), MCP clients can invoke the installed binary
-(`mcp-server`) directly without a `cwd` workaround, since it will be on `PATH`.
+#### Local repo — Standard config (no cwd support)
+
+For clients like TypingMind that don't support a `cwd` field, use a shell
+wrapper with the absolute path:
+
+```json
+{
+  "mcpServers": {
+    "Mr. Magic": {
+      "command": "/bin/sh",
+      "args": ["-c", "cd /Users/you/Code/mr-magic-mcp-server && node src/bin/mcp-server.js"]
+    }
+  }
+}
+```
 
 ### Manual Testing
 
@@ -816,6 +953,40 @@ curl -sS -X POST http://127.0.0.1:3444/mcp \
   }' | jq
 ```
 
+##### K2. Call `push_catalog_to_airtable` (server-side Airtable lyrics write)
+
+First call `build_catalog_payload` (section D or E above) to populate the
+lyric cache and capture the returned `lyricsCacheKey`. Then use that key here
+to write lyrics to Airtable entirely server-side — no lyric text passes through
+your tool-call arguments.
+
+```bash
+curl -sS -X POST http://127.0.0.1:3444/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{
+    "jsonrpc":"2.0",
+    "id":12,
+    "method":"tools/call",
+    "params":{
+      "name":"push_catalog_to_airtable",
+      "arguments":{
+        "baseId":"appeBUkVEp3N4RT0C",
+        "tableId":"tbl0y5XHFXpjUJXHu",
+        "recordId":"rec1234567890abcd",
+        "fields":{},
+        "lyricsFieldId":"fldHV1qmPYmsvglff",
+        "lyricsCacheKey":"kda-ill-show-you",
+        "preferRomanized":true
+      }
+    }
+  }' | jq
+```
+
+> Replace `baseId`, `tableId`, `recordId`, `lyricsFieldId`, and `lyricsCacheKey`
+> with real values from your Airtable base and the `build_catalog_payload`
+> response. Requires `AIRTABLE_PERSONAL_ACCESS_TOKEN` to be set in `.env`.
+
 ##### L. Call `select_match` (pick from a prior search result)
 
 First run `search_lyrics` (section F above) and capture the matches, then
@@ -848,6 +1019,7 @@ curl -sS -X POST http://127.0.0.1:3444/mcp \
 ```
 
 > **MCP tool response shape:**
+>
 > - `result.structuredContent` — machine-friendly object (all fields present, full values)
 > - `result.content[0].text` — complete pretty-printed JSON (identical to `structuredContent`)
 >

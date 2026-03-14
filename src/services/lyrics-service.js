@@ -4,6 +4,71 @@ import { exportLyrics, deriveFormatSet } from '../core/export.js';
 import { slugify } from '../utils/slugify.js';
 import { createStorageCache } from '../utils/storage-cache.js';
 
+// ---------------------------------------------------------------------------
+// In-memory catalog cache – populated by buildCatalogPayload so that
+// push_catalog_to_airtable can retrieve lyrics server-side without requiring
+// the LLM to relay the full lyric text through tool call arguments.
+// ---------------------------------------------------------------------------
+const MAX_CATALOG_CACHE_ENTRIES = 20;
+
+class CatalogCache {
+  constructor() {
+    /** @type {Map<string, { plainLyrics: string, romanizedPlainLyrics: string|null, preferRomanized: boolean, cachedAt: number }>} */
+    this._map = new Map();
+    /** @type {string[]} insertion-order keys for LRU eviction */
+    this._keys = [];
+  }
+
+  /**
+   * Store a lyrics entry keyed by the track's artist+title slug.
+   * @param {string} key
+   * @param {{ plainLyrics: string, romanizedPlainLyrics: string|null, preferRomanized: boolean }} entry
+   */
+  set(key, entry) {
+    if (this._map.has(key)) {
+      // Refresh position
+      this._keys = this._keys.filter((k) => k !== key);
+    }
+    this._map.set(key, { ...entry, cachedAt: Date.now() });
+    this._keys.push(key);
+    // Evict oldest when over capacity
+    while (this._keys.length > MAX_CATALOG_CACHE_ENTRIES) {
+      const oldest = this._keys.shift();
+      this._map.delete(oldest);
+    }
+  }
+
+  /** @param {string} key */
+  get(key) {
+    return this._map.get(key) ?? null;
+  }
+
+  /** List the most-recently-cached entry (useful when the LLM omits the key). */
+  latest() {
+    if (this._keys.length === 0) return null;
+    const key = this._keys[this._keys.length - 1];
+    return { key, ...this._map.get(key) };
+  }
+
+  /** Return all cached keys for diagnostics. */
+  keys() {
+    return [...this._keys];
+  }
+}
+
+export const catalogCache = new CatalogCache();
+
+/**
+ * Derive a stable cache key from a resolved best track result or a raw title/artist pair.
+ * @param {{ artist?: string, title?: string }} track
+ * @returns {string}
+ */
+export function catalogCacheKey(track) {
+  const artist = (track?.artist || '').toString().trim().toLowerCase();
+  const title = (track?.title || '').toString().trim().toLowerCase();
+  return `${slugify(artist)}-${slugify(title)}` || 'unknown';
+}
+
 export function buildActionContext(options = {}) {
   const defaultFormats = ['plain', 'srt'];
   const requestedFormats = options.formats ?? options.format ?? [];
@@ -89,6 +154,19 @@ async function buildCatalogResponse(findResult, requestedTrack = {}, options = {
   const romanizedPlainLyrics = formatted.romanizedPlain || null;
   const lyrics =
     catalogOptions.preferRomanized && romanizedPlainLyrics ? romanizedPlainLyrics : plainLyrics;
+
+  // Populate the in-memory catalog cache so push_catalog_to_airtable can
+  // retrieve lyrics server-side without the LLM relaying the full text.
+  let lyricsCacheKey = null;
+  if (plainLyrics) {
+    lyricsCacheKey = catalogCacheKey(trackSummary);
+    catalogCache.set(lyricsCacheKey, {
+      plainLyrics,
+      romanizedPlainLyrics,
+      preferRomanized: catalogOptions.preferRomanized
+    });
+  }
+
   const shouldForceCompactPayload =
     catalogOptions.omitInlineLyrics &&
     (catalogOptions.airtableSafePayload || lyrics.length > DEFAULT_INLINE_PAYLOAD_MAX_CHARS);
@@ -101,7 +179,10 @@ async function buildCatalogResponse(findResult, requestedTrack = {}, options = {
     providerId: best.providerId ?? null,
     sourceUrl: best.sourceUrl ?? null,
     songVideoTitle: formatSongVideoTitle(trackSummary.artist, trackSummary.title),
-    syncedAvailable: Boolean(best.syncedLyrics)
+    syncedAvailable: Boolean(best.syncedLyrics),
+    // Returned so the LLM can pass it straight back to push_catalog_to_airtable
+    // without ever touching the lyric text itself.
+    lyricsCacheKey: lyricsCacheKey
   };
 
   if (shouldIncludeInlineLyrics) {

@@ -6,8 +6,10 @@ import {
   buildPayloadFromResult,
   buildCatalogPayload,
   exportBestResult,
-  formatRecord
+  formatRecord,
+  catalogCache
 } from '../services/lyrics-service.js';
+import { pushCatalogToAirtable } from '../services/airtable-writer.js';
 import { getProviderStatus } from '../index.js';
 
 const trackSchema = {
@@ -297,6 +299,63 @@ export const mcpToolDefinitions = [
     name: 'runtime_status',
     description: 'Summarize provider readiness plus which credential env vars are present.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false }
+  },
+  {
+    name: 'push_catalog_to_airtable',
+    description:
+      'Write a catalog record directly to Airtable without relaying lyrics through the LLM. ' +
+      'Lyrics are fetched server-side from the in-memory cache populated by build_catalog_payload. ' +
+      'Pass the lyricsCacheKey returned by build_catalog_payload so the server can resolve the correct lyrics. ' +
+      'If lyricsCacheKey is omitted the most-recently-cached entry is used. ' +
+      'Uses AIRTABLE_PERSONAL_ACCESS_TOKEN from the environment.',
+    inputSchema: {
+      type: 'object',
+      description:
+        'Airtable coordinates plus field values. Lyrics are resolved server-side; never include lyric text here.',
+      properties: {
+        baseId: {
+          type: 'string',
+          description:
+            'Airtable base ID (starts with "app"). From search_bases or list_tables_for_base.'
+        },
+        tableId: {
+          type: 'string',
+          description: 'Airtable table ID (starts with "tbl"). From list_tables_for_base.'
+        },
+        recordId: {
+          type: 'string',
+          description:
+            'Existing record ID to update (starts with "rec"). Omit to create a new record.'
+        },
+        fields: {
+          type: 'object',
+          description:
+            'Field IDs mapped to their string values. Include all non-lyrics fields here (e.g. Song (Video), Listen Link). Do NOT include the Lyrics field — it is handled server-side.',
+          additionalProperties: { type: 'string' }
+        },
+        lyricsFieldId: {
+          type: 'string',
+          description:
+            'The Airtable field ID where lyrics should be written (starts with "fld"). The lyrics text is resolved server-side.'
+        },
+        lyricsCacheKey: {
+          type: 'string',
+          description:
+            'The lyricsCacheKey value returned by build_catalog_payload. Used to look up the correct cached lyrics. Falls back to the most-recently-cached entry if omitted.'
+        },
+        preferRomanized: {
+          type: 'boolean',
+          description:
+            'When true (default), use romanized plain lyrics if available; otherwise use plain Korean/original lyrics.'
+        },
+        splitLyricsUpdate: {
+          type: 'boolean',
+          description:
+            'When true, write non-lyrics fields first then update lyrics in a separate call. Useful if the combined payload is too large.'
+        }
+      },
+      required: ['baseId', 'tableId']
+    }
   }
 ];
 
@@ -386,6 +445,67 @@ export async function handleMcpTool(name, args = {}) {
     return {
       providers: await getProviderStatus(),
       env: Object.keys(process.env).filter((key) => CREDENTIAL_KEYS.includes(key))
+    };
+  }
+
+  if (name === 'push_catalog_to_airtable') {
+    const {
+      baseId,
+      tableId,
+      recordId,
+      fields: fieldValues = {},
+      lyricsFieldId,
+      lyricsCacheKey: providedCacheKey,
+      preferRomanized = true,
+      splitLyricsUpdate = false
+    } = args;
+
+    if (!baseId) throw new McpError(ErrorCode.InvalidParams, 'baseId is required');
+    if (!tableId) throw new McpError(ErrorCode.InvalidParams, 'tableId is required');
+
+    // Resolve lyrics from the in-memory cache.
+    // The LLM passes back the lyricsCacheKey it received from build_catalog_payload —
+    // a short slug like "kda-feat-twice-bekuh-boom-annika-wells-league-of-legends-ill-show-you".
+    // The full lyric text never travels through LLM tool-call arguments.
+    let lyricsText = null;
+    if (lyricsFieldId) {
+      let cached = null;
+      if (providedCacheKey) {
+        cached = catalogCache.get(providedCacheKey);
+      }
+      if (!cached) {
+        // Fall back to the most-recently-resolved lyrics entry
+        cached = catalogCache.latest();
+      }
+
+      if (cached) {
+        const useRomanized = preferRomanized && Boolean(cached.romanizedPlainLyrics);
+        lyricsText = useRomanized ? cached.romanizedPlainLyrics : cached.plainLyrics;
+      }
+    }
+
+    const result = await pushCatalogToAirtable({
+      baseId,
+      tableId,
+      recordId,
+      fieldValues,
+      lyricsFieldId: lyricsFieldId || null,
+      lyricsText,
+      splitLyricsUpdate
+    });
+
+    return {
+      success: true,
+      recordId: result.record?.id ?? recordId ?? null,
+      steps: result.steps,
+      lyricsWritten: Boolean(lyricsText && lyricsFieldId),
+      lyricsSource: lyricsText
+        ? providedCacheKey
+          ? `cache:${providedCacheKey}`
+          : 'cache:latest'
+        : null,
+      record: result.record,
+      lyricsRecord: result.lyricsRecord ?? null
     };
   }
 
