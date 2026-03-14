@@ -67,6 +67,9 @@ export async function buildPayloadFromResult(result, context) {
 }
 
 const lyricPayloadStorageCache = new Map();
+const DEFAULT_INLINE_PAYLOAD_MAX_CHARS = Number(
+  process.env.MR_MAGIC_INLINE_PAYLOAD_MAX_CHARS || 1500
+);
 
 async function getLyricPayloadStorage(outputDir) {
   const key = outputDir || '__default__';
@@ -115,6 +118,9 @@ async function buildCatalogResponse(findResult, requestedTrack = {}, options = {
   const romanizedPlainLyrics = formatted.romanizedPlain || null;
   const lyrics =
     catalogOptions.preferRomanized && romanizedPlainLyrics ? romanizedPlainLyrics : plainLyrics;
+  const shouldForceCompactPayload =
+    catalogOptions.omitInlineLyrics &&
+    (catalogOptions.airtableSafePayload || lyrics.length > DEFAULT_INLINE_PAYLOAD_MAX_CHARS);
 
   const shouldIncludeInlineLyrics = !catalogOptions.omitInlineLyrics;
 
@@ -144,7 +150,8 @@ async function buildCatalogResponse(findResult, requestedTrack = {}, options = {
       preferRomanized: catalogOptions.preferRomanized && Boolean(romanizedPlainLyrics),
       outputDir: catalogOptions.lyricsPayloadOutput,
       transport: catalogOptions.lyricsPayloadMode === 'reference' ? 'reference' : 'inline',
-      includeAirtableSafe: catalogOptions.airtableSafePayload
+      includeAirtableSafe: catalogOptions.airtableSafePayload,
+      forceCompactPayload: shouldForceCompactPayload
     });
   }
 
@@ -209,11 +216,14 @@ async function buildLyricsPayloadBundle({
   preferRomanized,
   outputDir,
   transport,
-  includeAirtableSafe
+  includeAirtableSafe,
+  forceCompactPayload
 }) {
   if (!lyrics) return null;
+  const shouldPromoteToReference = transport === 'inline' && forceCompactPayload;
+  const effectiveTransport = shouldPromoteToReference ? 'reference' : transport;
   const payload = {
-    transport,
+    transport: effectiveTransport,
     encoding: 'utf-8',
     contentType: 'text/plain',
     preferredVariant: preferRomanized ? 'romanizedPlainLyrics' : 'plainLyrics',
@@ -221,7 +231,12 @@ async function buildLyricsPayloadBundle({
     lineCount: countLines(lyrics)
   };
 
-  if (transport === 'inline') {
+  if (shouldPromoteToReference) {
+    payload.transportRequested = transport;
+    payload.compact = true;
+  }
+
+  if (effectiveTransport === 'inline') {
     payload.content = lyrics;
     payload.preview = buildLyricsPreview(lyrics);
     if (includeAirtableSafe) {
@@ -234,6 +249,25 @@ async function buildLyricsPayloadBundle({
     const storage = await getLyricPayloadStorage(outputDir);
     const baseName = buildLyricsBaseName(trackSummary);
     const stored = await storage.store({ content: lyrics, extension: 'txt', baseName });
+
+    if (!stored?.filePath && !stored?.url) {
+      payload.transport = 'inline';
+      payload.content = lyrics;
+      payload.preview = buildLyricsPreview(lyrics);
+      payload.reference = {
+        filePath: null,
+        url: null,
+        expiresAt: null,
+        skipped: stored?.skipped ?? true
+      };
+      payload.referenceError =
+        'Reference storage backend did not provide a file path or URL; reverted to inline payload.';
+      if (includeAirtableSafe) {
+        payload.airtableEscapedContent = buildAirtableEscapedContent(lyrics);
+      }
+      return payload;
+    }
+
     payload.reference = {
       filePath: stored.filePath ?? null,
       url: stored.url ?? null,

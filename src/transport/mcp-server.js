@@ -14,10 +14,7 @@ import { buildMcpResponse } from './mcp-response.js';
 import { logTokenStatus } from './token-startup-log.js';
 import { normalizeToolArgs } from './tool-args.js';
 
-const server = new Server(
-  { name: 'mr-magic-mcp-server-mcp', version: '0.1.2' },
-  { capabilities: { tools: {} } }
-);
+const server = new Server({ name: 'mcp-server', version: '0.1.3' }, { capabilities: { tools: {} } });
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: mcpToolDefinitions }));
 
@@ -52,7 +49,7 @@ export async function startMcpServer() {
     logger.warn('Token startup diagnostics failed', { error });
   });
   const readyDetails = {
-    name: 'mr-magic-mcp-server-mcp',
+    name: 'mcp-server',
     transport: 'stdio'
   };
   logger.info('Lyrics MCP server listening on stdio', readyDetails);

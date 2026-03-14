@@ -1,6 +1,19 @@
 const MAX_SUMMARY_LENGTH = 400;
 const MAX_PREVIEW_LENGTH = 220;
 
+function looksLikeLyricPayload(result) {
+  if (!result || typeof result !== 'object') return false;
+  return Boolean(
+    result.lyrics ||
+      result.plainLyrics ||
+      result.romanizedPlainLyrics ||
+      result.formatted?.plainLyrics ||
+      result.formatted?.romanizedPlain ||
+      result.formatted?.syncedLyrics ||
+      result.lyricsPayload?.content
+  );
+}
+
 function normalizeStructuredContent(result) {
   if (Array.isArray(result)) {
     return { items: result };
@@ -128,17 +141,29 @@ function truncateInline(value, maxLength) {
 }
 
 export function buildMcpResponse(result) {
+  const structuredContent = normalizeStructuredContent(result);
+  const summaryText = buildResultSummary(result);
+  const prettyJsonText = JSON.stringify(structuredContent, null, 2);
+  const content = [];
+
+  if (looksLikeLyricPayload(result)) {
+    content.push({
+      type: 'text',
+      text: prettyJsonText
+    });
+  } else {
+    content.push({
+      type: 'text',
+      text: summaryText
+    });
+    content.push({
+      type: 'text',
+      text: prettyJsonText
+    });
+  }
+
   return {
-    structuredContent: normalizeStructuredContent(result),
-    content: [
-      {
-        type: 'text',
-        text: buildResultSummary(result)
-      },
-      {
-        type: 'text',
-        text: JSON.stringify(normalizeStructuredContent(result), null, 2)
-      }
-    ]
+    structuredContent,
+    content
   };
 }

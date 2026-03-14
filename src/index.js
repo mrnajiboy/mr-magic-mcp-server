@@ -108,7 +108,7 @@ export async function getProviderStatus() {
         const ready = await checkGeniusTokenReady();
         return {
           name: provider.name,
-          implemented: provider.fetch && provider.search,
+          implemented: Boolean(provider.fetch && provider.search),
           note: ready ? 'Ready' : 'Missing client credentials or legacy access token'
         };
       }
@@ -116,20 +116,20 @@ export async function getProviderStatus() {
         const ready = await checkMusixmatchTokenReady();
         return {
           name: provider.name,
-          implemented: provider.fetch && provider.search,
+          implemented: Boolean(provider.fetch && provider.search),
           note: ready ? 'Ready' : 'Requires token discovery/login'
         };
       }
       if (provider.name === 'melon') {
         return {
           name: provider.name,
-          implemented: provider.fetch && provider.search,
+          implemented: Boolean(provider.fetch && provider.search),
           note: melonReady ? 'Ready' : 'Requires MELON_COOKIE'
         };
       }
       return {
         name: provider.name,
-        implemented: provider.fetch && provider.search,
+        implemented: Boolean(provider.fetch && provider.search),
         note: 'Ready'
       };
     })

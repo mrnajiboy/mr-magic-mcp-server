@@ -92,9 +92,22 @@ async function testBuildCatalogPayloadWithLyricsPayload() {
 
   assert.ok(!response?.lyrics, 'inline lyrics should be omitted');
   assert.ok(response?.lyricsPayload, 'lyricsPayload bundle should exist');
-  assert.equal(response.lyricsPayload.transport, 'inline');
   assert.equal(response.lyricsPayload.contentType, 'text/plain');
-  assert.ok(response.lyricsPayload.preview?.length > 0, 'preview should be populated');
+
+  if (response.lyricsPayload.transport === 'inline') {
+    assert.ok(response.lyricsPayload.preview?.length > 0, 'preview should be populated');
+    assert.ok(response.lyricsPayload.content?.length > 0, 'inline payload should include content');
+  } else {
+    assert.equal(
+      response.lyricsPayload.transport,
+      'reference',
+      'payload mode should only resolve to inline or reference transport'
+    );
+    assert.ok(
+      response.lyricsPayload.reference,
+      'reference transport should include reference metadata'
+    );
+  }
 }
 
 async function testBuildCatalogPayloadWithAirtableSafePayload() {
@@ -112,6 +125,8 @@ async function testBuildCatalogPayloadWithAirtableSafePayload() {
     response?.lyricsPayload?.airtableEscapedContent,
     'Airtable escaped content should exist'
   );
+  assert.equal(response.lyricsPayload.transportRequested, 'inline');
+  assert.equal(response.lyricsPayload.compact, true);
   assert.ok(!response.lyrics, 'inline lyrics should stay omitted');
   assert.ok(
     response.lyricsPayload.airtableEscapedContent.includes('\\n'),
@@ -146,9 +161,16 @@ ending with unicode ♥`;
     result,
     'structuredContent should pass through original object'
   );
-  const summary = response.content?.[0]?.text;
-  assert.ok(summary.includes('provider=test-provider'), 'summary should mention provider');
-  assert.ok(summary.includes('keys=['), 'summary should mention key list');
+  const primaryText = response.content?.[0]?.text;
+  assert.ok(
+    primaryText?.includes('This line has quotes "like this"'),
+    'lyric payload responses should expose full JSON as first content item'
+  );
+  assert.equal(
+    response.content?.length,
+    1,
+    'lyric payload responses should omit secondary summary preview text'
+  );
 }
 
 async function testMcpResponseHandlesStringResults() {

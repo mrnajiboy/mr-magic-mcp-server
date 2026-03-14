@@ -1,6 +1,6 @@
 {
   "name": "mr-magic-mcp-server",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Lyrics MCP server connecting LRCLIB, Genius, Musixmatch, and Melon",
   "type": "module",
   "main": "src/index.js",
@@ -8,10 +8,10 @@
     ".": "./src/index.js"
   },
   "bin": {
-    "mr-magic-mcp-cli": "src/bin/cli.js",
-    "mr-magic-mcp-server": "src/bin/http-server.js",
-    "mr-magic-mcp-server-mcp": "src/bin/mcp-server.js",
-    "mr-magic-mcp-server-mcp-http": "src/bin/mcp-http-server.js"
+    "mrmagic-cli": "src/bin/cli.js",
+    "http-server": "src/bin/http-server.js",
+    "mcp-server": "src/bin/mcp-server.js",
+    "mcp-http-server": "src/bin/mcp-http-server.js"
   },
   "files": [
     "src",
@@ -20,7 +20,6 @@
     ".env.example"
   ],
   "scripts": {
-    "start": "node src/bin/cli.js",
     "cli": "node src/bin/cli.js",
     "server:http": "node src/bin/http-server.js",
     "server:mcp": "node src/bin/mcp-server.js",

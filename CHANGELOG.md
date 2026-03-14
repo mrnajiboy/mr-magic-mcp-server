@@ -1,5 +1,21 @@
 ## Changelog
 
+### 0.1.3 - 2026-03-14
+
+- Restored CLI invocation compatibility for npm argument-forwarding edge cases:
+  - `npm run cli search -a "..." -t "..."` now recovers correctly when npm strips short flags.
+  - `npm run cli -- <subcommand> ...` and direct Node usage continue to work.
+- Renamed published package binaries to shorter names:
+  - `mr-magic-mcp-cli` → `mrmagic-cli`
+  - `mr-magic-mcp-server` → `http-server`
+  - `mr-magic-mcp-server-mcp` → `mcp-server`
+  - `mr-magic-mcp-server-mcp-http` → `mcp-http-server`
+- Updated runtime server identity labels to match renamed binaries (`mrmagic-cli`, `mcp-server`, `mcp-http-server`).
+- Updated README command docs/examples to reflect:
+  - new binary names,
+  - correct npm top-level help form (`npm run cli -- --help`),
+  - current npm invocation compatibility guidance.
+
 ### 0.1.2 - 2026-03-14
 
 - Hardened MCP argument-boundary handling for Airtable-heavy flows:

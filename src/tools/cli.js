@@ -72,11 +72,50 @@ function buildTrackFromOptions(options) {
   };
 }
 
+function hasOption(argv, names) {
+  return argv.some((token) =>
+    names.some((name) => token === name || token.startsWith(`${name}=`))
+  );
+}
+
+function normalizeLegacyNpmInvocation(argv) {
+  const base = Array.isArray(argv) ? [...argv] : [];
+  if (base.length < 3) return base;
+
+  const command = base[2];
+  const args = base.slice(3);
+  if (args.length === 0) return base;
+
+  const supportsArtistTitle = new Set(['search', 'find', 'search-provider']);
+  if (!supportsArtistTitle.has(command)) {
+    return base;
+  }
+
+  const hasArtist = hasOption(args, ['--artist', '-a']);
+  const hasTitle = hasOption(args, ['--title', '-t']);
+  const hasAnyOption = args.some((token) => token.startsWith('-'));
+
+  // npm run <script> <command> -a "..." -t "..." can strip the short options,
+  // leaving positional tokens only. Recover the common case safely.
+  if (!hasArtist && !hasTitle && !hasAnyOption && args.length >= 2) {
+    return [
+      ...base.slice(0, 3),
+      '--artist',
+      args[0],
+      '--title',
+      args[1],
+      ...args.slice(2)
+    ];
+  }
+
+  return base;
+}
+
 const program = new Command();
 program
-  .name('mr-magic-mcp-cli')
+  .name('mrmagic-cli')
   .description('Lyrics MCP server CLI powered by LRCLIB, Genius, Musixmatch, and Melon')
-  .version('0.1.2');
+  .version('0.1.3');
 
 function normalizeFormatOptions(value) {
   if (!value) return [];
@@ -137,8 +176,8 @@ program
 program
   .command('status')
   .description('Show provider readiness')
-  .action(() => {
-    console.table(getProviderStatus());
+  .action(async () => {
+    console.table(await getProviderStatus());
   });
 
 const DEFAULT_FORMATS = ['plain', 'srt'];
@@ -308,10 +347,10 @@ function renderTable(rows, columns) {
 program
   .command('search')
   .description('Search across providers for matches')
-  .requiredOption('--artist <name>', 'Artist name')
-  .requiredOption('--title <name>', 'Song title')
-  .option('--album <name>', 'Album name')
-  .option('--duration <ms>', 'Track duration in milliseconds')
+  .requiredOption('-a, --artist <name>', 'Artist name')
+  .requiredOption('-t, --title <name>', 'Song title')
+  .option('-A, --album <name>', 'Album name')
+  .option('-d, --duration <ms>', 'Track duration in milliseconds')
   .option('--provider <name>', 'Restrict to a specific provider')
   .option('--show-all', 'Print all matches, even when picking automatically', false)
   .option('--pick <provider>', 'Auto-pick a provider and show details')
@@ -658,4 +697,4 @@ program
     console.log(JSON.stringify(match.result, null, 2));
   });
 
-program.parseAsync(process.argv);
+program.parseAsync(normalizeLegacyNpmInvocation(process.argv));

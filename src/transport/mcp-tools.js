@@ -68,7 +68,7 @@ const catalogOptionsSchema = {
       type: 'string',
       enum: ['inline', 'payload', 'reference'],
       description:
-        "Controls how lyric text is handed off: 'inline' (default) keeps current behavior, 'payload' returns a structured payload bundle, and 'reference' stores the payload via the configured export backend."
+        "Controls how lyric text is handed off: 'inline' (default) keeps current behavior, 'payload' returns a structured payload bundle (and may auto-promote to reference for Airtable-safe compact mode), and 'reference' stores the payload via the configured export backend."
     },
     lyricsPayloadOutput: {
       type: 'string',
@@ -78,7 +78,7 @@ const catalogOptionsSchema = {
     airtableSafePayload: {
       type: 'boolean',
       description:
-        'When true, include an Airtable-safe escaped lyric string alongside the structured payload.'
+        'When true, include an Airtable-safe escaped lyric string alongside the structured payload. With omitInlineLyrics + payload mode, this also prefers compact/reference-style payloads for long text safety.'
     }
   },
   additionalProperties: false
@@ -186,7 +186,7 @@ export const mcpToolDefinitions = [
   {
     name: 'build_catalog_payload',
     description:
-      'Return a compact payload suitable for Airtable inserts/exports. For large lyrics, send object args and use omitInlineLyrics + lyricsPayloadMode to avoid JSON truncation in downstream automations.',
+      'Return a compact payload suitable for Airtable inserts/exports. For large lyrics, send object args and use omitInlineLyrics + lyricsPayloadMode to avoid JSON truncation in downstream automations. Airtable-safe compact mode can auto-promote payload transport to reference.',
     inputSchema: {
       type: 'object',
       description: 'Provide a track plus optional catalog preferences.',

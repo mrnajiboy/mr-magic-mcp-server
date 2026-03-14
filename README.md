@@ -28,6 +28,13 @@ HTTP automations or CLI afficionados can all request lyrics from a single toolch
    npm install
    ```
 
+   > `npm install` in this repo installs dependencies, but does **not** add
+   > `mrmagic-cli` to your shell `PATH`.
+   >
+   > For local repo usage, run the CLI via `npm run cli -- ...` (or
+   > `node src/bin/cli.js ...`). If you want direct commands like
+   > `mrmagic-cli --help`, run `npm link` (dev symlink) or install globally.
+
 3. Configure `.env` (see Environment variables below) or export env vars in
    your shell before running any commands.
 
@@ -63,6 +70,7 @@ MR_MAGIC_QUIET_STDIO=0 # Optional, default 0. If set to 1, suppresses all non-er
 MR_MAGIC_HTTP_TIMEOUT_MS=10000 # Optional, default 10000. Global outbound HTTP timeout (ms) to prevent hanging provider/storage requests.
 MR_MAGIC_LOG_TOOL_ARGS_CHUNKS=0 # Optional, default 0. Set to 1/true to emit chunk-by-chunk MCP tool argument previews for truncation debugging.
 MR_MAGIC_TOOL_ARG_CHUNK_SIZE=400 # Optional, default 400. Chunk size used when MR_MAGIC_LOG_TOOL_ARGS_CHUNKS is enabled.
+MR_MAGIC_INLINE_PAYLOAD_MAX_CHARS=1500 # Optional, default 1500. build_catalog_payload auto-promotes payload transport to reference when omitInlineLyrics is true and lyrics exceed this threshold.
 MR_MAGIC_MCP_HTTP_DIAGNOSTICS=0 # Optional, default 0. Set to 1 to log enriched Streamable HTTP MCP request diagnostics at transport ingress.
 MR_MAGIC_SDK_REPRO_HTTP_DEBUG=0 # Optional, default 0. Set to 1 for verbose HTTP request/response previews in the SDK repro harness script.
 UPSTASH_REDIS_REST_URL= # Get from https://console.upstash.com/redis/rest, required if MR_MAGIC_EXPORT_BACKEND=redis
@@ -93,7 +101,7 @@ UPSTASH_REDIS_REST_TOKEN= # Get from https://console.upstash.com/redis/rest, req
 - **PORT** overrides both HTTP entrypoints when your platform injects one
   (Render, Fly, etc.). If unset, the MCP HTTP transport binds to `3444` and
   the JSON HTTP automation server binds to `3333`. CLI flags such as
-  `mr-magic-mcp-cli server --port 4000` always take precedence.
+  `mrmagic-cli server --port 4000` always take precedence.
 - **MR_MAGIC_DOWNLOAD_BASE_URL** should match the public URL that exposes the
   `/downloads` routes. Include `:port` only when the HTTP server isn’t using
   the default for its protocol.
@@ -110,6 +118,9 @@ UPSTASH_REDIS_REST_TOKEN= # Get from https://console.upstash.com/redis/rest, req
   debugging malformed/truncated tool calls from external clients.
 - **MR_MAGIC_TOOL_ARG_CHUNK_SIZE** (default `400`) controls the size of each
   chunk preview emitted when chunk logging is enabled.
+- **MR_MAGIC_INLINE_PAYLOAD_MAX_CHARS** (default `1500`) controls when
+  `build_catalog_payload` auto-promotes payload transport to `reference`
+  in compact Airtable-safe flows to reduce large inline lyric blobs.
 - **MR_MAGIC_MCP_HTTP_DIAGNOSTICS** (default `0`) enables detailed request
   metadata logging at the Streamable HTTP transport boundary (method, content
   type, body shape/length, session header, and safe body preview).
@@ -252,9 +263,12 @@ servers running.
   and provide allowed host/origin headers via the MCP SDK options if needed.
 - **Standard JSON HTTP server** for container/remote automation (`npm run server:http`).
 - **CLI** for ad-hoc/manual usage (one-off SSH sessions, CI jobs, or ephemeral
-  workers). Invoke with `npm run cli -- <subcommand>` or `npx mr-magic-mcp-cli
-<subcommand>`; it isn’t designed to run as a long-lived daemon because it exits
+  workers). Invoke with `npm run cli <subcommand>` or `npx mrmagic-cli <subcommand>`;
+  it isn’t designed to run as a long-lived daemon because it exits
   after each command completes.
+
+  In a local clone, prefer `npm run cli <subcommand>`. Use `mrmagic-cli ...`
+  only after `npm link` or a global install places the binary on `PATH`.
 
 ## MCP tools
 
@@ -302,15 +316,17 @@ Important transport rule for MCP callers:
 
 - `omitInlineLyrics: true` removes the `lyrics`, `plainLyrics`, and
   `romanizedPlainLyrics` fields so the response stays compact and safe to log.
-- `lyricsPayloadMode: "payload"` adds `lyricsPayload` with metadata plus the
-  full text in a structured object (transport = `inline`).
+- `lyricsPayloadMode: "payload"` adds `lyricsPayload` metadata and typically
+  includes full text in a structured object (transport = `inline`). In compact
+  Airtable-safe flows (`omitInlineLyrics: true`) the server may auto-promote
+  transport to `reference` for long lyric payloads.
 - `lyricsPayloadMode: "reference"` stores the lyrics via the export storage
   backend (local/inline/redis) and returns a `lyricsPayload.reference` object
   containing the file path or download URL instead of the raw text.
 - `airtableSafePayload: true` additionally exposes `lyricsPayload.airtableEscapedContent`
   which is pre-escaped for JSON bodies (quotes/backslashes/newlines rendered as
-  literal `\"`, `\\`, `\n`). Use this when you must interpolate lyrics into
-  an Airtable tool call JSON string manually.
+  literal `\"`, `\\`, `\n`) and prefers compact/reference-style payload handoff
+  when paired with `omitInlineLyrics: true`.
 - Optional `lyricsPayloadOutput` lets you override the output directory when
   using the default local backend.
 
@@ -466,7 +482,7 @@ server:mcp`. For example, TypingMind expects a single command and doesn’t set
 
 If/when the project is published and installed globally (e.g., `npm install -g
 mr-magic-mcp-server`), MCP clients can invoke the installed binaries directly
-(`mr-magic-mcp-cli`, `mr-magic-mcp-server`, etc.) without the `cd`/shell
+(`mrmagic-cli`, `http-server`, `mcp-server`, `mcp-http-server`) without the `cd`/shell
 workaround because the executables will already be on `PATH`.
 
 Note: `npm run server:mcp` keeps stdout clean (all logging goes to stderr), so
@@ -677,37 +693,48 @@ Stop servers with `Ctrl+C` when done.
 
 ## CLI overview
 
-A single CLI entrypoint (`mr-magic-mcp-cli`) is published with the package.
-Running `mr-magic-mcp-cli --help` (or `npm run cli -- --help` inside the repo),
+A single CLI entrypoint (`mrmagic-cli`) is published with the package.
+Inside this repository, use `npm run cli -- --help` unless you've run
+`npm link` (or installed globally) so `mrmagic-cli` is available on `PATH`.
+Running `mrmagic-cli --help` (or `npm run cli -- --help` inside the repo),
 prints a top-level summary, while subcommand-specific help—e.g.,
-`mr-magic-mcp-cli search --help`—lists all flags
+`mrmagic-cli search --help`—lists all flags
 with descriptions, defaults, and examples.
 
 ### Command summary
 
 | Command                            | Purpose                                                             | Notable flags                                                                                                                                                                                                                               |
 | ---------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `mr-magic-mcp-cli search`          | List candidate matches across providers without downloading lyrics. | `--artist`/`--title` (required track metadata), `--provider` (limit providers), `--duration` (match duration in ms), `--show-all` (print table), `--pick` (auto-select provider result).                                                    |
-| `mr-magic-mcp-cli find`            | Resolve the best lyric (prefers synced) and print/export it.        | `--providers` (CSV priority list), `--synced-only` (reject plain results), `--export` (write files), `--format` (repeatable; e.g., lrc,srt), `--output` (custom export dir), `--no-romanize`, `--choose`/`--index` (select specific match). |
-| `mr-magic-mcp-cli select`          | Pick the first match from a prioritized provider list.              | `--providers` (CSV order), `--artist`, `--title`, `--require-synced` (only accept synced lyrics).                                                                                                                                           |
-| `mr-magic-mcp-cli server`          | Run the JSON automation API (same as `npm run server:http`).        | `--host` (interface to bind; default 127.0.0.1), `--port` (listening port; overrides env/`PORT`), `--remote` (shorthand for `--host 0.0.0.0`).                                                                                              |
-| `mr-magic-mcp-cli server:mcp`      | Start the MCP stdio server (stdio transport).                       | _(none)_                                                                                                                                                                                                                                    |
-| `mr-magic-mcp-cli server:mcp:http` | Start the Streamable HTTP MCP server.                               | `--host`, `--port`, `--remote`, `--sessionless` (disable per-session connection IDs; useful for stateless/manual debugging).                                                                                                                |
-| `mr-magic-mcp-cli search-provider` | Query a single provider only.                                       | `--provider` (required provider name), `--artist`, `--title`.                                                                                                                                                                               |
-| `mr-magic-mcp-cli status`          | Print provider readiness information.                               | _(none)_                                                                                                                                                                                                                                    |
+| `mrmagic-cli search`          | List candidate matches across providers without downloading lyrics. | `--artist`/`--title` (required track metadata), `--provider` (limit providers), `--duration` (match duration in ms), `--show-all` (print table), `--pick` (auto-select provider result).                                                    |
+| `mrmagic-cli find`            | Resolve the best lyric (prefers synced) and print/export it.        | `--providers` (CSV priority list), `--synced-only` (reject plain results), `--export` (write files), `--format` (repeatable; e.g., lrc,srt), `--output` (custom export dir), `--no-romanize`, `--choose`/`--index` (select specific match). |
+| `mrmagic-cli select`          | Pick the first match from a prioritized provider list.              | `--providers` (CSV order), `--artist`, `--title`, `--require-synced` (only accept synced lyrics).                                                                                                                                           |
+| `mrmagic-cli server`          | Run the JSON automation API (same as `npm run server:http`).        | `--host` (interface to bind; default 127.0.0.1), `--port` (listening port; overrides env/`PORT`), `--remote` (shorthand for `--host 0.0.0.0`).                                                                                              |
+| `mrmagic-cli server:mcp`      | Start the MCP stdio server (stdio transport).                       | _(none)_                                                                                                                                                                                                                                    |
+| `mrmagic-cli server:mcp:http` | Start the Streamable HTTP MCP server.                               | `--host`, `--port`, `--remote`, `--sessionless` (disable per-session connection IDs; useful for stateless/manual debugging).                                                                                                                |
+| `mrmagic-cli search-provider` | Query a single provider only.                                       | `--provider` (required provider name), `--artist`, `--title`.                                                                                                                                                                               |
+| `mrmagic-cli status`          | Print provider readiness information.                               | _(none)_                                                                                                                                                                                                                                    |
 
 ### Command Examples
 
-- `mr-magic-mcp-cli search --artist "BLACKPINK" --title "Kill This Love"`
+- Local repo usage: `npm run cli -- search --artist "BLACKPINK" --title "Kill This Love"`
   – list candidates across all providers.
-- `mr-magic-mcp-cli find --artist "Nayeon" --title "POP!"` – download the
-  best lyric (prefers synced LRC when possible).
-- `mr-magic-mcp-cli select --providers lrclib,genius --artist "Nayeon" --title "POP!" --require-synced`
+- Local repo usage: `npm run cli -- find --artist "Nayeon" --title "POP!"`
+  – download the best lyric (prefers synced LRC when possible).
+- Local repo usage: `npm run cli -- select --providers lrclib,genius --artist "Nayeon" --title "POP!" --require-synced`
   – pick the first synced match from the prioritized provider list.
-- `mr-magic-mcp-cli server --port 4000` – run the JSON automation API
-  locally.
-- `npm run cli -- server --port 3333` – launch the same CLI via npm (handy when
-  working inside the repo without a global install).
+- Linked/global usage: `mrmagic-cli server --port 4000`
+  – run the JSON automation API locally once `mrmagic-cli` is on `PATH`.
+
+### CLI troubleshooting (npm argument forwarding)
+
+The `cli` npm script supports both invocation styles:
+
+- ✅ `npm run cli search --artist "K/DA" --title "I'll Show You"`
+- ✅ `npm run cli -- search --artist "K/DA" --title "I'll Show You"`
+
+The first form is preferred for readability, but both are supported.
+
+For direct binary usage, use `mrmagic-cli search --artist ... --title ...`.
 
 ## Provider notes
 
