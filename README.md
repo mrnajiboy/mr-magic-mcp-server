@@ -63,6 +63,10 @@ UPSTASH_REDIS_REST_TOKEN=  # Get from https://console.upstash.com/redis/rest, re
 MR_MAGIC_TMP_DIR=/tmp/ # Optional, default /tmp/. Used for temporary file storage during export generation. Only applies to local and redis, ignored for inline.
 MR_MAGIC_QUIET_STDIO=0  # Optional, default 0. If set to 1, suppresses all non-error logs to stdout. Useful when running in environments where you only want to capture errors, or when using the export functionality and don't want logs mixed in with export data.
 MR_MAGIC_HTTP_TIMEOUT_MS=10000 # Optional. Global outbound HTTP timeout in ms for provider/storage calls.
+MR_MAGIC_LOG_TOOL_ARGS_CHUNKS=0 # Optional, default 0. If 1/true, logs incoming MCP tool argument payloads in chunks for truncation debugging.
+MR_MAGIC_TOOL_ARG_CHUNK_SIZE=400 # Optional, default 400. Chunk size used when MR_MAGIC_LOG_TOOL_ARGS_CHUNKS is enabled.
+MR_MAGIC_MCP_HTTP_DIAGNOSTICS=0 # Optional, default 0. If 1/true, emit enriched MCP HTTP transport ingress diagnostics.
+MR_MAGIC_SDK_REPRO_HTTP_DEBUG=0 # Optional, default 0. If 1/true, print HTTP request/response previews in the SDK repro harness.
 LOG_LEVEL=info          # Optional, defaults to info. Accepts error|warn|info|debug. Overrides DEBUG.
 DEBUG=0                 # Optional. Any truthy value enables debug logging unless LOG_LEVEL overrides it.
 MR_MAGIC_ROOT=          # Optional. Force the project root used for resolving .env/.cache paths.
@@ -97,12 +101,28 @@ MUSIXMATCH_AUTO_FETCH=0 # Optional. When 1, provider will attempt to rerun the f
   Takes precedence over `DEBUG`.
 - **DEBUG** enables `debug` level logging when truthy. If `LOG_LEVEL` is set,
   it wins over `DEBUG`.
+- **How to choose `LOG_LEVEL` vs `DEBUG`:**
+  - Use **`LOG_LEVEL`** when you want an explicit, deterministic verbosity in
+    shared/dev/prod environments.
+  - Use **`DEBUG=1`** as a quick local toggle _only when `LOG_LEVEL` is unset_.
+  - If both are present, treat `LOG_LEVEL` as the source of truth.
 - **MR_MAGIC_QUIET_STDIO** set to `1` silences stdio transports (helpful when a
   host MCP client expects clean JSON over stdout). When enabled, it forces
   `LOG_LEVEL=error` and disables `DEBUG` internally so stdout stays quiet.
 - **MR_MAGIC_HTTP_TIMEOUT_MS** (default `10000`) applies a global timeout to
   outbound provider/export-storage network calls so slow upstream endpoints
   fail fast instead of hanging MCP tool calls.
+- **MR_MAGIC_LOG_TOOL_ARGS_CHUNKS** (default `0`) enables diagnostic chunk
+  logging for incoming MCP `arguments` payloads. Set to `1`/`true` when
+  debugging malformed/truncated tool calls from external clients.
+- **MR_MAGIC_TOOL_ARG_CHUNK_SIZE** (default `400`) controls the size of each
+  chunk preview emitted when chunk logging is enabled.
+- **MR_MAGIC_MCP_HTTP_DIAGNOSTICS** (default `0`) enables detailed request
+  metadata logging at the Streamable HTTP transport boundary (method, content
+  type, body shape/length, session header, and safe body preview).
+- **MR_MAGIC_SDK_REPRO_HTTP_DEBUG** (default `0`) enables HTTP-level debugging
+  output in `scripts/mcp-arg-boundary-sdk-repro.mjs` when validating argument
+  boundary behavior from the SDK client path.
 - **MR_MAGIC_ROOT** overrides the project root used for loading `.env` and `.cache`.
   Useful when an MCP host launches the server from another directory.
 - **MR_MAGIC_ENV_PATH** lets you point to a specific `.env` file instead of the
@@ -279,6 +299,14 @@ embedding the raw text:
 }
 ```
 
+Important transport rule for MCP callers:
+
+- `tools/call.params.arguments` must be a JSON object/record.
+- Do **not** pre-serialize arguments into one giant JSON string for multiline
+  lyrics.
+- `build_catalog_payload` and `select_match` now enforce object arguments and
+  reject stringified payloads to prevent truncation-prone request patterns.
+
 - `omitInlineLyrics: true` removes the `lyrics`, `plainLyrics`, and
   `romanizedPlainLyrics` fields so the response stays compact and safe to log.
 - `lyricsPayloadMode: "payload"` adds `lyricsPayload` with metadata plus the
@@ -299,6 +327,113 @@ Downstream automations (Airtable, Zapier, Make, etc.) should map either
 into Airtable using the platform’s native variable substitution. This avoids
 hand-written JSON concatenation and eliminates the malformed request errors
 seen with long lyric fields.
+
+#### SDK vs fetch calling guidance for Airtable-safe payloads
+
+- **Preferred:** MCP SDK client calls (`client.callTool`) with `arguments` as a
+  native object.
+- **Also valid:** raw `fetch`/HTTP requests, as long as you build one outer
+  request object and call `JSON.stringify()` once at send time.
+- **Avoid:** manual JSON string templates that interpolate multiline lyrics.
+
+SDK example (recommended):
+
+```js
+await client.callTool({
+  name: 'build_catalog_payload',
+  arguments: {
+    track: { artist: 'K/DA', title: "I'll Show You" },
+    options: {
+      omitInlineLyrics: true,
+      lyricsPayloadMode: 'payload',
+      airtableSafePayload: true
+    }
+  }
+});
+```
+
+Fetch example (safe when still object-based):
+
+```js
+const body = {
+  jsonrpc: '2.0',
+  id: 1,
+  method: 'tools/call',
+  params: {
+    name: 'build_catalog_payload',
+    arguments: {
+      track: { artist: 'K/DA', title: "I'll Show You" },
+      options: {
+        omitInlineLyrics: true,
+        lyricsPayloadMode: 'payload',
+        airtableSafePayload: true
+      }
+    }
+  }
+};
+
+await fetch('http://127.0.0.1:3444/mcp', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    Accept: 'application/json, text/event-stream'
+  },
+  body: JSON.stringify(body)
+});
+```
+
+#### Debugging malformed MCP tool arguments (truncation checks)
+
+When an MCP client sends malformed JSON in `arguments` (for example, a lyric
+string that was truncated mid-quote), the server now validates and normalizes
+incoming arguments at the transport boundary before tool execution:
+
+- Object args are passed through directly (preferred path).
+- For compatibility tools, string args are parsed once; parse failures return a
+  consistent `Invalid JSON format for params: ...` error.
+- For Airtable-heavy tools (`build_catalog_payload`, `select_match`), string
+  args are rejected so callers keep `params.arguments` as object/record.
+- Logs include argument length plus head/tail previews to pinpoint where data
+  was cut off.
+
+For deeper diagnostics, enable chunk logging:
+
+```bash
+MR_MAGIC_LOG_TOOL_ARGS_CHUNKS=1
+MR_MAGIC_TOOL_ARG_CHUNK_SIZE=400
+LOG_LEVEL=debug
+```
+
+This emits chunk-by-chunk previews so you can identify whether truncation
+occurred before or at MCP transport ingress.
+
+Recommended debugging presets:
+
+- **Normal operation (default):**
+
+  ```env
+  LOG_LEVEL=info
+  DEBUG=0
+  MR_MAGIC_LOG_TOOL_ARGS_CHUNKS=0
+  ```
+
+- **General verbose debugging (without chunk spam):**
+
+  ```env
+  LOG_LEVEL=debug
+  MR_MAGIC_LOG_TOOL_ARGS_CHUNKS=0
+  ```
+
+- **Truncation-focused diagnostics (large payload issues):**
+
+  ```env
+  LOG_LEVEL=debug
+  MR_MAGIC_LOG_TOOL_ARGS_CHUNKS=1
+  MR_MAGIC_TOOL_ARG_CHUNK_SIZE=400
+  ```
+
+Use the truncation-focused preset only while investigating malformed JSON,
+then switch chunk logging back off to keep logs compact.
 
 ### MCP client configuration (local repo vs published npm)
 
@@ -358,6 +493,10 @@ If you want automated checks too, keep these handy:
 
 - `npm run test` – full bundled test runner (`tests/run-tests.js`)
 - `node tests/mcp-tools.test.js` – raw MCP integration harness
+- `npm run repro:mcp:arg-boundary` – direct JSON-RPC repro harness for
+  object-vs-string argument boundary checks.
+- `npm run repro:mcp:arg-boundary:sdk` – SDK client transport repro harness
+  (supports `MR_MAGIC_SDK_REPRO_HTTP_DEBUG=1` for verbose HTTP traces).
 - `npm run lint` – ESLint
 - `npm run format:check` – Prettier check mode
 
@@ -560,9 +699,9 @@ with descriptions, defaults, and examples.
 | `mr-magic-mcp-cli search`          | List candidate matches across providers without downloading lyrics. | `--artist`/`--title` (required track metadata), `--provider` (limit providers), `--duration` (match duration in ms), `--show-all` (print table), `--pick` (auto-select provider result).                                                    |
 | `mr-magic-mcp-cli find`            | Resolve the best lyric (prefers synced) and print/export it.        | `--providers` (CSV priority list), `--synced-only` (reject plain results), `--export` (write files), `--format` (repeatable; e.g., lrc,srt), `--output` (custom export dir), `--no-romanize`, `--choose`/`--index` (select specific match). |
 | `mr-magic-mcp-cli select`          | Pick the first match from a prioritized provider list.              | `--providers` (CSV order), `--artist`, `--title`, `--require-synced` (only accept synced lyrics).                                                                                                                                           |
-| `mr-magic-mcp-cli server`          | Run the JSON automation API (same as `npm run server:http`).        | `--host` (interface to bind; default 127.0.0.1), `--port` (listening port; overrides env/`PORT`), `--remote` (shorthand for `--host 0.0.0.0`), `--sessionless` (skip request-scoped session IDs).                                           |
-| `mr-magic-mcp-cli server:mcp`      | Start the MCP stdio server (stdio transport).                       | Same server flags as above; `--sessionless` is useful when the MCP host already handles session IDs.                                                                                                                                        |
-| `mr-magic-mcp-cli server:mcp:http` | Start the Streamable HTTP MCP server.                               | Same server flags as above; typically pair `--remote` with an explicit `--port` for remote deployments.                                                                                                                                     |
+| `mr-magic-mcp-cli server`          | Run the JSON automation API (same as `npm run server:http`).        | `--host` (interface to bind; default 127.0.0.1), `--port` (listening port; overrides env/`PORT`), `--remote` (shorthand for `--host 0.0.0.0`).                                                                                              |
+| `mr-magic-mcp-cli server:mcp`      | Start the MCP stdio server (stdio transport).                       | _(none)_                                                                                                                                                                                                                                    |
+| `mr-magic-mcp-cli server:mcp:http` | Start the Streamable HTTP MCP server.                               | `--host`, `--port`, `--remote`, `--sessionless` (disable per-session connection IDs; useful for stateless/manual debugging).                                                                                                                |
 | `mr-magic-mcp-cli search-provider` | Query a single provider only.                                       | `--provider` (required provider name), `--artist`, `--title`.                                                                                                                                                                               |
 | `mr-magic-mcp-cli status`          | Print provider readiness information.                               | _(none)_                                                                                                                                                                                                                                    |
 

@@ -76,7 +76,7 @@ const program = new Command();
 program
   .name('mr-magic-mcp-server')
   .description('Lyrics MCP server CLI powered by LRCLIB, Genius, Musixmatch, and Melon')
-  .version('1.0.0');
+  .version('0.1.2');
 
 function normalizeFormatOptions(value) {
   if (!value) return [];

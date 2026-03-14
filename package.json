@@ -1,6 +1,6 @@
 {
   "name": "mr-magic-mcp-server",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Lyrics MCP server connecting LRCLIB, Genius, Musixmatch, and Melon",
   "type": "module",
   "main": "src/index.js",
@@ -32,6 +32,8 @@
     "test": "node tests/run-tests.js",
     "fetch:musixmatch-token": "node scripts/fetch_musixmatch_token.mjs",
     "fetch:genius-token": "node scripts/fetch_genius_token.mjs",
+    "repro:mcp:arg-boundary": "node scripts/mcp-arg-boundary-repro.mjs",
+    "repro:mcp:arg-boundary:sdk": "node scripts/mcp-arg-boundary-sdk-repro.mjs",
     "prepack": "npm run test"
   },
   "keywords": [

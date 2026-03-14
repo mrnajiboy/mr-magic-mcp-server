@@ -12,26 +12,75 @@ import { createLogger } from '../utils/logger.js';
 import { mcpToolDefinitions, handleMcpTool } from './mcp-tools.js';
 import { buildMcpResponse } from './mcp-response.js';
 import { logTokenStatus } from './token-startup-log.js';
+import { normalizeToolArgs } from './tool-args.js';
+
+function getBodyShape(body) {
+  if (body == null) return 'nullish';
+  if (Array.isArray(body)) return 'array';
+  return typeof body;
+}
+
+function getBodyLength(body) {
+  if (typeof body === 'string') return body.length;
+  if (Buffer.isBuffer(body)) return body.byteLength;
+  if (body && typeof body === 'object') {
+    try {
+      return JSON.stringify(body).length;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function safeBodyPreview(body, maxLength = 1200) {
+  try {
+    if (typeof body === 'string') return body.slice(0, maxLength);
+    if (body && typeof body === 'object') return JSON.stringify(body).slice(0, maxLength);
+    return null;
+  } catch {
+    return '<unserializable body>';
+  }
+}
+
+function normalizeIncomingRpcBody(body) {
+  const normalizeMessage = (message) => {
+    if (!message || typeof message !== 'object') return message;
+    if (message.method === 'notifications/initialized' && message.params == null) {
+      return { ...message, params: {} };
+    }
+    return message;
+  };
+
+  if (Array.isArray(body)) {
+    return body.map(normalizeMessage);
+  }
+
+  return normalizeMessage(body);
+}
 
 export async function startMcpHttpServer(options = {}) {
   const logger = createLogger('mcp-http-server');
+  const httpDiagnostics = process.env.MR_MAGIC_MCP_HTTP_DIAGNOSTICS === '1';
+  const configuredSessionless = Boolean(options.sessionless);
   const host = options.remote ? '0.0.0.0' : options.host || '127.0.0.1';
   const port = Number(options.port) || 3444;
 
   const server = new Server(
-    { name: 'mr-magic-mcp-server-mcp-http', version: '1.0.0' },
+    { name: 'mr-magic-mcp-server-mcp-http', version: '0.1.2' },
     { capabilities: { tools: {} } }
   );
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: mcpToolDefinitions }));
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const { name, arguments: args = {} } = request.params;
+    const { name, arguments: rawArgs } = request.params;
+    const args = normalizeToolArgs(rawArgs, name, logger);
     const result = await handleMcpTool(name, args);
     return buildMcpResponse(result);
   });
 
   const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: options.sessionless ? undefined : () => randomUUID()
+    sessionIdGenerator: configuredSessionless ? undefined : () => randomUUID()
   });
 
   transport.onerror = (error) => {
@@ -43,13 +92,89 @@ export async function startMcpHttpServer(options = {}) {
 
   const app = createMcpExpressApp({ host });
   app.all('/mcp', async (req, res) => {
-    try {
-      await transport.handleRequest(req, res, req.body);
-    } catch (error) {
-      logger.error('HTTP MCP request failed', { error });
-      res.statusCode = 500;
-      res.end(JSON.stringify({ error: 'Internal Server Error' }));
+    const normalizedBody = normalizeIncomingRpcBody(req.body);
+    const requestId = randomUUID();
+    const requestMeta = {
+      requestId,
+      method: req.method,
+      url: req.originalUrl || req.url,
+      contentType: req.headers['content-type'] || null,
+      accept: req.headers.accept || null,
+      mcpSessionId: req.headers['mcp-session-id'] || null,
+      bodyShape: getBodyShape(normalizedBody),
+      bodyLength: getBodyLength(normalizedBody)
+    };
+
+    if (httpDiagnostics) {
+      logger.debug('HTTP MCP request received', {
+        ...requestMeta,
+        bodyPreview: safeBodyPreview(normalizedBody)
+      });
     }
+
+    try {
+      await transport.handleRequest(req, res, normalizedBody);
+    } catch (error) {
+      logger.error('HTTP MCP request failed', {
+        error,
+        ...requestMeta,
+        headersSent: res.headersSent,
+        writableEnded: res.writableEnded
+      });
+
+      if (res.headersSent || res.writableEnded) {
+        return;
+      }
+
+      res.status(500).json({
+        error: 'Internal Server Error',
+        requestId,
+        message: error instanceof Error ? error.message : String(error),
+        context: {
+          method: req.method,
+          url: req.originalUrl || req.url,
+          bodyShape: getBodyShape(normalizedBody),
+          bodyLength: getBodyLength(normalizedBody)
+        }
+      });
+    }
+  });
+
+  app.use((error, req, res, _next) => {
+    const requestId = randomUUID();
+    const requestMeta = {
+      requestId,
+      method: req?.method || null,
+      url: req?.originalUrl || req?.url || null,
+      contentType: req?.headers?.['content-type'] || null,
+      accept: req?.headers?.accept || null,
+      mcpSessionId: req?.headers?.['mcp-session-id'] || null,
+      bodyShape: getBodyShape(req?.body),
+      bodyLength: getBodyLength(req?.body)
+    };
+
+    logger.error('Unhandled MCP HTTP middleware error', {
+      error,
+      ...requestMeta,
+      headersSent: res?.headersSent,
+      writableEnded: res?.writableEnded
+    });
+
+    if (!res || res.headersSent || res.writableEnded) {
+      return;
+    }
+
+    res.status(500).json({
+      error: 'Internal Server Error',
+      requestId,
+      message: error instanceof Error ? error.message : String(error),
+      context: {
+        method: requestMeta.method,
+        url: requestMeta.url,
+        bodyShape: requestMeta.bodyShape,
+        bodyLength: requestMeta.bodyLength
+      }
+    });
   });
 
   return new Promise((resolve) => {
@@ -59,10 +184,10 @@ export async function startMcpHttpServer(options = {}) {
         host,
         port,
         endpoint,
-        sessionless: !transport.sessionId
+        sessionless: configuredSessionless
       });
       process.stderr.write(
-        `Mr. Magic MCP HTTP server running: endpoint=${endpoint}, sessionless=${!transport.sessionId}\n`
+        `Mr. Magic MCP HTTP server running: endpoint=${endpoint}, sessionless=${configuredSessionless}\n`
       );
       resolve(httpServer);
     });

@@ -186,7 +186,7 @@ export const mcpToolDefinitions = [
   {
     name: 'build_catalog_payload',
     description:
-      'Return a compact payload suitable for Airtable inserts and exports, with optional structured lyric payloads for safer downstream processing.',
+      'Return a compact payload suitable for Airtable inserts/exports. For large lyrics, send object args and use omitInlineLyrics + lyricsPayloadMode to avoid JSON truncation in downstream automations.',
     inputSchema: {
       type: 'object',
       description: 'Provide a track plus optional catalog preferences.',
@@ -277,7 +277,7 @@ export const mcpToolDefinitions = [
   {
     name: 'select_match',
     description:
-      'Pick a single match from a previous search result based on provider/index filters.',
+      'Pick a single match from a previous search result based on provider/index filters. Send params.arguments as an object (not a JSON string) for multiline payload safety.',
     inputSchema: {
       type: 'object',
       description:

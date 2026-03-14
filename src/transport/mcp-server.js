@@ -12,16 +12,19 @@ import { createLogger } from '../utils/logger.js';
 import { mcpToolDefinitions, handleMcpTool } from './mcp-tools.js';
 import { buildMcpResponse } from './mcp-response.js';
 import { logTokenStatus } from './token-startup-log.js';
+import { normalizeToolArgs } from './tool-args.js';
 
 const server = new Server(
-  { name: 'mr-magic-mcp-server-mcp', version: '1.0.0' },
+  { name: 'mr-magic-mcp-server-mcp', version: '0.1.2' },
   { capabilities: { tools: {} } }
 );
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: mcpToolDefinitions }));
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args = {} } = request.params;
+  const logger = createLogger('mcp-server');
+  const { name, arguments: rawArgs } = request.params;
+  const args = normalizeToolArgs(rawArgs, name, logger);
   const result = await handleMcpTool(name, args);
   return buildMcpResponse(result);
 });
