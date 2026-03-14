@@ -34,7 +34,6 @@ function applyQuietLogLevelOverride() {
     return null;
   }
   const previousLevel = process.env.LOG_LEVEL;
-  process.env.DEBUG = '0';
   process.env.LOG_LEVEL = 'error';
   return previousLevel || null;
 }

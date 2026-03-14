@@ -43,40 +43,40 @@ Copy `.env.example` to `.env` (or export values in your shell) and fill in the
 credentials plus any storage configuration:
 
 ```env
-GENIUS_ACCESS_TOKEN=your_genius_api_token
-MUSIXMATCH_TOKEN=your_musixmatch_token
-MELON_COOKIE=your_melon_session_cookie (optional)
-LOG_LEVEL=info
-DEBUG=0
-
-# Export + storage controls
-PORT=                    # Override all server ports, or leave blank to default to 3444 for MCP, 3333 the JSON HTTP automation server.
-GENIUS_ACCESS_TOKEN=     # Get from https://genius.com/api-clients, required for Genius lyrics support.
-MUSIXMATCH_TOKEN=        # Get from https://developer.musixmatch.com or see README for fetching from Public API.
-MELON_COOKIE=            # Optional
+PORT= # Override all server ports, or leave blank to default to 3444 for MCP, 3333 the JSON HTTP automation server.
+LOG_LEVEL= # Optional. error|warn|info|debug. Defaults to info.
+MR_MAGIC_ROOT= # Optional. Force the project root used for resolving .env/.cache paths.
+MR_MAGIC_ENV_PATH= # Optional. Custom path to an env file when the default isn't desired.
+GENIUS_CLIENT_ID= # Get from https://genius.com/api-clients, required for Genius client-credentials auth.
+GENIUS_CLIENT_SECRET= # Get from https://genius.com/api-clients, required for Genius client-credentials auth.
+GENIUS_ACCESS_TOKEN= # Get from https://genius.com/api-clients, required for Genius lyrics support when client credentials are not supplied.
+MUSIXMATCH_AUTO_FETCH=0 # Optional. When 1, provider will attempt to rerun the fetch script automatically (headless) if no token is available.
+MUSIXMATCH_TOKEN= # Get from https://developer.musixmatch.com or see README for fetching from Public API.
+MUSIXMATCH_TOKEN_CACHE=.cache/musixmatch-token.json
+MELON_COOKIE= # Optional
 MR_MAGIC_EXPORT_BACKEND= # local|inline|redis
 MR_MAGIC_EXPORT_DIR=/absolute/path/to/exports # Required if MR_MAGIC_EXPORT_BACKEND=local
 MR_MAGIC_EXPORT_TTL_SECONDS=3600 # Optional, default 3600 (1 hour). Only applies to local and redis backends, ignored for inline.
-MR_MAGIC_DOWNLOAD_BASE_URL=https://yourserver.com|http://localhost:GIVEN_PORT   # Used for generating download links for exported files. See README for details.
-UPSTASH_REDIS_REST_URL=  # Get from https://console.upstash.com/redis/rest, required if MR_MAGIC_EXPORT_BACKEND=redis
-UPSTASH_REDIS_REST_TOKEN=  # Get from https://console.upstash.com/redis/rest, required if MR_MAGIC_EXPORT_BACKEND=redis
-MR_MAGIC_TMP_DIR=/tmp/ # Optional, default /tmp/. Used for temporary file storage during export generation. Only applies to local and redis, ignored for inline.
-MR_MAGIC_QUIET_STDIO=0  # Optional, default 0. If set to 1, suppresses all non-error logs to stdout. Useful when running in environments where you only want to capture errors, or when using the export functionality and don't want logs mixed in with export data.
-MR_MAGIC_HTTP_TIMEOUT_MS=10000 # Optional. Global outbound HTTP timeout in ms for provider/storage calls.
-MR_MAGIC_LOG_TOOL_ARGS_CHUNKS=0 # Optional, default 0. If 1/true, logs incoming MCP tool argument payloads in chunks for truncation debugging.
+MR_MAGIC_DOWNLOAD_BASE_URL=https://yourserver.com|http://localhost:GIVEN_PORT # Used for generating download links for exported files. See README for details.
+MR_MAGIC_TMP_DIR=/tmp/ # Optional, default /tmp/. Used for temporary file storage during export generation. Only applies to local and redis backends, ignored for inline.
+MR_MAGIC_QUIET_STDIO=0 # Optional, default 0. If set to 1, suppresses all non-error logs to stdout.
+MR_MAGIC_HTTP_TIMEOUT_MS=10000 # Optional, default 10000. Global outbound HTTP timeout (ms) to prevent hanging provider/storage requests.
+MR_MAGIC_LOG_TOOL_ARGS_CHUNKS=0 # Optional, default 0. Set to 1/true to emit chunk-by-chunk MCP tool argument previews for truncation debugging.
 MR_MAGIC_TOOL_ARG_CHUNK_SIZE=400 # Optional, default 400. Chunk size used when MR_MAGIC_LOG_TOOL_ARGS_CHUNKS is enabled.
-MR_MAGIC_MCP_HTTP_DIAGNOSTICS=0 # Optional, default 0. If 1/true, emit enriched MCP HTTP transport ingress diagnostics.
-MR_MAGIC_SDK_REPRO_HTTP_DEBUG=0 # Optional, default 0. If 1/true, print HTTP request/response previews in the SDK repro harness.
-LOG_LEVEL=info          # Optional, defaults to info. Accepts error|warn|info|debug. Overrides DEBUG.
-DEBUG=0                 # Optional. Any truthy value enables debug logging unless LOG_LEVEL overrides it.
-MR_MAGIC_ROOT=          # Optional. Force the project root used for resolving .env/.cache paths.
-MR_MAGIC_ENV_PATH=      # Optional. Custom path to an env file when the default isn't desired.
-MUSIXMATCH_AUTO_FETCH=0 # Optional. When 1, provider will attempt to rerun the fetch script automatically (headless) if no token is available.
+MR_MAGIC_MCP_HTTP_DIAGNOSTICS=0 # Optional, default 0. Set to 1 to log enriched Streamable HTTP MCP request diagnostics at transport ingress.
+MR_MAGIC_SDK_REPRO_HTTP_DEBUG=0 # Optional, default 0. Set to 1 for verbose HTTP request/response previews in the SDK repro harness script.
+UPSTASH_REDIS_REST_URL= # Get from https://console.upstash.com/redis/rest, required if MR_MAGIC_EXPORT_BACKEND=redis
+UPSTASH_REDIS_REST_TOKEN= # Get from https://console.upstash.com/redis/rest, required if MR_MAGIC_EXPORT_BACKEND=redis
 ```
 
 - **GENIUS_ACCESS_TOKEN** and **MUSIXMATCH_TOKEN** are required for their
   respective providers. The CLI/servers will reject requests that need them if
   they are unset.
+- **GENIUS_CLIENT_ID**/**GENIUS_CLIENT_SECRET** can be supplied as an
+  alternative Genius auth path when you want runtime token refresh instead of a
+  static access token.
+- **MUSIXMATCH_TOKEN_CACHE** controls where the Musixmatch session cache file
+  is read/written (default `<project root>/.cache/musixmatch-token.json`).
 - **MELON_COOKIE** is optional—anonymous access generally works, but pinning a
   cookie can improve consistency.
 - **MR_MAGIC_EXPORT_BACKEND** controls where formatted lyrics land:
@@ -93,22 +93,15 @@ MUSIXMATCH_AUTO_FETCH=0 # Optional. When 1, provider will attempt to rerun the f
 - **PORT** overrides both HTTP entrypoints when your platform injects one
   (Render, Fly, etc.). If unset, the MCP HTTP transport binds to `3444` and
   the JSON HTTP automation server binds to `3333`. CLI flags such as
-  `mr-magic-mcp-server server --port 4000` always take precedence.
+  `mr-magic-mcp-cli server --port 4000` always take precedence.
 - **MR_MAGIC_DOWNLOAD_BASE_URL** should match the public URL that exposes the
   `/downloads` routes. Include `:port` only when the HTTP server isn’t using
   the default for its protocol.
 - **LOG_LEVEL** (error|warn|info|debug, default `info`) controls global logging verbosity.
-  Takes precedence over `DEBUG`.
-- **DEBUG** enables `debug` level logging when truthy. If `LOG_LEVEL` is set,
-  it wins over `DEBUG`.
-- **How to choose `LOG_LEVEL` vs `DEBUG`:**
-  - Use **`LOG_LEVEL`** when you want an explicit, deterministic verbosity in
-    shared/dev/prod environments.
-  - Use **`DEBUG=1`** as a quick local toggle _only when `LOG_LEVEL` is unset_.
-  - If both are present, treat `LOG_LEVEL` as the source of truth.
+  Set `LOG_LEVEL=debug` when you need verbose diagnostics.
 - **MR_MAGIC_QUIET_STDIO** set to `1` silences stdio transports (helpful when a
   host MCP client expects clean JSON over stdout). When enabled, it forces
-  `LOG_LEVEL=error` and disables `DEBUG` internally so stdout stays quiet.
+  `LOG_LEVEL=error` so stdout stays quiet.
 - **MR_MAGIC_HTTP_TIMEOUT_MS** (default `10000`) applies a global timeout to
   outbound provider/export-storage network calls so slow upstream endpoints
   fail fast instead of hanging MCP tool calls.
@@ -413,7 +406,6 @@ Recommended debugging presets:
 
   ```env
   LOG_LEVEL=info
-  DEBUG=0
   MR_MAGIC_LOG_TOOL_ARGS_CHUNKS=0
   ```
 
@@ -476,7 +468,6 @@ If/when the project is published and installed globally (e.g., `npm install -g
 mr-magic-mcp-server`), MCP clients can invoke the installed binaries directly
 (`mr-magic-mcp-cli`, `mr-magic-mcp-server`, etc.) without the `cd`/shell
 workaround because the executables will already be on `PATH`.
-executable will already be on `PATH`.
 
 Note: `npm run server:mcp` keeps stdout clean (all logging goes to stderr), so
 stdio-based clients see only the JSON responses regardless of which launch style
@@ -711,8 +702,8 @@ with descriptions, defaults, and examples.
   – list candidates across all providers.
 - `mr-magic-mcp-cli find --artist "Nayeon" --title "POP!"` – download the
   best lyric (prefers synced LRC when possible).
-- `mr-magic-mcp-cli select --provider lrclib --index 1 --file
-./search-results.json` – pick a result from a previous search dump.
+- `mr-magic-mcp-cli select --providers lrclib,genius --artist "Nayeon" --title "POP!" --require-synced`
+  – pick the first synced match from the prioritized provider list.
 - `mr-magic-mcp-cli server --port 4000` – run the JSON automation API
   locally.
 - `npm run cli -- server --port 3333` – launch the same CLI via npm (handy when

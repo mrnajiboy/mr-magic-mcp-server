@@ -1,12 +1,9 @@
 const LEVELS = ['error', 'warn', 'info', 'debug'];
 
 function resolveLogLevel() {
-  const { LOG_LEVEL, DEBUG } = process.env;
+  const { LOG_LEVEL } = process.env;
   if (LOG_LEVEL && LEVELS.includes(LOG_LEVEL.toLowerCase())) {
     return LOG_LEVEL.toLowerCase();
-  }
-  if (DEBUG && DEBUG !== '0' && DEBUG.toLowerCase() !== 'false') {
-    return 'debug';
   }
   return 'info';
 }

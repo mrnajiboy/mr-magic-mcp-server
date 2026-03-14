@@ -74,7 +74,7 @@ function buildTrackFromOptions(options) {
 
 const program = new Command();
 program
-  .name('mr-magic-mcp-server')
+  .name('mr-magic-mcp-cli')
   .description('Lyrics MCP server CLI powered by LRCLIB, Genius, Musixmatch, and Melon')
   .version('0.1.2');
 
