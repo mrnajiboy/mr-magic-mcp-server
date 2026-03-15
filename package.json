@@ -54,7 +54,7 @@
   },
   "homepage": "https://github.com/mrnajiboy/mr-magic-mcp-server#readme",
   "engines": {
-    "node": ">=18.17"
+    "node": ">=20"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
