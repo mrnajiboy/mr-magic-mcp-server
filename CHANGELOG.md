@@ -26,6 +26,12 @@ Both HTTP server transports now handle Render (and other platforms) correctly:
   `src/transport/mcp-http-server.js`, causing `startMcpHttpServer()` to fire
   twice on every `npm run server:mcp:http` invocation (double logs, two
   "listening" messages). Tightened to `endsWith('transport/mcp-http-server.js')`.
+- **DNS rebinding protection** (`mcp-http-server.js`) — `createMcpExpressApp` emitted
+  a DNS rebinding warning when binding to `0.0.0.0` without an `allowedHosts` list.
+  The server now builds this list automatically: `localhost`, `127.0.0.1`, and
+  `RENDER_EXTERNAL_HOSTNAME` (auto-set by Render to the `.onrender.com` hostname).
+  For custom domains, set `MR_MAGIC_ALLOWED_HOSTS` to a comma-separated list of
+  additional hostnames to include.
 
 #### 📝 README
 

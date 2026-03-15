@@ -93,7 +93,24 @@ export async function startMcpHttpServer(options = {}) {
   await server.connect(transport);
   await logTokenStatus({ context: 'http-mcp' });
 
-  const app = createMcpExpressApp({ host });
+  // When binding to 0.0.0.0 the SDK requires an explicit allowedHosts list for
+  // DNS rebinding protection. Build it from well-known safe hosts plus any
+  // platform-injected hostname (Render sets RENDER_EXTERNAL_HOSTNAME automatically).
+  const allowedHosts =
+    host === '0.0.0.0'
+      ? [
+          'localhost',
+          '127.0.0.1',
+          ...(process.env.RENDER_EXTERNAL_HOSTNAME
+            ? [process.env.RENDER_EXTERNAL_HOSTNAME]
+            : []),
+          ...(process.env.MR_MAGIC_ALLOWED_HOSTS
+            ? process.env.MR_MAGIC_ALLOWED_HOSTS.split(',').map((h) => h.trim()).filter(Boolean)
+            : [])
+        ]
+      : undefined;
+
+  const app = createMcpExpressApp({ host, ...(allowedHosts ? { allowedHosts } : {}) });
   app.get('/health', async (_req, res) => {
     res.json({ status: 'ok', providers: await getProviderStatus() });
   });

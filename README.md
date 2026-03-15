@@ -99,6 +99,7 @@ MR_MAGIC_HTTP_TIMEOUT_MS=10000 # Optional, default 10000. Global outbound HTTP t
 MR_MAGIC_LOG_TOOL_ARGS_CHUNKS=0 # Optional, default 0. Set to 1/true to emit chunk-by-chunk MCP tool argument previews for truncation debugging.
 MR_MAGIC_TOOL_ARG_CHUNK_SIZE=400 # Optional, default 400. Chunk size used when MR_MAGIC_LOG_TOOL_ARGS_CHUNKS is enabled.
 MR_MAGIC_MCP_HTTP_DIAGNOSTICS=0 # Optional, default 0. Set to 1 to log enriched Streamable HTTP MCP request diagnostics at transport ingress.
+MR_MAGIC_ALLOWED_HOSTS= # Optional. Comma-separated extra hostnames for DNS rebinding protection when binding to 0.0.0.0 (e.g. custom domains). Render hostname is auto-included via RENDER_EXTERNAL_HOSTNAME.
 MR_MAGIC_SDK_REPRO_HTTP_DEBUG=0 # Optional, default 0. Set to 1 for verbose HTTP request/response previews in the SDK repro harness script.
 UPSTASH_REDIS_REST_URL= # Get from https://console.upstash.com/redis/rest, required if MR_MAGIC_EXPORT_BACKEND=redis
 UPSTASH_REDIS_REST_TOKEN= # Get from https://console.upstash.com/redis/rest, required if MR_MAGIC_EXPORT_BACKEND=redis
@@ -172,6 +173,11 @@ AIRTABLE_PERSONAL_ACCESS_TOKEN= # Required for push_catalog_to_airtable tool. Ge
 - **MR_MAGIC_MCP_HTTP_DIAGNOSTICS** (default `0`) enables detailed request
   metadata logging at the Streamable HTTP transport boundary (method, content
   type, body shape/length, session header, and safe body preview).
+- **MR_MAGIC_ALLOWED_HOSTS** — comma-separated list of extra hostnames to allow
+  when the MCP HTTP server binds to `0.0.0.0` (required by the MCP SDK for DNS
+  rebinding protection). On Render, `RENDER_EXTERNAL_HOSTNAME` is automatically
+  included; set `MR_MAGIC_ALLOWED_HOSTS` only when you have a custom domain or
+  need to add additional hosts beyond `localhost`/`127.0.0.1`.
 - **MR_MAGIC_SDK_REPRO_HTTP_DEBUG** (default `0`) enables HTTP-level debugging
   output in `scripts/mcp-arg-boundary-sdk-repro.mjs` when validating argument
   boundary behavior from the SDK client path.
@@ -346,6 +352,11 @@ Recommended Render service settings:
 > in the Render Dashboard the server will honour it; otherwise `10000` is used.
 > The old `3444` default is only active when running outside Render without a
 > `PORT` env var.
+
+> **Custom domains:** If you have a custom domain on Render (e.g.,
+> `mymcp.example.com`), add it to `MR_MAGIC_ALLOWED_HOSTS` in the Render
+> Dashboard → Environment tab so the SDK's DNS rebinding protection accepts
+> requests with that `Host` header.
 
 - **MCP server (Stdio)** for local Model Context Protocol clients (use the
   bundled CLI: `npm run server:mcp` or call `node ./src/bin/mcp-server.js`).
