@@ -39,11 +39,14 @@ Never send extra metadata or unused fields to Airtable.
 `Song (Video)` must always be formatted exactly as:
 `{Artist 1}, {Artist 2} - {Title} (Lyrics)`
 
+If the song title has featuring, ft., feat. or remix, or any other similar differentiation, put it at the right before (Lyrics) in Parentheses.
+
 Examples:
 
 - `BLACKPINK, Doja Cat, Absolutely - Crazy (Lyrics)`
 - `Joji - Glimpse of Us (Lyrics)`
 - `[GANG$] - Money (Remix) (Lyrics)`
+- WRONG:`John Wick - This Song Is Lit (feat. BANKS) \\ RIGHT: `John Wick, BANKS - This Song Is Lit`
 
 Artist names may contain brackets or special characters. Preserve them exactly.
 
