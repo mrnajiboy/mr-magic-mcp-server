@@ -26,9 +26,11 @@ Always verify field IDs against field names before inserting or updating records
 
 For every song, populate only these Airtable fields:
 
-- Song (Video)
-- Listen Link
-- Lyrics
+- Song (Video) (single line text field)
+- Artists (Linked field, can accept text input with typecast: true)
+- Listen Link (URL field)
+- Lyrics (Long text field)
+- Ready for Generation (Checkbox field, Boolean)
 
 Never send extra metadata or unused fields to Airtable.
 
@@ -45,13 +47,23 @@ Examples:
 
 Artist names may contain brackets or special characters. Preserve them exactly.
 
-## 4) Listen Link rules
+## 4) Artists formatting rules
 
-Use the Spotify song lookup tool.
-Use the `URL` value for the Airtable `Listen Link` field.
-Spotify link resolution must always be handled separately from lyric resolution.
+- If one artist, just input artist directly, no other data. (i.e. Artist)
+- If artist name contains quotes or double quotes, wrap them in Double quotes. (i.e. "'John Wick'"|""James Bond"")
+- If artist name contains commas, use double quotes around the special name, and comma-separate as normal. (i.e. "Artist, with a comma", Artist 2)
+- If more than one artist, always input names as a comma-separated list, no exceptions. (i.e. Artist 1, Artist 2 | "[[]]"Joseo'aa94#(@$(*",|Lean,,,, Widdit)
 
-## 5) Lyrics resolution rules
+## 5) Listen Link rules
+
+- Use the Spotify song lookup tool.
+- Use the `URL` value for the Airtable `Listen Link` field.
+- Spotify link resolution must always be handled separately from lyric resolution.
+
+## 6) Ready for Generation rules
+Always fill value as true or 1, if there's a problem with input, do not input anything.
+
+## 7) Lyrics resolution rules
 
 Use the `build_catalog_payload` tool to resolve lyrics for each song.
 
@@ -71,9 +83,9 @@ Do **not** copy any lyric text out of `build_catalog_payload`. The full lyrics a
 1. Romanized plain lyrics, if available (default when `preferRomanized: true`)
 2. Otherwise plain lyrics
 
-## 6) Airtable record write rules
+## 8) Airtable record write rules
 
-Use Airtable MCP tools (`create_records_for_table` / `update_records_for_table`) for **Song (Video)** and **Listen Link** fields. These tools support bulk writes of up to 10 records per call — use that fully.
+Use Airtable MCP tools (`create_records_for_table` / `update_records_for_table`) for **Song (Video)**, **Artists**, **Listen Link**, and **Ready for Generation** fields. These tools support bulk writes of up to 10 records per call — use that fully.
 
 **STRICTLY FORBIDDEN:** Never use `create_records_for_table` or `update_records_for_table` to write or update the `Lyrics` field. Those tools cannot handle long multiline lyric text without JSON truncation errors.
 
@@ -111,7 +123,7 @@ Do NOT include the lyrics text itself in `fields`. Do NOT include `lyricsFieldId
 
 If the lyrics write fails, retry with `splitLyricsUpdate: true`. This updates the Lyrics field in a separate second call — entirely server-side.
 
-## 7) Bulk execution order
+## 9) Bulk execution order
 
 Process all songs in the user's list together as a batch, not one at a time.
 
@@ -123,15 +135,15 @@ For every song in the batch (up to all at once):
 2. Resolve Spotify link (`search-spotify`) for each song.
 3. Resolve lyrics (`build_catalog_payload` with `preferRomanized: true`) for each song. Save each song's `lyricsCacheKey`.
 
-### Phase 2 — Bulk create/update records (Song (Video) + Listen Link only)
+### Phase 2 — Bulk create/update records (Song (Video), Artists, Listen Link, and Ready for Generation fields only)
 
-Use `create_records_for_table` (or `update_records_for_table` if updating existing records) to write **Song (Video)** and **Listen Link** for all songs in the batch.
+Use `create_records_for_table` (or `update_records_for_table` if updating existing records) to write **Song (Video)**, **Artists**, **Listen Link**, and **Ready for Generation** fields for all songs in the batch. use typecast: true, so Artists can successfully be inserted.
 
 - Send up to **10 records per call**.
 - If the batch has more than 10 songs, split into multiple calls of up to 10 each.
 - Capture the `recordId` returned for each newly created record — you will need these in Phase 3.
 
-Example batch create body (Song (Video) + Listen Link only — no Lyrics):
+Example batch create body (Song (Video), Artists, Listen Link, and Ready for Generation fields only — no Lyrics):
 
 ```json
 {
@@ -175,7 +187,7 @@ After all Airtable inserts and lyrics writes succeed:
   - export folder location
   - inline SRT content as fallback
 
-## 8) Required export step after Airtable succeeds
+## 10) Required export step after Airtable succeeds
 
 After all Airtable inserts succeed, the agent must export synced lyrics as `.SRT`.
 This export step is required and must be handled separately from Airtable insertion.
@@ -217,7 +229,7 @@ If the tool returns a URL, present that URL clearly.
 If the tool returns a file path, present that file path clearly.
 If the tool returns inline content because persistence was skipped or failed, provide the SRT content in the conversation and clearly explain that no downloadable file/link was available.
 
-## 9) Final output — Entry Summary
+## 11) Final output — Entry Summary
 
 When all processing is complete, output a concise **Entry Summary** — one line (or short block) per song. Do not explain phases or steps.
 
@@ -244,14 +256,14 @@ Each entry should include:
 
 If the view ID could not be resolved, omit it from the URL rather than guessing.
 
-## 10) Tool responsibility summary
+## 12) Tool responsibility summary
 
 | Step                                 | Tool (MCP Server)                                                          | Bulk?                 |
 | ------------------------------------ | -------------------------------------------------------------------------- | --------------------- |
 | Find base/table                      | `search_bases`, `list_tables_for_base` (Airtable MCP)                      | Once per base         |
 | Spotify link                         | `search-spotify` (Spotify MCP)                                             | Per song              |
 | Lyrics resolution                    | `build_catalog_payload` (mr-magic)                                         | Per song              |
-| **Song (Video) + Listen Link write** | **`create_records_for_table` / `update_records_for_table` (Airtable MCP)** | **Up to 10 per call** |
+| **(Song (Video), Artists, Listen Link, and Ready for Generation fields write** | **`create_records_for_table` / `update_records_for_table` (Airtable MCP)** | **Up to 10 per call** |
 | **Lyrics write**                     | **`push_catalog_to_airtable` (mr-magic) — always**                         | Per song              |
 | SRT export                           | `export_lyrics` (mr-magic)                                                 | Per song              |
 
