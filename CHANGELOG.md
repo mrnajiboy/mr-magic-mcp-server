@@ -75,13 +75,13 @@
 - update README.md formatting ([b304fac](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/b304facc156cabf4b5991782c401e69ab28e05c3))
 - Update README.md wording ([2234986](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/2234986cac37b80e79a01b787b4779a7d6ca25e1))
 
-### [0.1.24](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/v0.1.23...v0.1.24) (2026-03-15)
+## [0.1.24](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/v0.1.23...v0.1.24) (2026-03-15)
 
 **`prompts/airtable-song-importer.md`** — updated to be more user-friendly.
 
-### 0.1.23 - 2026-03-15
+## 0.1.23 - 2026-03-15
 
-#### 📝 README + `.env.example` — Sessionless mode documentation
+### 📝 README + `.env.example` — Sessionless mode documentation
 
 - **`README.md`** — Added `MR_MAGIC_SESSIONLESS` to the **Server and runtime**
   environment variables table with a description explaining sessionless mode and
@@ -97,15 +97,15 @@
 - **`.env.example`** — Added `MR_MAGIC_SESSIONLESS=0` to the Advanced / Debug
   section with an inline comment documenting when to set it.
 
-#### 🔖 Version
+### 🔖 Version
 
 - Bumped to `0.1.23` in `package.json`.
 
 ---
 
-### 0.1.22 - 2026-03-15
+## 0.1.22 - 2026-03-15
 
-#### 🐛 Fix "Session not found" on Render.com multi-instance deployments
+### 🐛 Fix "Session not found" on Render.com multi-instance deployments
 
 - **`src/transport/mcp-http-server.js`** — Auto-enable **sessionless mode** when
   the server is running on Render (`RENDER` env var is set).
@@ -127,19 +127,19 @@
   client and no in-memory session entry is created. Each request is fully
   self-contained, making the server horizontally scalable with no shared state.
 
-#### 🔖 Version
+### 🔖 Version
 
 - Bumped to `0.1.22` in `package.json`.
 
 ---
 
-### 0.1.21 - 2026-03-15
+## 0.1.21 - 2026-03-15
 
-#### 📝 README — Slight formatting fix
+### 📝 README — Slight formatting fix
 
-### 0.1.20 - 2026-03-15
+## 0.1.20 - 2026-03-15
 
-#### 📝 README — MCP Client Configuration overhaul
+### 📝 README — MCP Client Configuration overhaul
 
 - Reorganized the **MCP Client Configuration** section into two clearly labelled
   groups with a summary table at the top:
@@ -162,44 +162,44 @@
   support" shell-wrapper example — TypingMind now uses remote HTTP, not stdio.
 - Added horizontal rules between the two connection-mode groups for readability.
 
-#### 🔖 Version
+### 🔖 Version
 
 - Bumped to `0.1.20` in `package.json`.
 
 ---
 
-### 0.1.19 - 2026-03-15
+## 0.1.19 - 2026-03-15
 
-#### 📝 README — Socket security badge
+### 📝 README — Socket security badge
 
 - Added a [Socket](https://socket.dev) supply-chain security badge to the top of
   `README.md` alongside the existing npm version and downloads badges.
   The badge links to the package's Socket analysis page
   (`https://socket.dev/npm/package/mr-magic-mcp-server`).
 
-#### 🔖 Version
+### 🔖 Version
 
 - Bumped to `0.1.19` in `package.json`.
 
 ---
 
-### 0.1.18 - 2026-03-15
+## 0.1.18 - 2026-03-15
 
-#### 📝 README — npm version and downloads badges
+### 📝 README — npm version and downloads badges
 
 - Added live shields.io badges to the top of `README.md`:
   - `npm version` — links to the npm package page and displays the latest published version.
   - `npm downloads` — displays monthly download count.
 
-#### 🔖 Version
+### 🔖 Version
 
 - Bumped to `0.1.18` in `package.json`.
 
 ---
 
-### 0.1.17 - 2026-03-15
+## 0.1.17 - 2026-03-15
 
-#### 🐛 Fix "Server already initialized" on MCP HTTP reconnect
+### 🐛 Fix "Server already initialized" on MCP HTTP reconnect
 
 - **`src/transport/mcp-http-server.js`** — The server previously created a
   single `Server` + `StreamableHTTPServerTransport` pair at startup and reused
@@ -224,7 +224,7 @@
   - Sessionless mode (`--sessionless` / `options.sessionless`) still works:
     creates a temporary server+transport per request.
 
-#### ✨ Legacy SSE transport fallback (`/sse` + `/messages`)
+### ✨ Legacy SSE transport fallback (`/sse` + `/messages`)
 
 - **`src/transport/mcp-http-server.js`** — Added legacy MCP SSE endpoints for
   backward compatibility with clients that use the pre-Streamable HTTP protocol:
@@ -236,15 +236,15 @@
   - SSE sessions clean up via `transport.onclose`.
   - Startup log now prints both `endpoint` (Streamable HTTP) and `sseEndpoint` (SSE).
 
-#### 🔖 Version
+### 🔖 Version
 
 - Bumped to `0.1.17` in `package.json`.
 
 ---
 
-### 0.1.16 - 2026-03-15
+## 0.1.16 - 2026-03-15
 
-#### 🐛 Fix `/downloads` route — unnamed wildcard rejected by path-to-regexp
+### 🐛 Fix `/downloads` route — unnamed wildcard rejected by path-to-regexp
 
 - **`src/transport/mcp-http-server.js`** — Changed route from
   `/downloads/:downloadId/*` to `/downloads/:downloadId/:extension`.
@@ -255,15 +255,15 @@
   path segment with no slashes, so a named param is the correct and more
   explicit form.
 
-#### 🔖 Version
+### 🔖 Version
 
 - Bumped to `0.1.16` in `package.json`.
 
 ---
 
-### 0.1.15 - 2026-03-15
+## 0.1.15 - 2026-03-15
 
-#### 🔖 Version
+### 🔖 Version
 
 - Bumped to `0.1.15` — `0.1.14` npm publish auto-completed via OTP before the
   HTTP Endpoints README docs were committed. All changes are documented under
@@ -271,9 +271,9 @@
 
 ---
 
-### 0.1.14 - 2026-03-15
+## 0.1.14 - 2026-03-15
 
-#### 📝 README — HTTP Endpoints section
+### 📝 README — HTTP Endpoints section
 
 - Added a dedicated **HTTP Endpoints** section documenting all plain HTTP routes
   exposed by both servers (`/health`, `/downloads/:id/:ext`, `/mcp`, `/`), including
@@ -284,7 +284,7 @@
   `404`, `500`) documented with notes on TTL and backend requirements.
 - Section added to Table of Contents between Remote Deployment and MCP Tools.
 
-#### 🔖 Version
+### 🔖 Version
 
 - Bumped to `0.1.14` — previous `0.1.13` npm publish completed before
   `/downloads` route and README updates were added.
@@ -292,9 +292,9 @@
 
 ---
 
-### 0.1.13 - 2026-03-15
+## 0.1.13 - 2026-03-15
 
-#### ✨ `/downloads` route on MCP HTTP server
+### ✨ `/downloads` route on MCP HTTP server
 
 - **`src/transport/mcp-http-server.js`** — Added `GET /downloads/:downloadId/*` route.
   The MCP HTTP server (`server:mcp:http`) now serves Redis-backed export download links
@@ -304,7 +304,7 @@
   (e.g. `http://127.0.0.1:3444` locally, or your Render service URL) instead of
   requiring a separate `server:http` instance.
 
-#### 🐛 Render deployment — host/port + DNS rebinding protection (both HTTP transports)
+### 🐛 Render deployment — host/port + DNS rebinding protection (both HTTP transports)
 
 - **`src/transport/mcp-http-server.js`** — Auto-detects `RENDER=true` and binds
   to `0.0.0.0`; reads `process.env.PORT` (Render default: `10000`); fixed self-execution
@@ -315,7 +315,7 @@
   (rejects with `403 Forbidden` when the `Host` header doesn't match the allowed set).
 - Both servers respect `options.remote` (CLI `--remote` flag) and `process.env.HOST`.
 
-#### 📝 README + docs
+### 📝 README + docs
 
 - Full README refactor: table of contents, env vars reorganized into per-group tables,
   dedicated Provider Credentials section, Render deployment documents all auto-set vars,
@@ -326,15 +326,15 @@
   their `/downloads` route coverage; "Running both servers side-by-side" section
   clarified — running both is not required for Redis exports.
 
-#### 🔖 Version
+### 🔖 Version
 
 - Bumped to `0.1.13` in `package.json`.
 
 ---
 
-### 0.1.11 - 2026-03-15
+## 0.1.11 - 2026-03-15
 
-#### 🐛 Both HTTP servers — Render host/port + DNS rebinding protection
+### 🐛 Both HTTP servers — Render host/port + DNS rebinding protection
 
 - **`src/transport/mcp-http-server.js`** — Added `allowedHosts` to
   `createMcpExpressApp` when binding to `0.0.0.0`, eliminating the "Server is
@@ -349,7 +349,7 @@
   (`localhost`, `127.0.0.1`, `RENDER_EXTERNAL_HOSTNAME`, `MR_MAGIC_ALLOWED_HOSTS`)
   as the MCP HTTP server for consistent behaviour across both transports.
 
-#### 📝 README
+### 📝 README
 
 - Full README refactor: reorganized into logical sections with a table of contents,
   environment variables split into per-group tables (server, Genius, Musixmatch,
@@ -361,20 +361,20 @@
   fixed typos ("aficionados", "infringement"), bare URLs converted to proper markdown
   links, all code blocks language-tagged, headings and lists surrounded by blank lines.
 
-#### 📦 Environment Variables
+### 📦 Environment Variables
 
 - **`.env.example`** and **`README.md`** — Added `MR_MAGIC_ALLOWED_HOSTS`
   documentation.
 
-#### 🔖 Version
+### 🔖 Version
 
 - Bumped to `0.1.11` in `package.json`.
 
 ---
 
-### 0.1.10 - 2026-03-15
+## 0.1.10 - 2026-03-15
 
-#### 🐛 Render deployment — host/port binding + duplicate startup
+### 🐛 Render deployment — host/port binding + duplicate startup
 
 Both HTTP server transports now handle Render (and other platforms) correctly:
 
@@ -405,33 +405,33 @@ Both HTTP server transports now handle Render (and other platforms) correctly:
   For custom domains, set `MR_MAGIC_ALLOWED_HOSTS` to a comma-separated list of
   additional hostnames to include.
 
-#### 📝 README
+### 📝 README
 
 - Added Render deployment guidance to the "Remote deployment" section.
 - Clarified `PORT` env var note: Render sets it automatically (default `10000`);
   no manual override is needed.
 
-#### 🔖 Version
+### 🔖 Version
 
 - Bumped to `0.1.10` in `package.json`.
 
 ---
 
-### 0.1.9 - 2026-03-15
+## 0.1.9 - 2026-03-15
 
-#### 📝 README
+### 📝 README
 
 - Updated `README.md` with latest docs.
 
-#### 🔖 Version
+### 🔖 Version
 
 - Bumped to `0.1.9` in `package.json`.
 
 ---
 
-### 0.1.8 - 2026-03-15
+## 0.1.8 - 2026-03-15
 
-#### ✨ `/health` endpoint on MCP HTTP server
+### ✨ `/health` endpoint on MCP HTTP server
 
 - **`src/transport/mcp-http-server.js`** — Added `GET /health` route to the
   Streamable HTTP MCP server (port 3444). Returns `{ status: 'ok', providers: [...] }`
@@ -439,15 +439,15 @@ Both HTTP server transports now handle Render (and other platforms) correctly:
   server (`src/transport/http-server.js`). All remote-deployment server flavours now
   expose a health check endpoint.
 
-#### 🔖 Version
+### 🔖 Version
 
 - Bumped to `0.1.8` in `package.json`.
 
 ---
 
-### 0.1.7 - 2026-03-15
+## 0.1.7 - 2026-03-15
 
-#### ✨ Genius token — cache token support + consistent naming
+### ✨ Genius token — cache token support + consistent naming
 
 - **`src/utils/tokens/genius-token-manager.js`** — now reads
   `.cache/genius-token.json` as a final fallback (cache token) when neither
@@ -469,13 +469,13 @@ Both HTTP server transports now handle Render (and other platforms) correctly:
   `getGeniusDiagnostics()` and logs `cacheTokenPresent` + `cacheTokenExpired`.
   Musixmatch missing-token warning updated to use the new terminology.
 
-#### 🐛 Fixes
+### 🐛 Fixes
 
 - **`src/scripts/fetch_MUSIXMATCH_ALT_FALLBACK_TOKEN.mjs`** — fixed env var name from stale
   `MUSIXMATCH_ALT_USER_TOKEN_CACHE` to `MUSIXMATCH_TOKEN_CACHE` so the fetch
   script and the token manager read/write the same cache file path.
 
-#### 🖨️ Fetch script deployment output
+### 🖨️ Fetch script deployment output
 
 Both fetch scripts now print a deployment-ready block after capturing the
 token, with three sections:
@@ -488,7 +488,7 @@ token, with three sections:
   `MUSIXMATCH_FALLBACK_TOKEN=<value>`) with an explanation of why the env var path
   is necessary on hosts without persistent storage.
 
-#### 📦 Environment Variables
+### 📦 Environment Variables
 
 - **`.env.example`** — Genius section fully rewritten to document all three
   token sources (auto-refresh, fallback token, cache token). `GENIUS_CLIENT_ID`
@@ -501,15 +501,15 @@ token, with three sections:
   All remaining stale `MUSIXMATCH_ALT_USER_TOKEN` / `MUSIXMATCH_ALT_USER_TOKEN_CACHE`
   references replaced with `MUSIXMATCH_ALT_FALLBACK_TOKEN` / `MUSIXMATCH_TOKEN_CACHE`.
 
-#### 🔖 Version
+### 🔖 Version
 
 - Bumped to `0.1.7` across `package.json`.
 
 ---
 
-### 0.1.6 - 2026-03-15
+## 0.1.6 - 2026-03-15
 
-#### 🏷️ Naming Convention — Musixmatch Token Sources
+### 🏷️ Naming Convention — Musixmatch Token Sources
 
 Introduced clear, source-based names for the two ways the Musixmatch token can
 be supplied. Both hold the same token value; the label describes where it comes
@@ -536,14 +536,14 @@ This terminology is now applied consistently across:
 - `README.md` — env var bullet, "Getting the Musixmatch token" section, MCP
   client config example, and provider notes all updated to use the new labels
 
-#### 🐛 Fixes
+### 🐛 Fixes
 
 - **`src/providers/musixmatch.js`** — replaced `assertEnv(['MUSIXMATCH_ALT_USER_TOKEN'])`
   with a descriptive `throw` that names both env vars and the cache token path,
   so the error message is actionable regardless of which source the operator
   intended to use. Also removed the now-unused `assertEnv` import.
 
-#### 📦 Environment Variables
+### 📦 Environment Variables
 
 - **`.env.example`** — `MUSIXMATCH_FALLBACK_TOKEN` is now listed first (matching
   the 1st-priority resolution order) with a clear "Fallback token" label.
@@ -553,9 +553,9 @@ This terminology is now applied consistently across:
 
 ---
 
-### 0.1.5 - 2026-03-15
+## 0.1.5 - 2026-03-15
 
-#### ✨ New Features
+### ✨ New Features
 
 - **`push_catalog_to_airtable` MCP tool** — Writes Airtable catalog records with server-side
   lyric resolution so lyrics never pass through LLM tool-call arguments. The tool reads from
@@ -579,20 +579,20 @@ This terminology is now applied consistently across:
 - **`npx` / global-install usage** — README and MCP client configs updated to document
   `npx -y mr-magic-mcp-server` as the zero-clone entry point alongside the local-repo workflow.
 
-#### 📦 Environment Variables
+## 📦 Environment Variables
 
 - **`.env.example`** — Added `AIRTABLE_PERSONAL_ACCESS_TOKEN` (required for
   `push_catalog_to_airtable`; get from <https://airtable.com/create/tokens>).
 
-#### 🔖 Version
+### 🔖 Version
 
 - Bumped to `0.1.5` across `package.json`.
 
 ---
 
-### 0.1.4 - 2026-03-15
+## 0.1.4 - 2026-03-15
 
-#### 🐛 Bugs Fixed
+### 🐛 Bugs Fixed
 
 - **`mcp-response.js`** — `buildMcpResponse()` previously emitted two `content` blocks for
   responses that didn't look like lyric payloads (e.g. `build_catalog_payload` with
@@ -605,26 +605,26 @@ This terminology is now applied consistently across:
   which Cline tried to JSON-parse, producing "Unexpected token '>'..." errors on every
   refresh. Fixed: Cline config now invokes `node src/bin/mcp-server.js` directly.
 
-#### 🗑️ Dead Code / Stale Config Removed
+### 🗑️ Dead Code / Stale Config Removed
 
 - **`src/transport/mcp-response.js`** — Removed `buildResultSummary`, `extractPreviewText`,
   `looksLikeLyricPayload`, `truncate`, `truncateInline`, and all the preview-injection
   branch from `buildMcpResponse`. None of those are needed for programmatic MCP consumers.
 - **`.env.example`** — Removed `MR_MAGIC_TMP_DIR` (never referenced in source code).
 
-#### 📦 Environment Variables
+### 📦 Environment Variables
 
 - **`.env.example`** — Added `MUSIXMATCH_FALLBACK_TOKEN` (surfaced by `runtime_status` credential
   scan in `mcp-tools.js`) and `MR_MAGIC_INLINE_PAYLOAD_MAX_CHARS` (referenced in
   `lyrics-service.js`). Both were in the README and code but missing from the example file.
 
-#### 🔖 Version
+### 🔖 Version
 
 - Bumped to `0.1.4` across `package.json`, `mcp-server.js`, `mcp-http-server.js`.
 
 ---
 
-### 0.1.3 - 2026-03-14
+## 0.1.3 - 2026-03-14
 
 - Restored CLI invocation compatibility for npm argument-forwarding edge cases:
   - `npm run cli search -a "..." -t "..."` now recovers correctly when npm strips short flags.
@@ -640,7 +640,7 @@ This terminology is now applied consistently across:
   - correct npm top-level help form (`npm run cli -- --help`),
   - current npm invocation compatibility guidance.
 
-### 0.1.2 - 2026-03-14
+## 0.1.2 - 2026-03-14
 
 - Hardened MCP argument-boundary handling for Airtable-heavy flows:
   - `build_catalog_payload` and `select_match` now reject stringified
@@ -656,7 +656,7 @@ This terminology is now applied consistently across:
 - Refined MCP tool descriptions for `build_catalog_payload` and `select_match`
   to emphasize multiline payload safety and object argument usage.
 
-### 0.1.1 - 2026-03-12
+## 0.1.1 - 2026-03-12
 
 - Added a Streamable HTTP MCP server (`npm run server:mcp:http` / `mr-magic-mcp-server-mcp-http`) for remote MCP clients while keeping stdio for local usage.
 - Centralized MCP tool definitions/handlers (`src/transport/mcp-tools.js`) and expanded integration tests (`src/tests/mcp-tools.test.js`).

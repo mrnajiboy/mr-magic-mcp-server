@@ -3,6 +3,7 @@ name: Publish to npm
 on:
   release:
     types: [published]
+  workflow_dispatch: {} # Allow manual triggering (e.g., to re-publish missed releases)
 
 permissions:
   contents: read
