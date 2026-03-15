@@ -94,15 +94,15 @@ grouped below by purpose.
 
 ### Server and runtime
 
-| Variable                   | Default          | Description                                                                                                                                                                                     |
-| -------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PORT`                     | `3444` / `3333`  | Override server port. On Render this is set automatically (default `10000`).                                                                                                                    |
-| `LOG_LEVEL`                | `info`           | Verbosity: `error` \| `warn` \| `info` \| `debug`.                                                                                                                                              |
-| `MR_MAGIC_QUIET_STDIO`     | `0`              | Set to `1` to suppress non-error stdout logs (forces `LOG_LEVEL=error`). Recommended under stdio MCP clients.                                                                                   |
-| `MR_MAGIC_HTTP_TIMEOUT_MS` | `10000`          | Global outbound HTTP timeout in milliseconds.                                                                                                                                                   |
-| `MR_MAGIC_ROOT`            | _(project root)_ | Override the project root used for `.env` and `.cache` path resolution.                                                                                                                         |
-| `MR_MAGIC_ENV_PATH`        | _(auto)_         | Point to a specific `.env` file instead of `<project root>/.env`.                                                                                                                               |
-| `MR_MAGIC_ALLOWED_HOSTS`   | _(empty)_        | Comma-separated extra hostnames allowed for DNS rebinding protection when binding to `0.0.0.0`. `RENDER_EXTERNAL_HOSTNAME` is included automatically on Render. Only needed for custom domains. |
+| Variable                   | Default          | Description                                                                                                                                                                                                      |
+| -------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`                     | `3444` / `3333`  | Override server port. On Render this is set automatically (default `10000`).                                                                                                                                     |
+| `LOG_LEVEL`                | `info`           | Verbosity: `error` \| `warn` \| `info` \| `debug`.                                                                                                                                                               |
+| `MR_MAGIC_QUIET_STDIO`     | `0`              | Set to `1` to suppress non-error stdout logs (forces `LOG_LEVEL=error`). Recommended under stdio MCP clients.                                                                                                    |
+| `MR_MAGIC_HTTP_TIMEOUT_MS` | `10000`          | Global outbound HTTP timeout in milliseconds.                                                                                                                                                                    |
+| `MR_MAGIC_ROOT`            | _(project root)_ | Override the project root used for `.env` and `.cache` path resolution.                                                                                                                                          |
+| `MR_MAGIC_ENV_PATH`        | _(auto)_         | Point to a specific `.env` file instead of `<project root>/.env`.                                                                                                                                                |
+| `MR_MAGIC_ALLOWED_HOSTS`   | _(empty)_        | Comma-separated extra hostnames allowed for DNS rebinding protection when binding to `0.0.0.0`. `RENDER_EXTERNAL_HOSTNAME` is included automatically on Render. Only needed for custom domains.                  |
 | `MR_MAGIC_SESSIONLESS`     | `0`              | Set to `1` to force **sessionless mode** on the MCP Streamable HTTP server — each request is handled by a fresh, temporary server/transport with no in-memory session state. Auto-enabled on Render (see below). |
 
 ### Genius credentials
@@ -590,10 +590,10 @@ Recommended presets:
 
 Mr. Magic supports two connection modes depending on where the MCP client runs:
 
-| Mode | Transport | When to use |
-| ---- | --------- | ----------- |
-| **Local (stdio)** | `mcp-server` binary via stdin/stdout | Cline, Claude Desktop, and any client that runs locally on the same machine |
-| **Remote (Streamable HTTP)** | `POST https://your-server.com/mcp` | TypingMind, browser-based clients, and any client connecting to a deployed server |
+| Mode                         | Transport                            | When to use                                                                       |
+| ---------------------------- | ------------------------------------ | --------------------------------------------------------------------------------- |
+| **Local (stdio)**            | `mcp-server` binary via stdin/stdout | Cline, Claude Desktop, and any client that runs locally on the same machine       |
+| **Remote (Streamable HTTP)** | `POST https://your-server.com/mcp`   | TypingMind, browser-based clients, and any client connecting to a deployed server |
 
 ---
 

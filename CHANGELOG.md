@@ -12,7 +12,7 @@
   environment variables table with a description explaining sessionless mode and
   noting it is auto-enabled on Render.
 - **`README.md`** — Added a new **"Sessionless mode on Render (automatic)"**
-  subsection under *Deploying on Render* that explains:
+  subsection under _Deploying on Render_ that explains:
   - Why in-memory session maps fail on multi-instance platforms (session created
     on Instance A is not visible to Instance B → `"Session not found"` errors).
   - How sessionless mode solves this: every request handled independently with no
@@ -76,8 +76,8 @@
   Connector extension → Plugins → MCP Servers → endpoint URL) and explains that
   credentials are configured server-side with no `env` block needed in the client.
 - **TypingMind "Update required" callout** — documents the
-  *"Update required. Please restart your MCP Connector to upgrade to the latest
-  version that support Remote MCP servers with authentication."* message as a
+  _"Update required. Please restart your MCP Connector to upgrade to the latest
+  version that support Remote MCP servers with authentication."_ message as a
   **TypingMind MCP Connector extension** version prompt (not a Mr. Magic error),
   and gives the fix: restart or update the extension from the Chrome / Edge Web
   Store.
