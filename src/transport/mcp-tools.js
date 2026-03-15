@@ -439,7 +439,7 @@ export async function handleMcpTool(name, args = {}) {
       'GENIUS_CLIENT_ID',
       'GENIUS_CLIENT_SECRET',
       'MUSIXMATCH_ALT_USER_TOKEN',
-      'MUSIXMATCH_USER_TOKEN',
+      'MUSIXMATCH_FALLBACK_TOKEN',
       'MELON_COOKIE'
     ];
     return {

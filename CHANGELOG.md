@@ -26,7 +26,7 @@
 
 #### 🐛 Fixes
 
-- **`scripts/fetch_musixmatch_token.mjs`** — fixed env var name from stale
+- **`scripts/fetch_MUSIXMATCH_ALT_FALLBACK_TOKEN.mjs`** — fixed env var name from stale
   `MUSIXMATCH_ALT_USER_TOKEN_CACHE` to `MUSIXMATCH_TOKEN_CACHE` so the fetch
   script and the token manager read/write the same cache file path.
 
@@ -40,7 +40,7 @@ token, with three sections:
 - **Local development:** confirms the cache token file path where the script
   wrote the token.
 - **Render / ephemeral deployments:** copy-pasteable env var assignment (e.g.
-  `MUSIXMATCH_USER_TOKEN=<value>`) with an explanation of why the env var path
+  `MUSIXMATCH_FALLBACK_TOKEN=<value>`) with an explanation of why the env var path
   is necessary on hosts without persistent storage.
 
 #### 📦 Environment Variables
@@ -54,7 +54,7 @@ token, with three sections:
 - **`README.md`** — Genius env var bullets updated with three-source breakdown.
   Genius provider note updated to mention auto-refresh as the primary option.
   All remaining stale `MUSIXMATCH_ALT_USER_TOKEN` / `MUSIXMATCH_ALT_USER_TOKEN_CACHE`
-  references replaced with `MUSIXMATCH_TOKEN` / `MUSIXMATCH_TOKEN_CACHE`.
+  references replaced with `MUSIXMATCH_ALT_FALLBACK_TOKEN` / `MUSIXMATCH_TOKEN_CACHE`.
 
 #### 🔖 Version
 
@@ -70,11 +70,11 @@ Introduced clear, source-based names for the two ways the Musixmatch token can
 be supplied. Both hold the same token value; the label describes where it comes
 from:
 
-- **Fallback token** (`MUSIXMATCH_USER_TOKEN` or `MUSIXMATCH_ALT_USER_TOKEN` env vars) —
+- **Fallback token** (`MUSIXMATCH_FALLBACK_TOKEN` or `MUSIXMATCH_ALT_USER_TOKEN` env vars) —
   the token is set directly as an environment variable. This is the only
   reliable option on ephemeral/production hosts (Render free tier, containers
   without a persistent volume) where the filesystem is wiped between restarts.
-  `MUSIXMATCH_USER_TOKEN` is checked first (1st priority);
+  `MUSIXMATCH_FALLBACK_TOKEN` is checked first (1st priority);
   `MUSIXMATCH_ALT_USER_TOKEN` is the legacy/alternative env var (2nd priority).
 - **Cache token** (on-disk `.cache/musixmatch-token.json`) — written by the
   `fetch:musixmatch-token` script after a browser sign-in. Loaded on startup
@@ -100,7 +100,7 @@ This terminology is now applied consistently across:
 
 #### 📦 Environment Variables
 
-- **`.env.example`** — `MUSIXMATCH_USER_TOKEN` is now listed first (matching
+- **`.env.example`** — `MUSIXMATCH_FALLBACK_TOKEN` is now listed first (matching
   the 1st-priority resolution order) with a clear "Fallback token" label.
   `MUSIXMATCH_ALT_USER_TOKEN` is listed second with a "Fallback token (2nd priority)"
   label. The section header explains both source types rather than mixing env
@@ -169,7 +169,7 @@ This terminology is now applied consistently across:
 
 #### 📦 Environment Variables
 
-- **`.env.example`** — Added `MUSIXMATCH_USER_TOKEN` (surfaced by `runtime_status` credential
+- **`.env.example`** — Added `MUSIXMATCH_FALLBACK_TOKEN` (surfaced by `runtime_status` credential
   scan in `mcp-tools.js`) and `MR_MAGIC_INLINE_PAYLOAD_MAX_CHARS` (referenced in
   `lyrics-service.js`). Both were in the README and code but missing from the example file.
 

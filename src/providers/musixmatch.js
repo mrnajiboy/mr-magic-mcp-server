@@ -138,11 +138,11 @@ async function macroRequest(track) {
 async function ensureMusixmatchToken() {
   const token = await getMusixmatchToken();
   if (!token) {
-    // Neither a fallback token (MUSIXMATCH_USER_TOKEN / MUSIXMATCH_ALT_USER_TOKEN env vars) nor a
+    // Neither a fallback token (MUSIXMATCH_FALLBACK_TOKEN / MUSIXMATCH_ALT_USER_TOKEN env vars) nor a
     // cache token (on-disk .cache/musixmatch-token.json) could be found.
     throw new Error(
       'Musixmatch token not found. ' +
-        'Set MUSIXMATCH_USER_TOKEN (fallback token — recommended for production/ephemeral hosts) ' +
+        'Set MUSIXMATCH_FALLBACK_TOKEN (fallback token — recommended for production/ephemeral hosts) ' +
         'or MUSIXMATCH_ALT_USER_TOKEN as an environment variable, ' +
         'or run `npm run fetch:musixmatch-token` to populate the on-disk cache token.'
     );

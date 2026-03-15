@@ -117,7 +117,7 @@ async function logMusixmatchStatus(context) {
       context,
       provider: 'musixmatch',
       details:
-        'run npm run fetch:musixmatch-token to capture the cache token, or set MUSIXMATCH_USER_TOKEN as a fallback token for ephemeral deployments'
+        'run npm run fetch:musixmatch-token to capture the cache token, or set MUSIXMATCH_FALLBACK_TOKEN as a fallback token for ephemeral deployments'
     });
   }
 }

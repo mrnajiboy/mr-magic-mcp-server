@@ -34,8 +34,8 @@ function printDeploymentBlock(tokenValue) {
   console.log('RENDER / EPHEMERAL DEPLOYMENTS (fallback token)');
   console.log('  The filesystem is wiped on restart, so set the token as an');
   console.log('  environment variable in your platform dashboard instead:\n');
-  console.log(`  MUSIXMATCH_USER_TOKEN=${tokenString}\n`);
-  console.log('  The server reads MUSIXMATCH_USER_TOKEN on startup (1st priority)');
+  console.log(`  MUSIXMATCH_FALLBACK_TOKEN=${tokenString}\n`);
+  console.log('  The server reads MUSIXMATCH_FALLBACK_TOKEN on startup (1st priority)');
   console.log('  and never touches the cache file on ephemeral hosts.');
   console.log('─'.repeat(68) + '\n');
 }
