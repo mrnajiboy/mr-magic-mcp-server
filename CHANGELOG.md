@@ -1,5 +1,36 @@
 ## Changelog
 
+### 0.1.20 - 2026-03-15
+
+#### 📝 README — MCP Client Configuration overhaul
+
+- Reorganized the **MCP Client Configuration** section into two clearly labelled
+  groups with a summary table at the top:
+  - **Local clients (stdio)** — covers `npx`, global install, Cline, and the
+    shell-wrapper pattern for clients without `cwd` support.
+  - **Remote clients (Streamable HTTP)** — new section covering TypingMind,
+    legacy SSE clients, and a generic URL-based config snippet.
+- **TypingMind subsection** documents the step-by-step connection flow (MCP
+  Connector extension → Plugins → MCP Servers → endpoint URL) and explains that
+  credentials are configured server-side with no `env` block needed in the client.
+- **TypingMind "Update required" callout** — documents the
+  *"Update required. Please restart your MCP Connector to upgrade to the latest
+  version that support Remote MCP servers with authentication."* message as a
+  **TypingMind MCP Connector extension** version prompt (not a Mr. Magic error),
+  and gives the fix: restart or update the extension from the Chrome / Edge Web
+  Store.
+- **Legacy SSE clients** subsection added with `/sse` + `/messages` endpoint
+  reference for clients that use the pre-Streamable HTTP SSE protocol.
+- Removed the outdated TypingMind reference from the "clients without `cwd`
+  support" shell-wrapper example — TypingMind now uses remote HTTP, not stdio.
+- Added horizontal rules between the two connection-mode groups for readability.
+
+#### 🔖 Version
+
+- Bumped to `0.1.20` in `package.json`.
+
+---
+
 ### 0.1.19 - 2026-03-15
 
 #### 📝 README — Socket security badge

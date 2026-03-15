@@ -568,14 +568,25 @@ Recommended presets:
 
 ## MCP Client Configuration
 
+Mr. Magic supports two connection modes depending on where the MCP client runs:
+
+| Mode | Transport | When to use |
+| ---- | --------- | ----------- |
+| **Local (stdio)** | `mcp-server` binary via stdin/stdout | Cline, Claude Desktop, and any client that runs locally on the same machine |
+| **Remote (Streamable HTTP)** | `POST https://your-server/mcp` | TypingMind, browser-based clients, and any client connecting to a deployed server |
+
+---
+
+### Local clients (stdio)
+
 > ⚠️ **Stdio MCP clients:** Always invoke the server binary directly — never via
 > `npm run server:mcp`. The npm script preamble (`> mr-magic-mcp-server@x.x.x …`) is
 > written to stdout before Node starts, and stdio MCP clients try to parse every stdout
 > line as JSON-RPC, causing "Unexpected token '>'" errors on every connection.
 
-### npx (recommended — no clone required)
+#### npx (recommended — no clone required)
 
-Works with any MCP client that supports `command` / `args`:
+Works with any local MCP client that supports `command` / `args`:
 
 ```json
 {
@@ -593,7 +604,7 @@ Works with any MCP client that supports `command` / `args`:
 }
 ```
 
-### Global install
+#### Global install
 
 After `npm install -g mr-magic-mcp-server`, the `mcp-server` binary is on `PATH`:
 
@@ -607,7 +618,7 @@ After `npm install -g mr-magic-mcp-server`, the `mcp-server` binary is on `PATH`
 }
 ```
 
-### Local repo — Cline
+#### Local repo — Cline
 
 Cline supports `cwd`, so you can invoke `node` directly:
 
@@ -626,9 +637,9 @@ Cline supports `cwd`, so you can invoke `node` directly:
 }
 ```
 
-### Local repo — clients without `cwd` support
+#### Local repo — clients without `cwd` support
 
-For clients like TypingMind that don't support `cwd`, use a shell wrapper:
+For local clients that don't support a working-directory option, use a shell wrapper:
 
 ```json
 {
@@ -639,6 +650,57 @@ For clients like TypingMind that don't support `cwd`, use a shell wrapper:
     }
   }
 }
+```
+
+---
+
+### Remote clients (Streamable HTTP)
+
+When Mr. Magic is deployed on a remote host (Render, VPS, etc.), connect via the
+Streamable HTTP MCP endpoint (`/mcp`). Credentials are configured server-side via
+environment variables — no `env` block is needed in the client config.
+
+#### TypingMind
+
+TypingMind connects to remote MCP servers through its **MCP Connector** browser
+extension (Chrome / Edge). Once your server is deployed:
+
+1. Open TypingMind → **Plugins** → **MCP Servers** → **Add MCP Server**.
+2. Set the endpoint URL to your deployed server's `/mcp` path, e.g.:
+   ```
+   https://your-app.onrender.com/mcp
+   ```
+3. Leave authentication blank (credentials are set server-side via environment
+   variables on the deployed instance).
+4. Save and enable the server.
+
+> **"Update required. Please restart your MCP Connector…"**
+>
+> This message is displayed by the **TypingMind MCP Connector extension** itself —
+> it is **not** a Mr. Magic error. It means the installed version of the extension
+> predates remote MCP server support. Fix: restart the MCP Connector extension (click
+> the extension icon → restart, or disable and re-enable it in your browser's
+> Extensions settings). If the message persists, update the extension from the Chrome /
+> Edge Web Store. No changes to Mr. Magic or your server configuration are required.
+
+#### Legacy SSE clients
+
+Some older MCP clients use the pre-Streamable HTTP SSE protocol instead of `POST /mcp`.
+For those, use the legacy SSE endpoint:
+
+```
+GET  https://your-app.onrender.com/sse        ← opens the event stream
+POST https://your-app.onrender.com/messages   ← sends JSON-RPC messages
+```
+
+The server supports both protocols simultaneously — no restart or reconfiguration needed.
+
+#### Generic remote client (URL-based config)
+
+Any client that accepts a plain MCP endpoint URL:
+
+```
+https://your-app.onrender.com/mcp
 ```
 
 ## CLI
