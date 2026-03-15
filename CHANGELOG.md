@@ -1,5 +1,9 @@
 ## Changelog
 
+### 0.1.12 - 2026-03-15
+
+- **`src/transport/mcp-http-server.js`** - fixed logging wording for more clarity.
+
 ### 0.1.11 - 2026-03-15
 
 #### 🐛 Both HTTP servers — Render host/port + DNS rebinding protection

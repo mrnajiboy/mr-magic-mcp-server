@@ -211,7 +211,7 @@ export async function startMcpHttpServer(options = {}) {
         sessionless: configuredSessionless
       });
       process.stderr.write(
-        `Mr. Magic MCP HTTP server running: endpoint=${endpoint}, sessionless=${configuredSessionless}\n`
+        `Mr. Magic MCP Streamable HTTP server running: endpoint=${endpoint}, sessionless=${configuredSessionless}\n`
       );
       resolve(httpServer);
     });
