@@ -23,7 +23,7 @@ const logger = createLogger('genius-token-manager');
 //                      (i.e. local development). Ephemeral hosts (Render free tier, etc.)
 //                      should use the auto-refresh or fallback token paths instead.
 
-// Token cache path — must match the path used by scripts/fetch_genius_token.mjs.
+// Token cache path — must match the path used by src/scripts/fetch_genius_token.mjs.
 const TOKEN_CACHE_PATH =
   process.env.GENIUS_TOKEN_CACHE || path.join(getProjectRoot(), '.cache', 'genius-token.json');
 

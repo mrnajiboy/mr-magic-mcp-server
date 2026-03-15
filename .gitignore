@@ -3,9 +3,8 @@
 /exports
 .DS_Store
 *.log
-npm-debug.log*
-*.tgz
-/.parcel-cache
 .render
 dist
-.cache
+/.cache
+eslint.config.js
+.prettierrc.json

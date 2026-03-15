@@ -1,10 +1,6 @@
 # Changelog
 
-All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
-
 ### [0.1.24](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/v0.1.23...v0.1.24) (2026-03-15)
-
-### 0.1.24 - 2026-03-15
 
 **`prompts/airtable-song-importer.md`** — updated to be more user-friendly.
 
@@ -386,7 +382,7 @@ Both HTTP server transports now handle Render (and other platforms) correctly:
   `cacheTokenPresent`, `cacheTokenExpired`, and `cachePath`. Module-level
   comment block uses the same cache token / fallback token / auto-refresh
   terminology introduced in 0.1.6. `GENIUS_TOKEN_CACHE` env var controls the
-  cache path (must match `scripts/fetch_genius_token.mjs`).
+  cache path (must match `src/scripts/fetch_genius_token.mjs`).
 
   Token resolution priority for Genius is now:
   1. In-memory runtime cache
@@ -400,7 +396,7 @@ Both HTTP server transports now handle Render (and other platforms) correctly:
 
 #### 🐛 Fixes
 
-- **`scripts/fetch_MUSIXMATCH_ALT_FALLBACK_TOKEN.mjs`** — fixed env var name from stale
+- **`src/scripts/fetch_MUSIXMATCH_ALT_FALLBACK_TOKEN.mjs`** — fixed env var name from stale
   `MUSIXMATCH_ALT_USER_TOKEN_CACHE` to `MUSIXMATCH_TOKEN_CACHE` so the fetch
   script and the token manager read/write the same cache file path.
 
@@ -588,7 +584,7 @@ This terminology is now applied consistently across:
 ### 0.1.1 - 2026-03-12
 
 - Added a Streamable HTTP MCP server (`npm run server:mcp:http` / `mr-magic-mcp-server-mcp-http`) for remote MCP clients while keeping stdio for local usage.
-- Centralized MCP tool definitions/handlers (`src/transport/mcp-tools.js`) and expanded integration tests (`tests/mcp-tools.test.js`).
+- Centralized MCP tool definitions/handlers (`src/transport/mcp-tools.js`) and expanded integration tests (`src/tests/mcp-tools.test.js`).
 - Documented MCP transports and testing strategy in the README.
 - Expanded `.gitignore` to cover logs, npm packs, and render artifacts.
 - Introduced pluggable export storage (`MR_MAGIC_EXPORT_BACKEND`), including local directories, inline responses, and Upstash Redis with `/downloads/:id/:ext` endpoints.

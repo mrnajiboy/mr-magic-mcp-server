@@ -15,6 +15,7 @@ Use Airtable tools to determine the correct:
 
 - base ID
 - table ID
+- view ID (needed for constructing final entry links)
 - target field IDs or field names
 
 Always verify field IDs against field names before inserting or updating records.
@@ -214,15 +215,32 @@ If the tool returns a URL, present that URL clearly.
 If the tool returns a file path, present that file path clearly.
 If the tool returns inline content because persistence was skipped or failed, provide the SRT content in the conversation and clearly explain that no downloadable file/link was available.
 
-## 9) Progress reporting rules
+## 9) Final output — Entry Summary
 
-When reporting progress:
+When all processing is complete, output a concise **Entry Summary** — one line (or short block) per song. Do not explain phases or steps.
 
-- show how many songs are being processed in the current batch
-- confirm each Airtable bulk create/update result (report record IDs created)
-- confirm each lyrics write separately (report `success`, `recordId`, `lyricsWritten` from `push_catalog_to_airtable`)
-- clearly separate Airtable insertion phases from SRT export
-- if a fallback or retry was required, state exactly which step failed and what workaround was used
+Each entry should include:
+
+- The formatted `Song (Video)` title
+- Status: `created` or `updated`
+- A direct Airtable link to the record, constructed as:
+  `https://airtable.com/{baseId}/{tableId}/{viewId}/{recordId}`
+- Any per-entry notes (e.g. lyrics fallback used, SRT export path, or a failure)
+
+### Example output
+
+```
+✅ BLACKPINK, Doja Cat - Crazy (Lyrics) — created
+   https://airtable.com/appeBUkVEp3N4RT0C/tbl0y5XHFXpjUJXHu/viwXXXXXXXXXXXXX/recABCDEFG1234567
+
+✅ Joji - Glimpse of Us (Lyrics) — created
+   https://airtable.com/appeBUkVEp3N4RT0C/tbl0y5XHFXpjUJXHu/viwXXXXXXXXXXXXX/rec1234567ABCDEFG
+
+❌ Some Artist - Song Title (Lyrics) — lyrics write failed (splitLyricsUpdate retried)
+   https://airtable.com/appeBUkVEp3N4RT0C/tbl0y5XHFXpjUJXHu/viwXXXXXXXXXXXXX/recZZZZZZZZZZZZZZ
+```
+
+If the view ID could not be resolved, omit it from the URL rather than guessing.
 
 ## 10) Tool responsibility summary
 

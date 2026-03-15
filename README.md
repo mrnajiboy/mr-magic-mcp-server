@@ -775,7 +775,7 @@ Automated checks:
 
 ```bash
 npm run test                  # full bundled test runner
-node tests/mcp-tools.test.js  # raw MCP integration harness
+node src/tests/mcp-tools.test.js  # raw MCP integration harness
 npm run repro:mcp:arg-boundary       # JSON-RPC argument boundary repro
 npm run repro:mcp:arg-boundary:sdk   # SDK client transport repro
 npm run lint
