@@ -65,7 +65,7 @@
     "hangul-js": "^0.2.6"
   },
   "devDependencies": {
-    "eslint": "^9.39.4",
+    "eslint": "^10.0.3",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
     "playwright-chromium": "^1.58.2",
