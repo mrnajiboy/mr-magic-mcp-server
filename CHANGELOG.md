@@ -1,5 +1,15 @@
 ## Changelog
 
+### 0.1.15 - 2026-03-15
+
+#### 🔖 Version
+
+- Bumped to `0.1.15` — `0.1.14` npm publish auto-completed via OTP before the
+  HTTP Endpoints README docs were committed. All changes are documented under
+  `0.1.14` below.
+
+---
+
 ### 0.1.14 - 2026-03-15
 
 #### 📝 README — HTTP Endpoints section
