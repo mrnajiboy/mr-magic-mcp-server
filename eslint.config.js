@@ -1,4 +1,4 @@
-import eslintPluginImport from 'eslint-plugin-import';
+import eslintPluginImport from 'eslint-plugin-import-x';
 import eslintConfigPrettier from 'eslint-config-prettier';
 
 export default [
