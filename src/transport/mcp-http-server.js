@@ -117,9 +117,8 @@ export async function startMcpHttpServer(options = {}) {
     res.json({ status: 'ok', providers: await getProviderStatus() });
   });
 
-  app.get('/downloads/:downloadId/*', async (req, res) => {
-    const { downloadId } = req.params;
-    const extension = req.params[0] || '';
+  app.get('/downloads/:downloadId/:extension', async (req, res) => {
+    const { downloadId, extension } = req.params;
     if (!downloadId || !extension) {
       res.status(400).json({ error: 'Invalid download path' });
       return;

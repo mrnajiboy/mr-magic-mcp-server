@@ -1,5 +1,24 @@
 ## Changelog
 
+### 0.1.16 - 2026-03-15
+
+#### 🐛 Fix `/downloads` route — unnamed wildcard rejected by path-to-regexp
+
+- **`src/transport/mcp-http-server.js`** — Changed route from
+  `/downloads/:downloadId/*` to `/downloads/:downloadId/:extension`.
+  Newer versions of `path-to-regexp` (used by the Express router on Render's
+  Node runtime) reject unnamed `*` wildcards and throw
+  `Missing parameter name at index N`, crashing the server at startup.
+  The extension segment (`plain`, `lrc`, `srt`, `romanized`) is always a single
+  path segment with no slashes, so a named param is the correct and more
+  explicit form.
+
+#### 🔖 Version
+
+- Bumped to `0.1.16` in `package.json`.
+
+---
+
 ### 0.1.15 - 2026-03-15
 
 #### 🔖 Version
