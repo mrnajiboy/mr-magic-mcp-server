@@ -1,5 +1,15 @@
 ## Changelog
 
+### 0.1.14 - 2026-03-15
+
+#### 🔖 Version
+
+- Bumped to `0.1.14` — re-release of `0.1.13` changes (previous `0.1.13` npm
+  publish completed before `/downloads` route and README updates were added).
+  All functional changes are documented under `0.1.13` below.
+
+---
+
 ### 0.1.13 - 2026-03-15
 
 #### ✨ `/downloads` route on MCP HTTP server
