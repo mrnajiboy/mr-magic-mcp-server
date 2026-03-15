@@ -37,8 +37,42 @@ export function startHttpServer(options = {}) {
     : (options.host || process.env.HOST || (process.env.RENDER ? '0.0.0.0' : '127.0.0.1'));
   const port = Number(options.port) || Number(process.env.PORT) || 3333;
 
+  // When binding to 0.0.0.0, build an allowed-host set for DNS rebinding protection.
+  // Render sets RENDER_EXTERNAL_HOSTNAME automatically; add custom domains via
+  // MR_MAGIC_ALLOWED_HOSTS (comma-separated).
+  const allowedHosts =
+    host === '0.0.0.0'
+      ? new Set([
+          'localhost',
+          '127.0.0.1',
+          ...(process.env.RENDER_EXTERNAL_HOSTNAME
+            ? [process.env.RENDER_EXTERNAL_HOSTNAME]
+            : []),
+          ...(process.env.MR_MAGIC_ALLOWED_HOSTS
+            ? process.env.MR_MAGIC_ALLOWED_HOSTS.split(',')
+                .map((h) => h.trim())
+                .filter(Boolean)
+            : [])
+        ])
+      : null;
+
   return new Promise((resolve) => {
     const server = http.createServer(async (req, res) => {
+      // DNS rebinding protection: validate Host header when binding to all interfaces.
+      if (allowedHosts) {
+        const reqHostname = (req.headers.host || '').split(':')[0].toLowerCase();
+        if (!reqHostname || !allowedHosts.has(reqHostname)) {
+          logger.warn('DNS rebinding protection: rejected request with disallowed Host', {
+            host: req.headers.host,
+            url: req.url,
+            method: req.method
+          });
+          res.writeHead(403, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Forbidden: Host header not allowed' }));
+          return;
+        }
+      }
+
       if (req.method === 'GET' && req.url === '/health') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(
