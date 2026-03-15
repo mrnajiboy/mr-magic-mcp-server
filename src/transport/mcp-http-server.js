@@ -10,12 +10,12 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 
 import { createLogger } from '../utils/logger.js';
 import { getSharedRedisClient } from '../utils/export-storage/shared-redis-client.js';
+import { getProviderStatus } from '../index.js';
 
 import { mcpToolDefinitions, handleMcpTool } from './mcp-tools.js';
 import { buildMcpResponse } from './mcp-response.js';
 import { logTokenStatus } from './token-startup-log.js';
 import { normalizeToolArgs } from './tool-args.js';
-import { getProviderStatus } from '../index.js';
 
 function getBodyShape(body) {
   if (body == null) return 'nullish';
