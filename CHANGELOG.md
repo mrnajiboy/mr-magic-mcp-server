@@ -1,5 +1,19 @@
 ## Changelog
 
+### 0.1.18 - 2026-03-15
+
+#### 📝 README — npm version and downloads badges
+
+- Added live shields.io badges to the top of `README.md`:
+  - `npm version` — links to the npm package page and displays the latest published version.
+  - `npm downloads` — displays monthly download count.
+
+#### 🔖 Version
+
+- Bumped to `0.1.18` in `package.json`.
+
+---
+
 ### 0.1.17 - 2026-03-15
 
 #### 🐛 Fix "Server already initialized" on MCP HTTP reconnect
