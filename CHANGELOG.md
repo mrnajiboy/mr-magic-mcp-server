@@ -1,5 +1,20 @@
 ## Changelog
 
+### 0.1.19 - 2026-03-15
+
+#### 📝 README — Socket security badge
+
+- Added a [Socket](https://socket.dev) supply-chain security badge to the top of
+  `README.md` alongside the existing npm version and downloads badges.
+  The badge links to the package's Socket analysis page
+  (`https://socket.dev/npm/package/mr-magic-mcp-server`).
+
+#### 🔖 Version
+
+- Bumped to `0.1.19` in `package.json`.
+
+---
+
 ### 0.1.18 - 2026-03-15
 
 #### 📝 README — npm version and downloads badges

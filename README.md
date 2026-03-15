@@ -2,6 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/mr-magic-mcp-server.svg)](https://www.npmjs.com/package/mr-magic-mcp-server)
 [![npm downloads](https://img.shields.io/npm/dm/mr-magic-mcp-server.svg)](https://www.npmjs.com/package/mr-magic-mcp-server)
+[![Socket Badge](https://socket.dev/api/badge/npm/package/mr-magic-mcp-server)](https://socket.dev/npm/package/mr-magic-mcp-server)
 
 Mr. Magic bridges LRCLIB, Genius, Musixmatch, and Melon so MCP clients, JSON HTTP
 automations, and CLI aficionados can all request lyrics from a single toolchain.
