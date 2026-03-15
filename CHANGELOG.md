@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.28](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.1.27...mr-magic-mcp-server-v0.1.28) (2026-03-15)
+
+
+### Bug Fixes
+
+* actions workflow shifts + npm sync ([57a0b9e](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/57a0b9e1c75ce0a54d94bc614f62dbb8f0e5a53d))
+
 ## [0.1.27](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.1.26...mr-magic-mcp-server-v0.1.27) (2026-03-15)
 
 
