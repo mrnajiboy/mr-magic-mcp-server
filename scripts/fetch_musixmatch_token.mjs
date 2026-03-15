@@ -8,15 +8,36 @@ import '../src/utils/config.js';
 const AUTH_URL = 'https://auth.musixmatch.com/';
 
 async function saveToken(token, desktopCookie) {
+  // Uses the same env var as the server runtime so both read/write the same path.
   const cachePath =
-    process.env.MUSIXMATCH_ALT_USER_TOKEN_CACHE || path.resolve('.cache', 'musixmatch-token.json');
+    process.env.MUSIXMATCH_TOKEN_CACHE || path.resolve('.cache', 'musixmatch-token.json');
   await mkdir(path.dirname(cachePath), { recursive: true });
   const payload = { token };
   if (desktopCookie) {
     payload.desktopCookie = desktopCookie;
   }
   await writeFile(cachePath, JSON.stringify(payload, null, 2), 'utf8');
-  console.log(`Token cached to ${cachePath}`);
+  console.log(`\nCache token written to: ${cachePath}`);
+  console.log('(The server reads this file on startup when a writable filesystem is available.)');
+}
+
+function printDeploymentBlock(tokenValue) {
+  const tokenString =
+    typeof tokenValue === 'string'
+      ? tokenValue
+      : (tokenValue?.message?.body?.usertoken ?? JSON.stringify(tokenValue));
+  console.log('\n' + '─'.repeat(68));
+  console.log('Token captured successfully!\n');
+  console.log('LOCAL DEVELOPMENT (cache token)');
+  console.log('  The token has been written to the cache file above.');
+  console.log('  The server loads it at startup — no further action needed.\n');
+  console.log('RENDER / EPHEMERAL DEPLOYMENTS (fallback token)');
+  console.log('  The filesystem is wiped on restart, so set the token as an');
+  console.log('  environment variable in your platform dashboard instead:\n');
+  console.log(`  MUSIXMATCH_USER_TOKEN=${tokenString}\n`);
+  console.log('  The server reads MUSIXMATCH_USER_TOKEN on startup (1st priority)');
+  console.log('  and never touches the cache file on ephemeral hosts.');
+  console.log('─'.repeat(68) + '\n');
 }
 
 async function main() {
@@ -46,10 +67,15 @@ async function main() {
     console.error(decoded);
     process.exit(1);
   }
-  console.log('Musixmatch token acquired:');
+  console.log('\nMusixmatch token payload:');
   console.log(JSON.stringify(parsed, null, 2));
 
   await saveToken(parsed, desktopCookie ? decodeURIComponent(desktopCookie.value) : null);
+
+  // Extract the raw token string for the deployment hint.
+  // The parsed payload is the full musixmatchUserToken JSON object; the server
+  // stores and reads the entire parsed object as the `token` field.
+  printDeploymentBlock(parsed);
 
   await browser.close();
 }

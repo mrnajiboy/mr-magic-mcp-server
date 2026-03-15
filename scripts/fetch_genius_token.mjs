@@ -7,6 +7,25 @@ import '../src/utils/config.js';
 
 const TOKEN_ENDPOINT = 'https://api.genius.com/oauth/token';
 
+function printDeploymentBlock(accessToken) {
+  console.log('\n' + '─'.repeat(68));
+  console.log('Token captured successfully!\n');
+  console.log('RECOMMENDED: AUTO-REFRESH (no script needed on redeploy)');
+  console.log('  Set GENIUS_CLIENT_ID and GENIUS_CLIENT_SECRET in your platform');
+  console.log('  dashboard. The server calls the Genius OAuth endpoint at runtime');
+  console.log('  and auto-refreshes the token in memory — no filesystem, no scripts.\n');
+  console.log('LOCAL DEVELOPMENT (cache token)');
+  console.log('  Token written to the cache file above.');
+  console.log('  The server reads it on startup when a writable filesystem is available.\n');
+  console.log('RENDER / EPHEMERAL DEPLOYMENTS (fallback token)');
+  console.log('  If you cannot use client_credentials, set the token as an env var');
+  console.log('  in your platform dashboard. It acts as a static fallback token:\n');
+  console.log(`  GENIUS_ACCESS_TOKEN=${accessToken}\n`);
+  console.log("  Note: static tokens don't auto-refresh. Redeploy with a new token");
+  console.log('  if/when it expires. The client_credentials path avoids this entirely.');
+  console.log('─'.repeat(68) + '\n');
+}
+
 async function main() {
   const clientId = process.env.GENIUS_CLIENT_ID;
   const clientSecret = process.env.GENIUS_CLIENT_SECRET;
@@ -33,9 +52,8 @@ async function main() {
     }
     console.log('Genius access token refreshed successfully.');
     console.log(`Expires in: ${expiresIn || 'unknown'} seconds`);
-    console.log('Token (copy into GENIUS_ACCESS_TOKEN or cache file as needed):');
-    console.log(accessToken);
 
+    // Uses the same env var as the server runtime so both read/write the same path.
     const cachePath = process.env.GENIUS_TOKEN_CACHE || path.resolve('.cache', 'genius-token.json');
     await mkdir(path.dirname(cachePath), { recursive: true });
     await writeFile(
@@ -45,7 +63,10 @@ async function main() {
         expires_at: Date.now() + (expiresIn || 3600) * 1000
       })
     );
-    console.log(`Token cached to ${cachePath}`);
+    console.log(`\nCache token written to: ${cachePath}`);
+    console.log('(The server reads this file on startup when a writable filesystem is available.)');
+
+    printDeploymentBlock(accessToken);
   } catch (error) {
     console.error('Failed to refresh Genius token:', error.response?.data || error.message);
     process.exit(1);

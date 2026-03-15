@@ -29,7 +29,7 @@ export async function logTokenStatus({ context }) {
 }
 
 async function logGeniusStatus(context) {
-  const diagnostics = getGeniusDiagnostics();
+  const diagnostics = await getGeniusDiagnostics();
   const ready = hasValidGeniusAuth();
   const mode = describeGeniusAuthMode();
 
@@ -37,7 +37,9 @@ async function logGeniusStatus(context) {
     context,
     provider: 'genius',
     clientCredentialsPresent: diagnostics.clientCredentialsPresent,
-    fallbackTokenPresent: diagnostics.fallbackTokenPresent
+    fallbackTokenPresent: diagnostics.fallbackTokenPresent,
+    cacheTokenPresent: diagnostics.cacheTokenPresent,
+    cacheTokenExpired: diagnostics.cacheTokenExpired
   });
 
   if (diagnostics.runtimeTokenCached) {
@@ -114,7 +116,8 @@ async function logMusixmatchStatus(context) {
     logger.warn('Musixmatch token missing', {
       context,
       provider: 'musixmatch',
-      details: 'run scripts/fetch_MUSIXMATCH_ALT_USER_TOKEN.mjs to capture cookies'
+      details:
+        'run npm run fetch:musixmatch-token to capture the cache token, or set MUSIXMATCH_USER_TOKEN as a fallback token for ephemeral deployments'
     });
   }
 }

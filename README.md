@@ -85,9 +85,9 @@ GENIUS_CLIENT_ID= # Get from https://genius.com/api-clients, required for Genius
 GENIUS_CLIENT_SECRET= # Get from https://genius.com/api-clients, required for Genius client-credentials auth.
 GENIUS_ACCESS_TOKEN= # Get from https://genius.com/api-clients, required for Genius lyrics support when client credentials are not supplied.
 MUSIXMATCH_USER_TOKEN= # Fallback token (1st priority). Set as env var for production/ephemeral hosts where the filesystem is not persistent.
-MUSIXMATCH_ALT_USER_TOKEN= # Fallback token (2nd priority). Alternative env var; same token value, second-choice source.
+MUSIXMATCH_TOKEN= # Fallback token (2nd priority). Alternative env var; same token value, second-choice source.
 MUSIXMATCH_AUTO_FETCH=0 # Optional. When 1, provider will attempt to re-run the fetch script automatically (headless) if no token is available.
-MUSIXMATCH_ALT_USER_TOKEN_CACHE=.cache/musixmatch-token.json
+MUSIXMATCH_TOKEN_CACHE=.cache/musixmatch-token.json
 MELON_COOKIE= # Optional. Pin a session cookie for consistent Melon results; anonymous access generally works without it.
 MR_MAGIC_EXPORT_BACKEND= # local|inline|redis
 MR_MAGIC_EXPORT_DIR=/absolute/path/to/exports # Required if MR_MAGIC_EXPORT_BACKEND=local
@@ -105,25 +105,31 @@ UPSTASH_REDIS_REST_TOKEN= # Get from https://console.upstash.com/redis/rest, req
 AIRTABLE_PERSONAL_ACCESS_TOKEN= # Required for push_catalog_to_airtable tool. Get from https://airtable.com/create/tokens
 ```
 
-- **GENIUS_ACCESS_TOKEN** is required for Genius lyrics support. The
-  CLI/servers will reject Genius requests if it is unset (unless
-  `GENIUS_CLIENT_ID`/`GENIUS_CLIENT_SECRET` are set for auto-refresh).
-- **GENIUS_CLIENT_ID**/**GENIUS_CLIENT_SECRET** can be supplied as an
-  alternative Genius auth path when you want runtime token refresh instead of a
-  static access token.
+- **Genius token sources** — the server resolves the Genius token using three
+  sources (tried in order):
+  - **Auto-refresh** (`GENIUS_CLIENT_ID` + `GENIUS_CLIENT_SECRET`) — the server calls the
+    Genius OAuth `client_credentials` endpoint at runtime and keeps the token refreshed
+    in memory automatically. **Recommended for all deployments**, including Render/ephemeral
+    hosts. No disk, no scripts, no manual token copying.
+  - **Fallback token** (`GENIUS_ACCESS_TOKEN` env var) — a static bearer token. Works
+    everywhere but does not auto-refresh. Use only when client_credentials are unavailable;
+    redeploy with a new token when it expires.
+  - **Cache token** (on-disk `.cache/genius-token.json`) — written by
+    `npm run fetch:genius-token`. Loaded on startup when a persistent writable filesystem
+    is available. Not suitable for ephemeral hosts.
 - **Musixmatch token sources** — the server resolves the Musixmatch token using
   two named sources, tried in order:
-  - **Fallback token** (`MUSIXMATCH_USER_TOKEN`, then `MUSIXMATCH_ALT_USER_TOKEN`) — the
+  - **Fallback token** (`MUSIXMATCH_USER_TOKEN`, then `MUSIXMATCH_TOKEN`) — the
     token value is set directly as an environment variable. This is the
     recommended approach for production and ephemeral hosts (e.g. Render free
     tier, containers) where the filesystem cannot be relied upon between
-    restarts. Set `MUSIXMATCH_USER_TOKEN` first; `MUSIXMATCH_ALT_USER_TOKEN` is the
+    restarts. Set `MUSIXMATCH_USER_TOKEN` first; `MUSIXMATCH_TOKEN` is the
     legacy/alternative env var for the same value.
   - **Cache token** (on-disk `.cache/musixmatch-token.json`) — written by the
     `fetch:musixmatch-token` script after a browser sign-in. Used for local
     development when a persistent writable filesystem is available. Not suitable
     for ephemeral hosts.
-- **MUSIXMATCH_ALT_USER_TOKEN_CACHE** controls where the on-disk cache token file is
+- **MUSIXMATCH_TOKEN_CACHE** controls where the on-disk cache token file is
   read/written (default `<project root>/.cache/musixmatch-token.json`).
 - **MELON_COOKIE** is optional—anonymous access generally works, but pinning a
   cookie can improve consistency.
@@ -188,7 +194,7 @@ in one of two ways depending on your deployment:
   `.cache/musixmatch-token.json`. The server loads it on startup whenever a
   persistent, writable filesystem is available.
 - **Fallback token** (production/ephemeral): copy the captured token value and
-  set it as `MUSIXMATCH_USER_TOKEN` (recommended) or `MUSIXMATCH_ALT_USER_TOKEN` in your
+  set it as `MUSIXMATCH_USER_TOKEN` (recommended) or `MUSIXMATCH_TOKEN` in your
   platform's environment. This is the only reliable option on ephemeral hosts
   (Render free tier, containers without a mounted volume) where the filesystem
   is wiped between restarts.
@@ -1118,13 +1124,12 @@ For direct binary usage, use `mrmagic-cli search --artist ... --title ...`.
 ## Provider notes
 
 - **LRCLIB**: Public API with synced lyric coverage; no auth required.
-- **Genius**: Requires `GENIUS_ACCESS_TOKEN`. Provides metadata-rich plain
-  lyrics.
+- **Genius**: Requires credentials — either `GENIUS_CLIENT_ID` + `GENIUS_CLIENT_SECRET`
+  for auto-refresh (recommended) or `GENIUS_ACCESS_TOKEN` as a static fallback token.
 - **Musixmatch**: Requires a token — either a **fallback token** set via
-  `MUSIXMATCH_USER_TOKEN` (recommended for production) or `MUSIXMATCH_ALT_USER_TOKEN`
-  env vars, or a **cache token** written to disk by
-  `scripts/fetch_MUSIXMATCH_ALT_USER_TOKEN.mjs` (local dev). See "Getting the Musixmatch
-  token" above for the full workflow.
+  `MUSIXMATCH_USER_TOKEN` (recommended for production) or `MUSIXMATCH_TOKEN` env var,
+  or a **cache token** written to disk by `npm run fetch:musixmatch-token` (local dev).
+  See "Getting the Musixmatch token" above for the full workflow.
 - **Melon**: Works anonymously but benefits from `MELON_COOKIE` for reliability
   if needed.
 

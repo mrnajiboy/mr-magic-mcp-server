@@ -1,5 +1,67 @@
 ## Changelog
 
+### 0.1.7 - 2026-03-15
+
+#### ✨ Genius token — cache token support + consistent naming
+
+- **`src/utils/tokens/genius-token-manager.js`** — now reads
+  `.cache/genius-token.json` as a final fallback (cache token) when neither
+  `client_credentials` auto-refresh nor `GENIUS_ACCESS_TOKEN` (fallback token)
+  resolves a token. Adds `readCachedToken()` with expiry validation (skips
+  expired cache files). `getGeniusDiagnostics()` is now `async` and includes
+  `cacheTokenPresent`, `cacheTokenExpired`, and `cachePath`. Module-level
+  comment block uses the same cache token / fallback token / auto-refresh
+  terminology introduced in 0.1.6. `GENIUS_TOKEN_CACHE` env var controls the
+  cache path (must match `scripts/fetch_genius_token.mjs`).
+
+  Token resolution priority for Genius is now:
+  1. In-memory runtime cache
+  2. Auto-refresh via `GENIUS_CLIENT_ID` + `GENIUS_CLIENT_SECRET` ← recommended
+  3. `GENIUS_ACCESS_TOKEN` env var — fallback token (static, no auto-refresh)
+  4. On-disk `.cache/genius-token.json` — cache token (local dev only)
+
+- **`src/transport/token-startup-log.js`** — `logGeniusStatus()` now awaits
+  `getGeniusDiagnostics()` and logs `cacheTokenPresent` + `cacheTokenExpired`.
+  Musixmatch missing-token warning updated to use the new terminology.
+
+#### 🐛 Fixes
+
+- **`scripts/fetch_musixmatch_token.mjs`** — fixed env var name from stale
+  `MUSIXMATCH_ALT_USER_TOKEN_CACHE` to `MUSIXMATCH_TOKEN_CACHE` so the fetch
+  script and the token manager read/write the same cache file path.
+
+#### 🖨️ Fetch script deployment output
+
+Both fetch scripts now print a deployment-ready block after capturing the
+token, with three sections:
+
+- **Recommended (Genius only):** `GENIUS_CLIENT_ID` + `GENIUS_CLIENT_SECRET`
+  auto-refresh path (no fetch script needed at all).
+- **Local development:** confirms the cache token file path where the script
+  wrote the token.
+- **Render / ephemeral deployments:** copy-pasteable env var assignment (e.g.
+  `MUSIXMATCH_USER_TOKEN=<value>`) with an explanation of why the env var path
+  is necessary on hosts without persistent storage.
+
+#### 📦 Environment Variables
+
+- **`.env.example`** — Genius section fully rewritten to document all three
+  token sources (auto-refresh, fallback token, cache token). `GENIUS_CLIENT_ID`
+  and `GENIUS_CLIENT_SECRET` are now listed before `GENIUS_ACCESS_TOKEN` to
+  reflect the recommended priority. `GENIUS_TOKEN_CACHE` added to the
+  Advanced/Debug section alongside `MUSIXMATCH_TOKEN_CACHE`.
+
+- **`README.md`** — Genius env var bullets updated with three-source breakdown.
+  Genius provider note updated to mention auto-refresh as the primary option.
+  All remaining stale `MUSIXMATCH_ALT_USER_TOKEN` / `MUSIXMATCH_ALT_USER_TOKEN_CACHE`
+  references replaced with `MUSIXMATCH_TOKEN` / `MUSIXMATCH_TOKEN_CACHE`.
+
+#### 🔖 Version
+
+- Bumped to `0.1.7` across `package.json`.
+
+---
+
 ### 0.1.6 - 2026-03-15
 
 #### 🏷️ Naming Convention — Musixmatch Token Sources
