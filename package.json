@@ -61,7 +61,7 @@
     "axios": "^1.7.2",
     "cheerio": "^1.0.0-rc.12",
     "commander": "^14.0.3",
-    "dotenv": "^16.4.0",
+    "dotenv": "^17.3.1",
     "hangul-js": "^0.2.6"
   },
   "devDependencies": {
