@@ -1,5 +1,31 @@
 ## Changelog
 
+### 0.1.11 - 2026-03-15
+
+#### 🐛 JSON HTTP server — Render host/port binding + DNS rebinding protection
+
+- **`src/transport/http-server.js`** — Applied the same Render-aware host/port
+  resolution introduced to the MCP HTTP server in 0.1.10. The JSON automation
+  server (`npm run server:http`) now auto-detects `RENDER=true` and binds to
+  `0.0.0.0`, reads `process.env.PORT`, and correctly honours `options.remote`.
+- **`src/transport/mcp-http-server.js`** — Added `allowedHosts` to
+  `createMcpExpressApp` when binding to `0.0.0.0`, eliminating the "Server is
+  binding to 0.0.0.0 without DNS rebinding protection" console warning. The
+  allowed list is built automatically from `localhost`, `127.0.0.1`, and
+  `RENDER_EXTERNAL_HOSTNAME` (auto-set by Render). Set `MR_MAGIC_ALLOWED_HOSTS`
+  (comma-separated) to add custom domains.
+
+#### 📦 Environment Variables
+
+- **`.env.example`** and **`README.md`** — Added `MR_MAGIC_ALLOWED_HOSTS`
+  documentation.
+
+#### 🔖 Version
+
+- Bumped to `0.1.11` in `package.json`.
+
+---
+
 ### 0.1.10 - 2026-03-15
 
 #### 🐛 Render deployment — host/port binding + duplicate startup
