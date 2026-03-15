@@ -1,5 +1,34 @@
 ## Changelog
 
+### 0.1.10 - 2026-03-15
+
+#### 🐛 Render deployment — host/port binding + duplicate startup
+
+- **`src/transport/mcp-http-server.js`** — Server now reads `process.env.PORT`
+  (Render's default: `10000`) so it binds to the platform-assigned port instead
+  of always defaulting to `3444`. Host resolution now auto-detects Render via
+  `process.env.RENDER === 'true'` and binds to `0.0.0.0` automatically. No
+  manual `HOST` or `PORT` env vars are needed on Render—both are set by the
+  platform at runtime.
+- **Duplicate startup fix** — The self-execution guard at the bottom of the
+  transport module used `process.argv[1]?.endsWith('mcp-http-server.js')`, which
+  matched both `src/bin/mcp-http-server.js` (the actual entry point) and
+  `src/transport/mcp-http-server.js`, causing `startMcpHttpServer()` to fire
+  twice on every `npm run server:mcp:http` invocation (double logs, two
+  "listening" messages). Tightened to `endsWith('transport/mcp-http-server.js')`.
+
+#### 📝 README
+
+- Added Render deployment guidance to the "Remote deployment" section.
+- Clarified `PORT` env var note: Render sets it automatically (default `10000`);
+  no manual override is needed.
+
+#### 🔖 Version
+
+- Bumped to `0.1.10` in `package.json`.
+
+---
+
 ### 0.1.9 - 2026-03-15
 
 #### 📝 README

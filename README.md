@@ -147,7 +147,9 @@ AIRTABLE_PERSONAL_ACCESS_TOKEN= # Required for push_catalog_to_airtable tool. Ge
 - **PORT** overrides both HTTP entrypoints when your platform injects one
   (Render, Fly, etc.). If unset, the MCP HTTP transport binds to `3444` and
   the JSON HTTP automation server binds to `3333`. CLI flags such as
-  `mrmagic-cli server --port 4000` always take precedence.
+  `mrmagic-cli server --port 4000` always take precedence. On Render,
+  `PORT` is set automatically by the platform (default `10000`) — no manual
+  override is needed.
 - **MR_MAGIC_DOWNLOAD_BASE_URL** should match the public URL that exposes the
   `/downloads` routes. Include `:port` only when the HTTP server isn’t using
   the default for its protocol.
@@ -315,6 +317,35 @@ npm run server:http       # or server:mcp / server:mcp:http
 
 Use a process manager (systemd, PM2, Docker CMD, etc.) to keep long-lived
 servers running.
+
+### Deploying on Render
+
+The MCP HTTP server (`npm run server:mcp:http`) is ready to deploy on Render
+with no extra configuration. Render automatically sets two environment
+variables that the server reads at startup:
+
+| Variable | Set by Render | Value |
+|----------|--------------|-------|
+| `RENDER` | ✅ always | `"true"` |
+| `PORT` | ✅ always | `10000` (default, overridable in dashboard) |
+
+When `RENDER=true` is detected, the server automatically binds to `0.0.0.0`
+(required by Render's load balancer) on the `PORT` Render assigns. You do
+**not** need to set `HOST`, `PORT`, or any other network variable in your
+Render service settings.
+
+Recommended Render service settings:
+
+- **Start Command:** `npm run server:mcp:http`
+- **Environment:** inject your provider credentials (`GENIUS_CLIENT_ID`,
+  `GENIUS_CLIENT_SECRET`, `MUSIXMATCH_FALLBACK_TOKEN`, etc.) via the Render
+  Dashboard → Environment tab
+- **Health Check Path:** `/health` (returns `{ "status": "ok", "providers": [...] }`)
+
+> **Note:** Render's default `PORT` is `10000`. If you set a custom `PORT`
+> in the Render Dashboard the server will honour it; otherwise `10000` is used.
+> The old `3444` default is only active when running outside Render without a
+> `PORT` env var.
 
 - **MCP server (Stdio)** for local Model Context Protocol clients (use the
   bundled CLI: `npm run server:mcp` or call `node ./src/bin/mcp-server.js`).

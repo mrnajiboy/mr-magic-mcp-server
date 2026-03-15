@@ -64,8 +64,8 @@ export async function startMcpHttpServer(options = {}) {
   const logger = createLogger('mcp-http-server');
   const httpDiagnostics = process.env.MR_MAGIC_MCP_HTTP_DIAGNOSTICS === '1';
   const configuredSessionless = Boolean(options.sessionless);
-  const host = options.remote ? '0.0.0.0' : options.host || '127.0.0.1';
-  const port = Number(options.port) || 3444;
+  const host = options.host || process.env.HOST || (process.env.RENDER ? '0.0.0.0' : '127.0.0.1');
+  const port = Number(options.port) || Number(process.env.PORT) || 3444;
 
   const server = new Server(
     { name: 'mcp-http-server', version: '0.1.4' },
@@ -199,7 +199,7 @@ export async function startMcpHttpServer(options = {}) {
   });
 }
 
-if (process.argv[1]?.endsWith('mcp-http-server.js')) {
+if (process.argv[1]?.endsWith('transport/mcp-http-server.js')) {
   startMcpHttpServer().catch((error) => {
     console.error(error);
     process.exit(1);
