@@ -4,15 +4,25 @@
 
 #### 🐛 Render deployment — host/port binding + duplicate startup
 
-- **`src/transport/mcp-http-server.js`** — Server now reads `process.env.PORT`
-  (Render's default: `10000`) so it binds to the platform-assigned port instead
-  of always defaulting to `3444`. Host resolution now auto-detects Render via
-  `process.env.RENDER === 'true'` and binds to `0.0.0.0` automatically. No
-  manual `HOST` or `PORT` env vars are needed on Render—both are set by the
-  platform at runtime.
-- **Duplicate startup fix** — The self-execution guard at the bottom of the
-  transport module used `process.argv[1]?.endsWith('mcp-http-server.js')`, which
-  matched both `src/bin/mcp-http-server.js` (the actual entry point) and
+Both HTTP server transports now handle Render (and other platforms) correctly:
+
+- **`src/transport/mcp-http-server.js`** and **`src/transport/http-server.js`** —
+  Both servers previously hardcoded the host to `127.0.0.1` and ignored
+  `process.env.PORT`. Host resolution now follows this priority:
+  1. `options.remote` flag → `0.0.0.0` (explicit CLI `--remote`)
+  2. `options.host` → explicit caller-supplied host
+  3. `process.env.HOST` → platform-injected host override
+  4. `process.env.RENDER === 'true'` → auto-detects Render and binds to `0.0.0.0`
+  5. Fallback → `127.0.0.1` (local dev default)
+
+  Port resolution now reads `process.env.PORT` (Render default: `10000`) before
+  falling back to the hardcoded default (`3444` for MCP HTTP, `3333` for JSON HTTP).
+  No manual `HOST` or `PORT` env vars are needed on Render — both are set by the
+  platform automatically.
+
+- **Duplicate startup fix** (`mcp-http-server.js`) — The self-execution guard used
+  `process.argv[1]?.endsWith('mcp-http-server.js')`, which matched both
+  `src/bin/mcp-http-server.js` (the actual entry point) and
   `src/transport/mcp-http-server.js`, causing `startMcpHttpServer()` to fire
   twice on every `npm run server:mcp:http` invocation (double logs, two
   "listening" messages). Tightened to `endsWith('transport/mcp-http-server.js')`.

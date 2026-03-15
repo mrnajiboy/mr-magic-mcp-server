@@ -32,8 +32,10 @@ async function handleAction(action, track, actionOptions) {
 
 export function startHttpServer(options = {}) {
   const logger = createLogger('http-server');
-  const host = options.remote ? '0.0.0.0' : options.host || '127.0.0.1';
-  const port = Number(options.port) || 3333;
+  const host = options.remote
+    ? '0.0.0.0'
+    : (options.host || process.env.HOST || (process.env.RENDER ? '0.0.0.0' : '127.0.0.1'));
+  const port = Number(options.port) || Number(process.env.PORT) || 3333;
 
   return new Promise((resolve) => {
     const server = http.createServer(async (req, res) => {
