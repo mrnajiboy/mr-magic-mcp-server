@@ -2,19 +2,17 @@
 
 ## [0.1.28](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.1.27...mr-magic-mcp-server-v0.1.28) (2026-03-15)
 
-
 ### Bug Fixes
 
-* actions workflow shifts + npm sync ([57a0b9e](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/57a0b9e1c75ce0a54d94bc614f62dbb8f0e5a53d))
+- actions workflow shifts + npm sync ([57a0b9e](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/57a0b9e1c75ce0a54d94bc614f62dbb8f0e5a53d))
 
 ## [0.1.27](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.1.26...mr-magic-mcp-server-v0.1.27) (2026-03-15)
 
-
 ### Bug Fixes
 
-* for linting ([f728b3e](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/f728b3ea9081eb21d29bc65125f3cf84a2c5d0d4))
-* prettier format ([7b3a78d](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/7b3a78d76d8bf9c4045ac8e524d9a0010611273c))
-* prettier formatting ([a82403b](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/a82403bef1a6e9e6b1ddff336a46a09009bd7142))
+- for linting ([f728b3e](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/f728b3ea9081eb21d29bc65125f3cf84a2c5d0d4))
+- prettier format ([7b3a78d](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/7b3a78d76d8bf9c4045ac8e524d9a0010611273c))
+- prettier formatting ([a82403b](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/a82403bef1a6e9e6b1ddff336a46a09009bd7142))
 
 ## [0.1.26](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.1.25...mr-magic-mcp-server-v0.1.26) (2026-03-15)
 
