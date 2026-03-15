@@ -5,5 +5,3 @@
 /node_modules
 /exports
 /.cache
-eslint.config.js
-.prettierrc.json
