@@ -1,5 +1,35 @@
 ## Changelog
 
+### 0.1.22 - 2026-03-15
+
+#### 🐛 Fix "Session not found" on Render.com multi-instance deployments
+
+- **`src/transport/mcp-http-server.js`** — Auto-enable **sessionless mode** when
+  the server is running on Render (`RENDER` env var is set).
+
+  **Root cause:** The MCP HTTP server stores active sessions in an in-memory `Map`.
+  Render spins up multiple instances for scale/zero-downtime deploys. An `initialize`
+  request handled by **Instance A** stores the session in A's memory; a follow-up
+  `tools/list` (or any subsequent request) routed to **Instance B** cannot find that
+  session, returning `{"error": "Session not found. Send an initialize request to start a new session."}`.
+
+  **Fix:** `configuredSessionless` now evaluates to `true` on three conditions:
+  1. `options.sessionless` is passed programmatically
+  2. `MR_MAGIC_SESSIONLESS=1` env var is set
+  3. `RENDER` env var is set (auto-detected Render deployment) ← **new**
+
+  In sessionless mode every request (initialize and all subsequent calls) is handled
+  by a fresh, short-lived `Server` + `StreamableHTTPServerTransport` pair with
+  `sessionIdGenerator: undefined` so no `Mcp-Session-Id` header is sent to the
+  client and no in-memory session entry is created. Each request is fully
+  self-contained, making the server horizontally scalable with no shared state.
+
+#### 🔖 Version
+
+- Bumped to `0.1.22` in `package.json`.
+
+---
+
 ### 0.1.21 - 2026-03-15
 
 #### 📝 README — Slight formatting fix

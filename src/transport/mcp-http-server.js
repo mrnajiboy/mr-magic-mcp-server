@@ -87,7 +87,15 @@ function createMcpServer() {
 export async function startMcpHttpServer(options = {}) {
   const logger = createLogger('mcp-http-server');
   const httpDiagnostics = process.env.MR_MAGIC_MCP_HTTP_DIAGNOSTICS === '1';
-  const configuredSessionless = Boolean(options.sessionless);
+  // Sessionless mode: skip persistent in-memory session tracking so every
+  // request is handled independently.  This is required on platforms like
+  // Render.com that run multiple instances (a session created on instance A is
+  // invisible to instance B).  Auto-enable when the RENDER env var is present,
+  // or when MR_MAGIC_SESSIONLESS=1 is set explicitly.
+  const configuredSessionless =
+    Boolean(options.sessionless) ||
+    Boolean(process.env.MR_MAGIC_SESSIONLESS) ||
+    Boolean(process.env.RENDER);
   const host = options.remote
     ? '0.0.0.0'
     : options.host || process.env.HOST || (process.env.RENDER ? '0.0.0.0' : '127.0.0.1');
