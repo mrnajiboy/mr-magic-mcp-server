@@ -1,5 +1,17 @@
 ## Changelog
 
+### 0.1.9 - 2026-03-15
+
+#### 📝 README
+
+- Updated `README.md` with latest docs.
+
+#### 🔖 Version
+
+- Bumped to `0.1.9` in `package.json`.
+
+---
+
 ### 0.1.8 - 2026-03-15
 
 #### ✨ `/health` endpoint on MCP HTTP server
