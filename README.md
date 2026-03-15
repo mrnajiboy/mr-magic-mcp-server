@@ -233,18 +233,30 @@ The `MR_MAGIC_EXPORT_BACKEND` variable controls where formatted lyrics are store
   `UPSTASH_REDIS_REST_TOKEN`, and `MR_MAGIC_DOWNLOAD_BASE_URL`.
 
 For Redis exports, `MR_MAGIC_DOWNLOAD_BASE_URL` must be the publicly reachable base URL
-of your HTTP automation server (not the Upstash URL), e.g. `https://lyrics.example.com`.
-Download links are built as `{base_url}/downloads/{id}/{ext}`.
+of the server that will serve the download links (not the Upstash URL),
+e.g. `https://lyrics.example.com`. Download links are built as
+`{base_url}/downloads/{id}/{ext}`.
 
-For local testing:
+Both HTTP servers serve `/downloads/:id/:ext` routes:
+
+- **`server:mcp:http`** (port `3444`) — the Streamable HTTP MCP server includes its
+  own `/downloads` route. If you are already running this server, no additional HTTP
+  server is needed for Redis exports on Render or any remote deployment.
+- **`server:http`** (port `3333`) — the JSON HTTP automation server also exposes the
+  same route and remains the right choice if you are running `server:mcp` (stdio) only
+  or want a standalone HTTP service for download links.
+
+For local testing against the MCP HTTP server:
+
+```bash
+MR_MAGIC_DOWNLOAD_BASE_URL=http://127.0.0.1:3444
+```
+
+Or against the JSON HTTP server:
 
 ```bash
 MR_MAGIC_DOWNLOAD_BASE_URL=http://127.0.0.1:3333
 ```
-
-> Even when using only the stdio MCP server, you still need the HTTP automation
-> server running to serve `/downloads/:id/:ext` routes when the `redis` backend
-> is enabled.
 
 ## Local Deployment
 
@@ -844,15 +856,22 @@ curl -sS -X POST http://127.0.0.1:3444/mcp \
 
 ### Running both servers side-by-side
 
-For Redis-backed download scenarios, run both servers in separate terminals:
+You may want both servers running at the same time — for example, to serve JSON HTTP
+automations (`server:http`) alongside MCP tool calls (`server:mcp:http`), or to expose
+both a REST API and an MCP endpoint under one deployment.
 
 ```bash
 # Terminal 1
-npm run server:http
+npm run server:http       # JSON HTTP automation — port 3333
 
 # Terminal 2
-npm run server:mcp:http
+npm run server:mcp:http   # Streamable HTTP MCP  — port 3444
 ```
+
+> **Note:** Running both is **not** required for Redis exports. The MCP HTTP server
+> (`server:mcp:http`) includes its own `/downloads/:id/:ext` route, so a single
+> `server:mcp:http` instance is self-sufficient for Redis-backed download links.
+> Only run `server:http` alongside it if you also need the JSON HTTP automation API.
 
 ## Provider Notes
 

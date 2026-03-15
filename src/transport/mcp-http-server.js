@@ -8,6 +8,7 @@ import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 
 import { createLogger } from '../utils/logger.js';
+import { getSharedRedisClient } from '../utils/export-storage/shared-redis-client.js';
 
 import { mcpToolDefinitions, handleMcpTool } from './mcp-tools.js';
 import { buildMcpResponse } from './mcp-response.js';
@@ -111,8 +112,33 @@ export async function startMcpHttpServer(options = {}) {
       : undefined;
 
   const app = createMcpExpressApp({ host, ...(allowedHosts ? { allowedHosts } : {}) });
+
   app.get('/health', async (_req, res) => {
     res.json({ status: 'ok', providers: await getProviderStatus() });
+  });
+
+  app.get('/downloads/:downloadId/*', async (req, res) => {
+    const { downloadId } = req.params;
+    const extension = req.params[0] || '';
+    if (!downloadId || !extension) {
+      res.status(400).json({ error: 'Invalid download path' });
+      return;
+    }
+    try {
+      const redis = getSharedRedisClient({ context: 'mcp-http-download' });
+      const key = `mr-magic:${downloadId}:${extension}`;
+      const content = await redis.get(key);
+      if (!content) {
+        logger.warn('Export download missing', { context: 'mcp-http-download', key, downloadId, extension });
+        res.status(404).json({ error: 'Export expired or missing' });
+        return;
+      }
+      res.status(200).type('text/plain').send(content);
+      logger.info('Export download served', { context: 'mcp-http-download', key, downloadId, extension, bytes: Buffer.byteLength(content) });
+    } catch (error) {
+      logger.error('Download lookup failed', { error, url: req.originalUrl });
+      res.status(500).json({ error: 'Failed to fetch export' });
+    }
   });
 
   app.all('/mcp', async (req, res) => {

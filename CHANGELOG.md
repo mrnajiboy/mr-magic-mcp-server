@@ -2,6 +2,16 @@
 
 ### 0.1.13 - 2026-03-15
 
+#### ✨ `/downloads` route on MCP HTTP server
+
+- **`src/transport/mcp-http-server.js`** — Added `GET /downloads/:downloadId/*` route.
+  The MCP HTTP server (`server:mcp:http`) now serves Redis-backed export download links
+  directly, making it self-sufficient for Redis export workflows without needing the
+  JSON HTTP automation server (`server:http`) running alongside it.
+  `MR_MAGIC_DOWNLOAD_BASE_URL` can now point to the MCP HTTP server's base URL
+  (e.g. `http://127.0.0.1:3444` locally, or your Render service URL) instead of
+  requiring a separate `server:http` instance.
+
 #### 🐛 Render deployment — host/port + DNS rebinding protection (both HTTP transports)
 
 - **`src/transport/mcp-http-server.js`** — Auto-detects `RENDER=true` and binds
@@ -20,6 +30,9 @@
   transport selection table, streamlined manual testing (inline curl, correct health-check URLs),
   CLI condensed to a table, typo fixes, markdown lint compliance.
 - `MR_MAGIC_ALLOWED_HOSTS` documented in README and `.env.example`.
+- Export and Download Configuration section updated: both HTTP servers now document
+  their `/downloads` route coverage; "Running both servers side-by-side" section
+  clarified — running both is not required for Redis exports.
 
 #### 🔖 Version
 
