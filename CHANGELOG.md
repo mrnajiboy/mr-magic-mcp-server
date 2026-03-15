@@ -1,5 +1,29 @@
 ## Changelog
 
+### 0.1.23 - 2026-03-15
+
+#### 📝 README + `.env.example` — Sessionless mode documentation
+
+- **`README.md`** — Added `MR_MAGIC_SESSIONLESS` to the **Server and runtime**
+  environment variables table with a description explaining sessionless mode and
+  noting it is auto-enabled on Render.
+- **`README.md`** — Added a new **"Sessionless mode on Render (automatic)"**
+  subsection under *Deploying on Render* that explains:
+  - Why in-memory session maps fail on multi-instance platforms (session created
+    on Instance A is not visible to Instance B → `"Session not found"` errors).
+  - How sessionless mode solves this: every request handled independently with no
+    session ID issued and no in-memory state kept.
+  - That `MR_MAGIC_SESSIONLESS=1` should be set manually on other multi-instance
+    platforms (ECS, Fly.io, Railway, etc.) where the same issue applies.
+- **`.env.example`** — Added `MR_MAGIC_SESSIONLESS=0` to the Advanced / Debug
+  section with an inline comment documenting when to set it.
+
+#### 🔖 Version
+
+- Bumped to `0.1.23` in `package.json`.
+
+---
+
 ### 0.1.22 - 2026-03-15
 
 #### 🐛 Fix "Session not found" on Render.com multi-instance deployments

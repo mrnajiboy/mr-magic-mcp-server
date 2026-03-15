@@ -103,6 +103,7 @@ grouped below by purpose.
 | `MR_MAGIC_ROOT`            | _(project root)_ | Override the project root used for `.env` and `.cache` path resolution.                                                                                                                         |
 | `MR_MAGIC_ENV_PATH`        | _(auto)_         | Point to a specific `.env` file instead of `<project root>/.env`.                                                                                                                               |
 | `MR_MAGIC_ALLOWED_HOSTS`   | _(empty)_        | Comma-separated extra hostnames allowed for DNS rebinding protection when binding to `0.0.0.0`. `RENDER_EXTERNAL_HOSTNAME` is included automatically on Render. Only needed for custom domains. |
+| `MR_MAGIC_SESSIONLESS`     | `0`              | Set to `1` to force **sessionless mode** on the MCP Streamable HTTP server — each request is handled by a fresh, temporary server/transport with no in-memory session state. Auto-enabled on Render (see below). |
 
 ### Genius credentials
 
@@ -314,6 +315,25 @@ Recommended Render service settings:
 > For custom domains, add them to `MR_MAGIC_ALLOWED_HOSTS` (comma-separated) in
 > your Render environment so the DNS rebinding protection accepts requests with
 > those `Host` headers.
+
+#### Sessionless mode on Render (automatic)
+
+When `RENDER=true` is detected, the MCP Streamable HTTP server automatically operates
+in **sessionless mode**. This is essential for multi-instance deployments where Render
+routes requests across several processes:
+
+- An `initialize` request served by **Instance A** would store the session in A's
+  in-memory `Map`. A follow-up `tools/list` call routed to **Instance B** cannot
+  find that session and returns `{"error": "Session not found. …"}`.
+- In sessionless mode, every request — `initialize`, `tools/list`, `tools/call`, etc.
+  — is handled by a fresh, short-lived `Server + StreamableHTTPServerTransport` pair.
+  No `Mcp-Session-Id` header is issued and no session state is stored. Each request
+  is fully self-contained and works correctly regardless of which instance handles it.
+
+You do **not** need to set `MR_MAGIC_SESSIONLESS=1` manually on Render — it is
+auto-enabled via the platform-injected `RENDER` env var. Set `MR_MAGIC_SESSIONLESS=1`
+explicitly on other multi-instance platforms (ECS, Fly.io, Railway, etc.) where
+a similar load-balanced, stateless deployment is used.
 
 ### Transport selection
 
