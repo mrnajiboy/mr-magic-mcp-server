@@ -34,7 +34,7 @@ export function startHttpServer(options = {}) {
   const logger = createLogger('http-server');
   const host = options.remote
     ? '0.0.0.0'
-    : (options.host || process.env.HOST || (process.env.RENDER ? '0.0.0.0' : '127.0.0.1'));
+    : options.host || process.env.HOST || (process.env.RENDER ? '0.0.0.0' : '127.0.0.1');
   const port = Number(options.port) || Number(process.env.PORT) || 3333;
 
   // When binding to 0.0.0.0, build an allowed-host set for DNS rebinding protection.
@@ -45,9 +45,7 @@ export function startHttpServer(options = {}) {
       ? new Set([
           'localhost',
           '127.0.0.1',
-          ...(process.env.RENDER_EXTERNAL_HOSTNAME
-            ? [process.env.RENDER_EXTERNAL_HOSTNAME]
-            : []),
+          ...(process.env.RENDER_EXTERNAL_HOSTNAME ? [process.env.RENDER_EXTERNAL_HOSTNAME] : []),
           ...(process.env.MR_MAGIC_ALLOWED_HOSTS
             ? process.env.MR_MAGIC_ALLOWED_HOSTS.split(',')
                 .map((h) => h.trim())

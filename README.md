@@ -78,7 +78,6 @@ mrmagic-cli --help   # CLI
    env vars in your shell before running any commands.
 
 4. Run the desired entrypoint:
-
    - MCP stdio server: `npm run server:mcp`
    - MCP Streamable HTTP server: `npm run server:mcp:http`
    - JSON HTTP automation server: `npm run server:http`
@@ -91,23 +90,23 @@ grouped below by purpose.
 
 ### Server and runtime
 
-| Variable | Default | Description |
-|---|---|---|
-| `PORT` | `3444` / `3333` | Override server port. On Render this is set automatically (default `10000`). |
-| `LOG_LEVEL` | `info` | Verbosity: `error` \| `warn` \| `info` \| `debug`. |
-| `MR_MAGIC_QUIET_STDIO` | `0` | Set to `1` to suppress non-error stdout logs (forces `LOG_LEVEL=error`). Recommended under stdio MCP clients. |
-| `MR_MAGIC_HTTP_TIMEOUT_MS` | `10000` | Global outbound HTTP timeout in milliseconds. |
-| `MR_MAGIC_ROOT` | _(project root)_ | Override the project root used for `.env` and `.cache` path resolution. |
-| `MR_MAGIC_ENV_PATH` | _(auto)_ | Point to a specific `.env` file instead of `<project root>/.env`. |
-| `MR_MAGIC_ALLOWED_HOSTS` | _(empty)_ | Comma-separated extra hostnames allowed for DNS rebinding protection when binding to `0.0.0.0`. `RENDER_EXTERNAL_HOSTNAME` is included automatically on Render. Only needed for custom domains. |
+| Variable                   | Default          | Description                                                                                                                                                                                     |
+| -------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`                     | `3444` / `3333`  | Override server port. On Render this is set automatically (default `10000`).                                                                                                                    |
+| `LOG_LEVEL`                | `info`           | Verbosity: `error` \| `warn` \| `info` \| `debug`.                                                                                                                                              |
+| `MR_MAGIC_QUIET_STDIO`     | `0`              | Set to `1` to suppress non-error stdout logs (forces `LOG_LEVEL=error`). Recommended under stdio MCP clients.                                                                                   |
+| `MR_MAGIC_HTTP_TIMEOUT_MS` | `10000`          | Global outbound HTTP timeout in milliseconds.                                                                                                                                                   |
+| `MR_MAGIC_ROOT`            | _(project root)_ | Override the project root used for `.env` and `.cache` path resolution.                                                                                                                         |
+| `MR_MAGIC_ENV_PATH`        | _(auto)_         | Point to a specific `.env` file instead of `<project root>/.env`.                                                                                                                               |
+| `MR_MAGIC_ALLOWED_HOSTS`   | _(empty)_        | Comma-separated extra hostnames allowed for DNS rebinding protection when binding to `0.0.0.0`. `RENDER_EXTERNAL_HOSTNAME` is included automatically on Render. Only needed for custom domains. |
 
 ### Genius credentials
 
-| Variable | Description |
-|---|---|
-| `GENIUS_CLIENT_ID` | OAuth client ID for auto-refresh (recommended). Get from [genius.com/api-clients](https://genius.com/api-clients). |
-| `GENIUS_CLIENT_SECRET` | OAuth client secret for auto-refresh (recommended). |
-| `GENIUS_ACCESS_TOKEN` | Static fallback bearer token. Used when client credentials are unavailable. |
+| Variable               | Description                                                                                                        |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `GENIUS_CLIENT_ID`     | OAuth client ID for auto-refresh (recommended). Get from [genius.com/api-clients](https://genius.com/api-clients). |
+| `GENIUS_CLIENT_SECRET` | OAuth client secret for auto-refresh (recommended).                                                                |
+| `GENIUS_ACCESS_TOKEN`  | Static fallback bearer token. Used when client credentials are unavailable.                                        |
 
 Token resolution order (first match wins):
 
@@ -118,45 +117,45 @@ Token resolution order (first match wins):
 
 ### Musixmatch credentials
 
-| Variable | Description |
-|---|---|
-| `MUSIXMATCH_FALLBACK_TOKEN` | Token env var (1st priority). Use for production / ephemeral hosts. |
-| `MUSIXMATCH_ALT_FALLBACK_TOKEN` | Token env var (2nd priority). Alternative name for the same token. |
-| `MUSIXMATCH_TOKEN_CACHE` | Path to the on-disk cache file. Default: `.cache/musixmatch-token.json`. |
-| `MUSIXMATCH_AUTO_FETCH` | Set to `1` to attempt headless token re-fetch when no token is found. |
+| Variable                        | Description                                                              |
+| ------------------------------- | ------------------------------------------------------------------------ |
+| `MUSIXMATCH_FALLBACK_TOKEN`     | Token env var (1st priority). Use for production / ephemeral hosts.      |
+| `MUSIXMATCH_ALT_FALLBACK_TOKEN` | Token env var (2nd priority). Alternative name for the same token.       |
+| `MUSIXMATCH_TOKEN_CACHE`        | Path to the on-disk cache file. Default: `.cache/musixmatch-token.json`. |
+| `MUSIXMATCH_AUTO_FETCH`         | Set to `1` to attempt headless token re-fetch when no token is found.    |
 
 ### Export and storage
 
-| Variable | Default | Description |
-|---|---|---|
-| `MR_MAGIC_EXPORT_BACKEND` | `local` | Storage backend: `local` \| `inline` \| `redis`. |
-| `MR_MAGIC_EXPORT_DIR` | `exports/` | Absolute path for local exports. Required when backend is `local`. |
-| `MR_MAGIC_EXPORT_TTL_SECONDS` | `3600` | TTL for `local` and `redis` backends (ignored for `inline`). |
-| `MR_MAGIC_DOWNLOAD_BASE_URL` | _(none)_ | Public base URL for download links, e.g. `https://lyrics.example.com`. |
-| `MR_MAGIC_INLINE_PAYLOAD_MAX_CHARS` | `1500` | Character threshold at which `build_catalog_payload` auto-promotes to `reference` transport when `omitInlineLyrics` is `true`. |
-| `UPSTASH_REDIS_REST_URL` | _(none)_ | Required when `MR_MAGIC_EXPORT_BACKEND=redis`. |
-| `UPSTASH_REDIS_REST_TOKEN` | _(none)_ | Required when `MR_MAGIC_EXPORT_BACKEND=redis`. |
+| Variable                            | Default    | Description                                                                                                                    |
+| ----------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `MR_MAGIC_EXPORT_BACKEND`           | `local`    | Storage backend: `local` \| `inline` \| `redis`.                                                                               |
+| `MR_MAGIC_EXPORT_DIR`               | `exports/` | Absolute path for local exports. Required when backend is `local`.                                                             |
+| `MR_MAGIC_EXPORT_TTL_SECONDS`       | `3600`     | TTL for `local` and `redis` backends (ignored for `inline`).                                                                   |
+| `MR_MAGIC_DOWNLOAD_BASE_URL`        | _(none)_   | Public base URL for download links, e.g. `https://lyrics.example.com`.                                                         |
+| `MR_MAGIC_INLINE_PAYLOAD_MAX_CHARS` | `1500`     | Character threshold at which `build_catalog_payload` auto-promotes to `reference` transport when `omitInlineLyrics` is `true`. |
+| `UPSTASH_REDIS_REST_URL`            | _(none)_   | Required when `MR_MAGIC_EXPORT_BACKEND=redis`.                                                                                 |
+| `UPSTASH_REDIS_REST_TOKEN`          | _(none)_   | Required when `MR_MAGIC_EXPORT_BACKEND=redis`.                                                                                 |
 
 ### Airtable
 
-| Variable | Description |
-|---|---|
+| Variable                         | Description                                                                                                                                            |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `AIRTABLE_PERSONAL_ACCESS_TOKEN` | Required for `push_catalog_to_airtable`. Generate at [airtable.com/create/tokens](https://airtable.com/create/tokens) with `data.records:write` scope. |
 
 ### Melon
 
-| Variable | Description |
-|---|---|
+| Variable       | Description                                                                                         |
+| -------------- | --------------------------------------------------------------------------------------------------- |
 | `MELON_COOKIE` | Optional. Pin a session cookie for consistent results. Anonymous access generally works without it. |
 
 ### Diagnostics and debugging
 
-| Variable | Default | Description |
-|---|---|---|
-| `MR_MAGIC_MCP_HTTP_DIAGNOSTICS` | `0` | Set to `1` to log enriched request metadata at the Streamable HTTP transport boundary. |
-| `MR_MAGIC_LOG_TOOL_ARGS_CHUNKS` | `0` | Set to `1` to emit chunk-by-chunk MCP tool argument previews for truncation debugging. |
-| `MR_MAGIC_TOOL_ARG_CHUNK_SIZE` | `400` | Chunk size (chars) used when chunk logging is enabled. |
-| `MR_MAGIC_SDK_REPRO_HTTP_DEBUG` | `0` | Set to `1` for verbose HTTP traces in the SDK repro harness script. |
+| Variable                        | Default | Description                                                                            |
+| ------------------------------- | ------- | -------------------------------------------------------------------------------------- |
+| `MR_MAGIC_MCP_HTTP_DIAGNOSTICS` | `0`     | Set to `1` to log enriched request metadata at the Streamable HTTP transport boundary. |
+| `MR_MAGIC_LOG_TOOL_ARGS_CHUNKS` | `0`     | Set to `1` to emit chunk-by-chunk MCP tool argument previews for truncation debugging. |
+| `MR_MAGIC_TOOL_ARG_CHUNK_SIZE`  | `400`   | Chunk size (chars) used when chunk logging is enabled.                                 |
+| `MR_MAGIC_SDK_REPRO_HTTP_DEBUG` | `0`     | Set to `1` for verbose HTTP traces in the SDK repro harness script.                    |
 
 ## Provider Credentials
 
@@ -289,11 +288,11 @@ Use a process manager (systemd, PM2, Docker `CMD`, etc.) to keep servers running
 Both HTTP servers (`server:mcp:http` and `server:http`) are ready for Render with
 no extra network configuration. Render automatically sets:
 
-| Variable | Value |
-|---|---|
-| `RENDER` | `"true"` |
-| `PORT` | `10000` (default; overridable in the Render Dashboard) |
-| `RENDER_EXTERNAL_HOSTNAME` | Your service hostname, e.g. `myapp.onrender.com` |
+| Variable                   | Value                                                  |
+| -------------------------- | ------------------------------------------------------ |
+| `RENDER`                   | `"true"`                                               |
+| `PORT`                     | `10000` (default; overridable in the Render Dashboard) |
+| `RENDER_EXTERNAL_HOSTNAME` | Your service hostname, e.g. `myapp.onrender.com`       |
 
 When `RENDER=true` is detected, the server binds to `0.0.0.0` automatically and reads
 the platform-assigned `PORT`. No manual `HOST` or `PORT` configuration is needed.
@@ -314,24 +313,26 @@ Recommended Render service settings:
 
 ### Transport selection
 
-| Transport | Command | Use case |
-|---|---|---|
-| MCP stdio | `npm run server:mcp` | Local MCP clients that speak stdio |
-| MCP Streamable HTTP | `npm run server:mcp:http` | Remote MCP clients |
-| JSON HTTP automation | `npm run server:http` | Container / remote automations |
-| CLI | `npm run cli` | Ad-hoc / SSH / CI one-shot commands |
+| Transport            | Command                   | Use case                            |
+| -------------------- | ------------------------- | ----------------------------------- |
+| MCP stdio            | `npm run server:mcp`      | Local MCP clients that speak stdio  |
+| MCP Streamable HTTP  | `npm run server:mcp:http` | Remote MCP clients                  |
+| JSON HTTP automation | `npm run server:http`     | Container / remote automations      |
+| CLI                  | `npm run cli`             | Ad-hoc / SSH / CI one-shot commands |
 
 ## HTTP Endpoints
 
 Both HTTP servers expose a set of plain HTTP routes in addition to their primary
 transports. These are accessible without any MCP or JSON-RPC framing.
 
-| Endpoint | Method | Server | Description |
-|---|---|---|---|
-| `/health` | `GET` | Both | Liveness / readiness probe. Returns `{ "status": "ok", "providers": [...] }`. |
-| `/downloads/:id/:ext` | `GET` | Both | Serve a Redis-backed export by ID and file extension (e.g. `plain`, `lrc`, `srt`). Returns `200 text/plain` on hit, `404` when the key is expired or missing. |
-| `/mcp` | `POST` | `server:mcp:http` only | MCP Streamable HTTP transport endpoint (JSON-RPC 2.0). |
-| `/` | `POST` | `server:http` only | JSON HTTP automation endpoint (action-based API). |
+| Endpoint              | Method            | Server                 | Description                                                                                                                                                   |
+| --------------------- | ----------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/health`             | `GET`             | Both                   | Liveness / readiness probe. Returns `{ "status": "ok", "providers": [...] }`.                                                                                 |
+| `/downloads/:id/:ext` | `GET`             | Both                   | Serve a Redis-backed export by ID and file extension (e.g. `plain`, `lrc`, `srt`). Returns `200 text/plain` on hit, `404` when the key is expired or missing. |
+| `/mcp`                | `POST/GET/DELETE` | `server:mcp:http` only | MCP **Streamable HTTP** transport endpoint (JSON-RPC 2.0). Each `initialize` request creates an independent session — reconnects work correctly.              |
+| `/sse`                | `GET`             | `server:mcp:http` only | MCP **legacy SSE** transport. Opens a server-sent event stream. For MCP clients that use the pre-Streamable HTTP protocol.                                    |
+| `/messages`           | `POST`            | `server:mcp:http` only | Companion to `/sse`. Routes JSON-RPC messages to the correct SSE session via `?sessionId=` query param.                                                       |
+| `/`                   | `POST`            | `server:http` only     | JSON HTTP automation endpoint (action-based API).                                                                                                             |
 
 ### `/health`
 
@@ -345,10 +346,10 @@ health check path.
 {
   "status": "ok",
   "providers": [
-    { "name": "lrclib",     "status": "ok" },
-    { "name": "genius",     "status": "ok" },
+    { "name": "lrclib", "status": "ok" },
+    { "name": "genius", "status": "ok" },
     { "name": "musixmatch", "status": "missing_token" },
-    { "name": "melon",      "status": "ok" }
+    { "name": "melon", "status": "ok" }
   ]
 }
 ```
@@ -367,11 +368,11 @@ curl -sS http://127.0.0.1:3333/health | jq
 
 Provider `status` values:
 
-| Value | Meaning |
-|---|---|
-| `ok` | Provider is configured and reachable. |
-| `missing_token` | Required credential env var is not set. |
-| `error` | Provider returned an unexpected error during the status probe. |
+| Value           | Meaning                                                        |
+| --------------- | -------------------------------------------------------------- |
+| `ok`            | Provider is configured and reachable.                          |
+| `missing_token` | Required credential env var is not set.                        |
+| `error`         | Provider returned an unexpected error during the status probe. |
 
 ### `/downloads/:id/:ext`
 
@@ -412,19 +413,19 @@ Responses:
 
 Both the stdio and Streamable HTTP transports expose the same tool registry:
 
-| Tool | Purpose |
-|---|---|
-| `find_lyrics` | Fetch best lyrics (prefers synced) plus metadata and payload. |
-| `find_synced_lyrics` | Like `find_lyrics` but rejects plain-only results. |
-| `search_lyrics` | List candidate matches across all providers without downloading lyrics. |
-| `search_provider` | Query a single named provider. |
-| `get_provider_status` | Report readiness and notes for each provider. |
-| `format_lyrics` | Format lyrics in memory (optional romanization) for display. |
-| `export_lyrics` | Write plain / LRC / SRT / romanized files to the export backend. |
-| `select_match` | Pick a prior result by provider, index, or synced flag. |
-| `build_catalog_payload` | Return a compact record (title / link / lyrics) for Airtable-style inserts. |
+| Tool                       | Purpose                                                                                                                             |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `find_lyrics`              | Fetch best lyrics (prefers synced) plus metadata and payload.                                                                       |
+| `find_synced_lyrics`       | Like `find_lyrics` but rejects plain-only results.                                                                                  |
+| `search_lyrics`            | List candidate matches across all providers without downloading lyrics.                                                             |
+| `search_provider`          | Query a single named provider.                                                                                                      |
+| `get_provider_status`      | Report readiness and notes for each provider.                                                                                       |
+| `format_lyrics`            | Format lyrics in memory (optional romanization) for display.                                                                        |
+| `export_lyrics`            | Write plain / LRC / SRT / romanized files to the export backend.                                                                    |
+| `select_match`             | Pick a prior result by provider, index, or synced flag.                                                                             |
+| `build_catalog_payload`    | Return a compact record (title / link / lyrics) for Airtable-style inserts.                                                         |
 | `push_catalog_to_airtable` | Write catalog records to Airtable server-side — lyrics never pass through LLM arguments. Requires `AIRTABLE_PERSONAL_ACCESS_TOKEN`. |
-| `runtime_status` | Snapshot provider readiness plus relevant env vars. |
+| `runtime_status`           | Snapshot provider readiness plus relevant env vars.                                                                                 |
 
 ## Airtable Integration
 
@@ -527,7 +528,9 @@ await fetch('http://127.0.0.1:3444/mcp', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream' },
   body: JSON.stringify({
-    jsonrpc: '2.0', id: 1, method: 'tools/call',
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'tools/call',
     params: {
       name: 'build_catalog_payload',
       arguments: {
@@ -553,11 +556,11 @@ LOG_LEVEL=debug
 
 Recommended presets:
 
-| Scenario | `LOG_LEVEL` | `MR_MAGIC_LOG_TOOL_ARGS_CHUNKS` |
-|---|---|---|
-| Normal operation | `info` | `0` |
-| General verbose | `debug` | `0` |
-| Truncation diagnostics | `debug` | `1` |
+| Scenario               | `LOG_LEVEL` | `MR_MAGIC_LOG_TOOL_ARGS_CHUNKS` |
+| ---------------------- | ----------- | ------------------------------- |
+| Normal operation       | `info`      | `0`                             |
+| General verbose        | `debug`     | `0`                             |
+| Truncation diagnostics | `debug`     | `1`                             |
 
 ## MCP Client Configuration
 
@@ -642,16 +645,16 @@ installed globally.
 
 ### Commands
 
-| Command | Purpose | Notable flags |
-|---|---|---|
-| `mrmagic-cli search` | List candidates across providers without downloading. | `--artist`, `--title`, `--provider`, `--duration`, `--show-all`, `--pick` |
-| `mrmagic-cli find` | Resolve best lyric (prefers synced) and print / export. | `--providers`, `--synced-only`, `--export`, `--format`, `--output`, `--no-romanize`, `--choose`, `--index` |
-| `mrmagic-cli select` | Pick first match from a prioritized provider list. | `--providers`, `--artist`, `--title`, `--require-synced` |
-| `mrmagic-cli server` | Start the JSON automation API. | `--host`, `--port`, `--remote` |
-| `mrmagic-cli server:mcp` | Start the MCP stdio server. | — |
-| `mrmagic-cli server:mcp:http` | Start the Streamable HTTP MCP server. | `--host`, `--port`, `--remote`, `--sessionless` |
-| `mrmagic-cli search-provider` | Query a single provider only. | `--provider`, `--artist`, `--title` |
-| `mrmagic-cli status` | Print provider readiness. | — |
+| Command                       | Purpose                                                 | Notable flags                                                                                              |
+| ----------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `mrmagic-cli search`          | List candidates across providers without downloading.   | `--artist`, `--title`, `--provider`, `--duration`, `--show-all`, `--pick`                                  |
+| `mrmagic-cli find`            | Resolve best lyric (prefers synced) and print / export. | `--providers`, `--synced-only`, `--export`, `--format`, `--output`, `--no-romanize`, `--choose`, `--index` |
+| `mrmagic-cli select`          | Pick first match from a prioritized provider list.      | `--providers`, `--artist`, `--title`, `--require-synced`                                                   |
+| `mrmagic-cli server`          | Start the JSON automation API.                          | `--host`, `--port`, `--remote`                                                                             |
+| `mrmagic-cli server:mcp`      | Start the MCP stdio server.                             | —                                                                                                          |
+| `mrmagic-cli server:mcp:http` | Start the Streamable HTTP MCP server.                   | `--host`, `--port`, `--remote`, `--sessionless`                                                            |
+| `mrmagic-cli search-provider` | Query a single provider only.                           | `--provider`, `--artist`, `--title`                                                                        |
+| `mrmagic-cli status`          | Print provider readiness.                               | —                                                                                                          |
 
 ### Examples
 
@@ -936,6 +939,7 @@ curl -sS -X POST http://127.0.0.1:3444/mcp \
 ```
 
 > **MCP tool response shape:**
+>
 > - `result.structuredContent` — machine-friendly object (all fields, full values)
 > - `result.content[0].text` — complete pretty-printed JSON (identical to `structuredContent`)
 >

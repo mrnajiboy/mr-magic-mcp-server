@@ -1,5 +1,50 @@
 ## Changelog
 
+### 0.1.17 - 2026-03-15
+
+#### 🐛 Fix "Server already initialized" on MCP HTTP reconnect
+
+- **`src/transport/mcp-http-server.js`** — The server previously created a
+  single `Server` + `StreamableHTTPServerTransport` pair at startup and reused
+  it for every client. When TypingMind (or any MCP client) disconnected and sent
+  a fresh `initialize` request, the SDK's transport rejected it with
+  `Invalid Request: Server already initialized` (HTTP 400, error code -32600)
+  because `_initialized` and `sessionId` were already set from the previous
+  connection.
+
+  **Fix — per-session transport management:**
+  - Moved `Server` construction into a `createMcpServer()` factory so a fresh
+    server is created for each session.
+  - Added a `streamableSessions` `Map` (`sessionId → { server, transport }`)
+    to track active Streamable HTTP sessions.
+  - `POST /mcp` now detects `initialize` requests (no `mcp-session-id` header)
+    and spins up a new `Server` + `StreamableHTTPServerTransport` per session,
+    storing it in the map after `server.connect(transport)`.
+  - Subsequent requests are routed to the correct transport by `mcp-session-id`
+    header lookup; unknown session IDs return a `404`.
+  - `DELETE /mcp` tears down the session's server and removes it from the map.
+  - `transport.onclose` cleans up abandoned sessions automatically.
+  - Sessionless mode (`--sessionless` / `options.sessionless`) still works:
+    creates a temporary server+transport per request.
+
+#### ✨ Legacy SSE transport fallback (`/sse` + `/messages`)
+
+- **`src/transport/mcp-http-server.js`** — Added legacy MCP SSE endpoints for
+  backward compatibility with clients that use the pre-Streamable HTTP protocol:
+  - `GET /sse` — opens an SSE stream; creates a fresh `Server` + `SSEServerTransport`
+    per connection, tracked in an `sseSessions` `Map`.
+  - `POST /messages` — routes JSON-RPC messages to the correct SSE session via
+    the `?sessionId=` query param advertised by the transport; falls back to the
+    most-recently-opened session for simple single-client deployments.
+  - SSE sessions clean up via `transport.onclose`.
+  - Startup log now prints both `endpoint` (Streamable HTTP) and `sseEndpoint` (SSE).
+
+#### 🔖 Version
+
+- Bumped to `0.1.17` in `package.json`.
+
+---
+
 ### 0.1.16 - 2026-03-15
 
 #### 🐛 Fix `/downloads` route — unnamed wildcard rejected by path-to-regexp
