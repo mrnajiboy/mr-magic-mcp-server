@@ -1,9 +1,5 @@
 ## Changelog
 
-### 0.1.12 - 2026-03-15
-
-- **`src/transport/mcp-http-server.js`** - fixed logging wording for more clarity.
-
 ### 0.1.11 - 2026-03-15
 
 #### 🐛 Both HTTP servers — Render host/port + DNS rebinding protection
@@ -20,6 +16,18 @@
   set are rejected with `403 Forbidden`. Uses the same allowed-host list
   (`localhost`, `127.0.0.1`, `RENDER_EXTERNAL_HOSTNAME`, `MR_MAGIC_ALLOWED_HOSTS`)
   as the MCP HTTP server for consistent behaviour across both transports.
+
+#### 📝 README
+
+- Full README refactor: reorganized into logical sections with a table of contents,
+  environment variables split into per-group tables (server, Genius, Musixmatch,
+  export/storage, Airtable, Melon, diagnostics), provider credentials extracted into
+  a dedicated section, Render deployment updated to document all three auto-set vars
+  (`RENDER`, `PORT`, `RENDER_EXTERNAL_HOSTNAME`), transport selection table added,
+  manual testing section streamlined (inline `curl` examples, fixed wrong health-check
+  URL in MCP section, corrected "endpoins" typo), CLI section condensed to a table,
+  fixed typos ("aficionados", "infringement"), bare URLs converted to proper markdown
+  links, all code blocks language-tagged, headings and lists surrounded by blank lines.
 
 #### 📦 Environment Variables
 
