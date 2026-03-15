@@ -13,6 +13,7 @@ import { mcpToolDefinitions, handleMcpTool } from './mcp-tools.js';
 import { buildMcpResponse } from './mcp-response.js';
 import { logTokenStatus } from './token-startup-log.js';
 import { normalizeToolArgs } from './tool-args.js';
+import { getProviderStatus } from '../index.js';
 
 function getBodyShape(body) {
   if (body == null) return 'nullish';
@@ -91,6 +92,10 @@ export async function startMcpHttpServer(options = {}) {
   await logTokenStatus({ context: 'http-mcp' });
 
   const app = createMcpExpressApp({ host });
+  app.get('/health', async (_req, res) => {
+    res.json({ status: 'ok', providers: await getProviderStatus() });
+  });
+
   app.all('/mcp', async (req, res) => {
     const normalizedBody = normalizeIncomingRpcBody(req.body);
     const requestId = randomUUID();

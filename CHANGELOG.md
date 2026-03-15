@@ -1,5 +1,21 @@
 ## Changelog
 
+### 0.1.8 - 2026-03-15
+
+#### ✨ `/health` endpoint on MCP HTTP server
+
+- **`src/transport/mcp-http-server.js`** — Added `GET /health` route to the
+  Streamable HTTP MCP server (port 3444). Returns `{ status: 'ok', providers: [...] }`
+  via `getProviderStatus()`, matching the shape already provided by the plain HTTP
+  server (`src/transport/http-server.js`). All remote-deployment server flavours now
+  expose a health check endpoint.
+
+#### 🔖 Version
+
+- Bumped to `0.1.8` in `package.json`.
+
+---
+
 ### 0.1.7 - 2026-03-15
 
 #### ✨ Genius token — cache token support + consistent naming
