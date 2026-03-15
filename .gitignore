@@ -1,10 +1,9 @@
-/node_modules
+.vscode
 .env
-/exports
 .DS_Store
 *.log
-.render
-dist
+/node_modules
+/exports
 /.cache
 eslint.config.js
 .prettierrc.json
