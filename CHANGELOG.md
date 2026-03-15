@@ -2,10 +2,21 @@
 
 ### 0.1.14 - 2026-03-15
 
+#### 📝 README — HTTP Endpoints section
+
+- Added a dedicated **HTTP Endpoints** section documenting all plain HTTP routes
+  exposed by both servers (`/health`, `/downloads/:id/:ext`, `/mcp`, `/`), including
+  response shapes, parameter references, and per-server `curl` examples.
+- `/health` response shape documented: `{ status, providers: [{ name, status }] }`;
+  provider `status` values (`ok`, `missing_token`, `error`) listed in a reference table.
+- `/downloads/:id/:ext` parameters, example requests, and response codes (`200`, `400`,
+  `404`, `500`) documented with notes on TTL and backend requirements.
+- Section added to Table of Contents between Remote Deployment and MCP Tools.
+
 #### 🔖 Version
 
-- Bumped to `0.1.14` — re-release of `0.1.13` changes (previous `0.1.13` npm
-  publish completed before `/downloads` route and README updates were added).
+- Bumped to `0.1.14` — previous `0.1.13` npm publish completed before
+  `/downloads` route and README updates were added.
   All functional changes are documented under `0.1.13` below.
 
 ---

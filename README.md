@@ -12,6 +12,7 @@ automations, and CLI aficionados can all request lyrics from a single toolchain.
 - [Export and Download Configuration](#export-and-download-configuration)
 - [Local Deployment](#local-deployment)
 - [Remote Deployment](#remote-deployment)
+- [HTTP Endpoints](#http-endpoints)
 - [MCP Tools](#mcp-tools)
 - [Airtable Integration](#airtable-integration)
 - [MCP Client Configuration](#mcp-client-configuration)
@@ -319,6 +320,93 @@ Recommended Render service settings:
 | MCP Streamable HTTP | `npm run server:mcp:http` | Remote MCP clients |
 | JSON HTTP automation | `npm run server:http` | Container / remote automations |
 | CLI | `npm run cli` | Ad-hoc / SSH / CI one-shot commands |
+
+## HTTP Endpoints
+
+Both HTTP servers expose a set of plain HTTP routes in addition to their primary
+transports. These are accessible without any MCP or JSON-RPC framing.
+
+| Endpoint | Method | Server | Description |
+|---|---|---|---|
+| `/health` | `GET` | Both | Liveness / readiness probe. Returns `{ "status": "ok", "providers": [...] }`. |
+| `/downloads/:id/:ext` | `GET` | Both | Serve a Redis-backed export by ID and file extension (e.g. `plain`, `lrc`, `srt`). Returns `200 text/plain` on hit, `404` when the key is expired or missing. |
+| `/mcp` | `POST` | `server:mcp:http` only | MCP Streamable HTTP transport endpoint (JSON-RPC 2.0). |
+| `/` | `POST` | `server:http` only | JSON HTTP automation endpoint (action-based API). |
+
+### `/health`
+
+Both servers respond to `GET /health` with a JSON object indicating overall status
+and per-provider readiness. Use this as your Render (or container / load-balancer)
+health check path.
+
+**Response shape:**
+
+```json
+{
+  "status": "ok",
+  "providers": [
+    { "name": "lrclib",     "status": "ok" },
+    { "name": "genius",     "status": "ok" },
+    { "name": "musixmatch", "status": "missing_token" },
+    { "name": "melon",      "status": "ok" }
+  ]
+}
+```
+
+**MCP HTTP server** (default port `3444`):
+
+```bash
+curl -sS http://127.0.0.1:3444/health | jq
+```
+
+**JSON HTTP server** (default port `3333`):
+
+```bash
+curl -sS http://127.0.0.1:3333/health | jq
+```
+
+Provider `status` values:
+
+| Value | Meaning |
+|---|---|
+| `ok` | Provider is configured and reachable. |
+| `missing_token` | Required credential env var is not set. |
+| `error` | Provider returned an unexpected error during the status probe. |
+
+### `/downloads/:id/:ext`
+
+Serves a Redis-backed export file by its download ID and format extension. Both
+servers expose this route so the same `MR_MAGIC_DOWNLOAD_BASE_URL` works regardless
+of which server you are running.
+
+**Parameters:**
+
+- `:id` — the opaque download ID returned in the `url` field of an export response
+- `:ext` — the file format: `plain`, `lrc`, `srt`, or `romanized`
+
+**Example** (MCP HTTP server):
+
+```bash
+curl -sS http://127.0.0.1:3444/downloads/coldplay-yellow-1741234567890/plain
+```
+
+**Example** (JSON HTTP server):
+
+```bash
+curl -sS http://127.0.0.1:3333/downloads/coldplay-yellow-1741234567890/plain
+```
+
+Responses:
+
+- `200 text/plain` — export content served directly
+- `404` — key expired or never written (`MR_MAGIC_EXPORT_TTL_SECONDS` controls TTL,
+  default `3600` seconds)
+- `400` — malformed path (missing ID or extension)
+- `500` — Redis lookup error
+
+> Requires `MR_MAGIC_EXPORT_BACKEND=redis` and valid `UPSTASH_*` credentials.
+> For local and inline backends, exports are returned directly in the tool response
+> and this route is not used.
 
 ## MCP Tools
 
