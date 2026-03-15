@@ -573,7 +573,7 @@ Mr. Magic supports two connection modes depending on where the MCP client runs:
 | Mode | Transport | When to use |
 | ---- | --------- | ----------- |
 | **Local (stdio)** | `mcp-server` binary via stdin/stdout | Cline, Claude Desktop, and any client that runs locally on the same machine |
-| **Remote (Streamable HTTP)** | `POST https://your-server/mcp` | TypingMind, browser-based clients, and any client connecting to a deployed server |
+| **Remote (Streamable HTTP)** | `POST https://your-server.com/mcp` | TypingMind, browser-based clients, and any client connecting to a deployed server |
 
 ---
 
@@ -668,7 +668,7 @@ extension (Chrome / Edge). Once your server is deployed:
 1. Open TypingMind → **Plugins** → **MCP Servers** → **Add MCP Server**.
 2. Set the endpoint URL to your deployed server's `/mcp` path, e.g.:
    ```
-   https://your-app.onrender.com/mcp
+   https://your-server.com/mcp
    ```
 3. Leave authentication blank (credentials are set server-side via environment
    variables on the deployed instance).
@@ -689,8 +689,8 @@ Some older MCP clients use the pre-Streamable HTTP SSE protocol instead of `POST
 For those, use the legacy SSE endpoint:
 
 ```
-GET  https://your-app.onrender.com/sse        ← opens the event stream
-POST https://your-app.onrender.com/messages   ← sends JSON-RPC messages
+GET  https://your-server.com/sse        ← opens the event stream
+POST https://your-server.com/messages   ← sends JSON-RPC messages
 ```
 
 The server supports both protocols simultaneously — no restart or reconfiguration needed.
@@ -700,7 +700,7 @@ The server supports both protocols simultaneously — no restart or reconfigurat
 Any client that accepts a plain MCP endpoint URL:
 
 ```
-https://your-app.onrender.com/mcp
+https://your-server.com/mcp
 ```
 
 ## CLI

@@ -1,5 +1,9 @@
 ## Changelog
 
+### 0.1.21 - 2026-03-15
+
+#### 📝 README — Slight formatting fix
+
 ### 0.1.20 - 2026-03-15
 
 #### 📝 README — MCP Client Configuration overhaul
