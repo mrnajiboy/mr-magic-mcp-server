@@ -1,5 +1,32 @@
 ## Changelog
 
+### 0.1.13 - 2026-03-15
+
+#### 🐛 Render deployment — host/port + DNS rebinding protection (both HTTP transports)
+
+- **`src/transport/mcp-http-server.js`** — Auto-detects `RENDER=true` and binds
+  to `0.0.0.0`; reads `process.env.PORT` (Render default: `10000`); fixed self-execution
+  guard that caused double startup; passes `allowedHosts` to `createMcpExpressApp`
+  using `localhost`, `127.0.0.1`, `RENDER_EXTERNAL_HOSTNAME`, and `MR_MAGIC_ALLOWED_HOSTS`.
+- **`src/transport/http-server.js`** — Same Render-aware host/port resolution;
+  added equivalent Host header validation middleware when binding to `0.0.0.0`
+  (rejects with `403 Forbidden` when the `Host` header doesn't match the allowed set).
+- Both servers respect `options.remote` (CLI `--remote` flag) and `process.env.HOST`.
+
+#### 📝 README + docs
+
+- Full README refactor: table of contents, env vars reorganized into per-group tables,
+  dedicated Provider Credentials section, Render deployment documents all auto-set vars,
+  transport selection table, streamlined manual testing (inline curl, correct health-check URLs),
+  CLI condensed to a table, typo fixes, markdown lint compliance.
+- `MR_MAGIC_ALLOWED_HOSTS` documented in README and `.env.example`.
+
+#### 🔖 Version
+
+- Bumped to `0.1.13` in `package.json`.
+
+---
+
 ### 0.1.11 - 2026-03-15
 
 #### 🐛 Both HTTP servers — Render host/port + DNS rebinding protection
