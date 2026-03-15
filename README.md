@@ -787,13 +787,31 @@ Start MCP HTTP server in one terminal:
 npm run server:mcp:http
 ```
 
-Default endpoint:
-
+Default endpoins:
 - `http://127.0.0.1:3444/mcp`
 
 All manual calls are JSON-RPC 2.0 requests.
 
-##### A. List tools (`tools/list`)
+The MCP API also accepts:
+
+- `GET /health`
+- `POST /` with body shape:
+
+```json
+{
+  "action": "find | findSynced | search",
+  "track": { "artist": "...", "title": "...", "album": "..." },
+  "options": { "...": "..." }
+}
+```
+
+##### A. Health check
+
+```bash
+curl -sS http://127.0.0.1:3333/health | jq
+```
+
+##### B. List tools (`tools/list`)
 
 ```bash
 curl -sS -X POST http://127.0.0.1:3444/mcp \
@@ -802,7 +820,7 @@ curl -sS -X POST http://127.0.0.1:3444/mcp \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | jq
 ```
 
-##### B. Call `find_lyrics`
+##### C. Call `find_lyrics`
 
 ```bash
 curl -sS -X POST http://127.0.0.1:3444/mcp \
@@ -819,7 +837,7 @@ curl -sS -X POST http://127.0.0.1:3444/mcp \
   }' | jq
 ```
 
-##### C. Call `find_synced_lyrics`
+##### D. Call `find_synced_lyrics`
 
 ```bash
 curl -sS -X POST http://127.0.0.1:3444/mcp \
@@ -836,7 +854,7 @@ curl -sS -X POST http://127.0.0.1:3444/mcp \
   }' | jq
 ```
 
-##### D. Call `build_catalog_payload` (default — inline lyrics)
+##### E. Call `build_catalog_payload` (default — inline lyrics)
 
 ```bash
 curl -sS -X POST http://127.0.0.1:3444/mcp \
@@ -856,7 +874,7 @@ curl -sS -X POST http://127.0.0.1:3444/mcp \
   }' | jq
 ```
 
-##### E. Call `build_catalog_payload` (compact Airtable-safe mode)
+##### F. Call `build_catalog_payload` (compact Airtable-safe mode)
 
 ```bash
 curl -sS -X POST http://127.0.0.1:3444/mcp \
@@ -880,7 +898,7 @@ curl -sS -X POST http://127.0.0.1:3444/mcp \
   }' | jq
 ```
 
-##### F. Call `search_lyrics` (all providers, no hydration)
+##### G. Call `search_lyrics` (all providers, no hydration)
 
 ```bash
 curl -sS -X POST http://127.0.0.1:3444/mcp \
@@ -897,7 +915,7 @@ curl -sS -X POST http://127.0.0.1:3444/mcp \
   }' | jq
 ```
 
-##### G. Call `search_provider` (single provider)
+##### H. Call `search_provider` (single provider)
 
 ```bash
 curl -sS -X POST http://127.0.0.1:3444/mcp \
@@ -917,7 +935,7 @@ curl -sS -X POST http://127.0.0.1:3444/mcp \
   }' | jq
 ```
 
-##### H. Call `format_lyrics` (in-memory with romanization)
+##### I. Call `format_lyrics` (in-memory with romanization)
 
 ```bash
 curl -sS -X POST http://127.0.0.1:3444/mcp \
@@ -937,7 +955,7 @@ curl -sS -X POST http://127.0.0.1:3444/mcp \
   }' | jq
 ```
 
-##### I. Call `export_lyrics`
+##### J. Call `export_lyrics`
 
 ```bash
 curl -sS -X POST http://127.0.0.1:3444/mcp \
@@ -957,7 +975,7 @@ curl -sS -X POST http://127.0.0.1:3444/mcp \
   }' | jq
 ```
 
-##### J. Call `get_provider_status`
+##### K. Call `get_provider_status`
 
 ```bash
 curl -sS -X POST http://127.0.0.1:3444/mcp \
@@ -971,7 +989,7 @@ curl -sS -X POST http://127.0.0.1:3444/mcp \
   }' | jq
 ```
 
-##### K. Call `runtime_status`
+##### K2. Call `runtime_status`
 
 ```bash
 curl -sS -X POST http://127.0.0.1:3444/mcp \
@@ -985,7 +1003,7 @@ curl -sS -X POST http://127.0.0.1:3444/mcp \
   }' | jq
 ```
 
-##### K2. Call `push_catalog_to_airtable` (server-side Airtable lyrics write)
+##### M. Call `push_catalog_to_airtable` (server-side Airtable lyrics write)
 
 First call `build_catalog_payload` (section D or E above) to populate the
 lyric cache and capture the returned `lyricsCacheKey`. Then use that key here
@@ -1019,7 +1037,7 @@ curl -sS -X POST http://127.0.0.1:3444/mcp \
 > with real values from your Airtable base and the `build_catalog_payload`
 > response. Requires `AIRTABLE_PERSONAL_ACCESS_TOKEN` to be set in `.env`.
 
-##### L. Call `select_match` (pick from a prior search result)
+##### N. Call `select_match` (pick from a prior search result)
 
 First run `search_lyrics` (section F above) and capture the matches, then
 pick the first synced result:
