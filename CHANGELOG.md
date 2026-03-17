@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.2.1...mr-magic-mcp-server-v0.2.2) (2026-03-17)
+
+
+### Bug Fixes
+
+* updated dependencies from socket report ([c9c448f](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/c9c448f0af06a14636930c61d747248db9e9a387))
+
 ## [0.2.1](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.2.0...mr-magic-mcp-server-v0.2.1) (2026-03-17)
 
 
