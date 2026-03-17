@@ -4,5 +4,5 @@ module.exports = {
   },
   falseFunc: function falseFunc() {
     return false;
-  },
+  }
 };

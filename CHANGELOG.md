@@ -2,17 +2,15 @@
 
 ## [0.2.4](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.2.3...mr-magic-mcp-server-v0.2.4) (2026-03-17)
 
-
 ### Features
 
-* dependecy changes ([c847c43](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/c847c43bd5fbd6bff03a79a57a1f7856ea1bbc66))
+- dependecy changes ([c847c43](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/c847c43bd5fbd6bff03a79a57a1f7856ea1bbc66))
 
 ## [0.2.3](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.2.2...mr-magic-mcp-server-v0.2.3) (2026-03-17)
 
-
 ### Bug Fixes
 
-* updated release-please workflow to format on push. ([7c16492](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/7c164929e04c449491aaede52ea0c70530b459b2))
+- updated release-please workflow to format on push. ([7c16492](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/7c164929e04c449491aaede52ea0c70530b459b2))
 
 ## [0.2.2](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.2.1...mr-magic-mcp-server-v0.2.2) (2026-03-17)
 
