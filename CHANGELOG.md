@@ -2,40 +2,36 @@
 
 ## [0.2.2](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.2.1...mr-magic-mcp-server-v0.2.2) (2026-03-17)
 
-
 ### Bug Fixes
 
-* updated dependencies from socket report ([c9c448f](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/c9c448f0af06a14636930c61d747248db9e9a387))
+- updated dependencies from socket report ([c9c448f](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/c9c448f0af06a14636930c61d747248db9e9a387))
 
 ## [0.2.1](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.2.0...mr-magic-mcp-server-v0.2.1) (2026-03-17)
 
-
 ### Bug Fixes
 
-* security risks ([ae30518](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/ae30518ee33aed6cf9119777cadc1b51baa8f87e))
+- security risks ([ae30518](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/ae30518ee33aed6cf9119777cadc1b51baa8f87e))
 
 ## [0.2.0](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.1.30...mr-magic-mcp-server-v0.2.0) (2026-03-17)
 
-
 ### ⚠ BREAKING CHANGES
 
-* actions version switch on all workflows
-* fixed socket.yml naming typo
-* updated ci and release-please workflows to keep npm updated
+- actions version switch on all workflows
+- fixed socket.yml naming typo
+- updated ci and release-please workflows to keep npm updated
 
 ### Features
 
-* actions version switch on all workflows ([6a202ee](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/6a202eeec8bca02863740223f9d5a4d4ea1bf121))
-* added socket workflow security layer ([511e1d6](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/511e1d6d16ec28584e04cb6cd1936a34146f0547))
-* fixed socket.yml naming typo ([7c700aa](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/7c700aa4986a33e740fa9b4e020eae2a63e51064))
-* updated ci and release-please workflows to keep npm updated ([bf94d2b](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/bf94d2b9ed6a5ff8f80464a479ab826d65dd30a2))
+- actions version switch on all workflows ([6a202ee](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/6a202eeec8bca02863740223f9d5a4d4ea1bf121))
+- added socket workflow security layer ([511e1d6](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/511e1d6d16ec28584e04cb6cd1936a34146f0547))
+- fixed socket.yml naming typo ([7c700aa](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/7c700aa4986a33e740fa9b4e020eae2a63e51064))
+- updated ci and release-please workflows to keep npm updated ([bf94d2b](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/bf94d2b9ed6a5ff8f80464a479ab826d65dd30a2))
 
 ## [0.1.30](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.1.29...mr-magic-mcp-server-v0.1.30) (2026-03-17)
 
-
 ### Bug Fixes
 
-* outdated axios dependency security risk ([4880227](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/48802276a1fa48982b50c99a6c9a2cf47023482d))
+- outdated axios dependency security risk ([4880227](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/48802276a1fa48982b50c99a6c9a2cf47023482d))
 
 ## [0.1.29](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.1.28...mr-magic-mcp-server-v0.1.29) (2026-03-17)
 
