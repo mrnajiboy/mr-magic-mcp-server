@@ -134,8 +134,8 @@ export async function startMcpHttpServer(options = {}) {
   });
 
   // ── Export download endpoint ──────────────────────────────────────────────────
-  app.get('/downloads/:downloadId/:extension', async (req, res) => {
-    const { downloadId, extension } = req.params;
+  // Helper shared by both download route handlers.
+  async function serveDownload(downloadId, extension, res, url) {
     if (!downloadId || !extension) {
       res.status(400).json({ error: 'Invalid download path' });
       return;
@@ -163,9 +163,28 @@ export async function startMcpHttpServer(options = {}) {
         bytes: Buffer.byteLength(content)
       });
     } catch (error) {
-      logger.error('Download lookup failed', { error, url: req.originalUrl });
+      logger.error('Download lookup failed', { error, url });
       res.status(500).json({ error: 'Failed to fetch export' });
     }
+  }
+
+  // Flat format:     /downloads/export-xxx.srt      → id=export-xxx, extension=srt
+  app.get('/downloads/:idWithExt', async (req, res) => {
+    const { idWithExt } = req.params;
+    if (!idWithExt || !idWithExt.includes('.')) {
+      res.status(400).json({ error: 'Invalid download path' });
+      return;
+    }
+    const dotIdx = idWithExt.lastIndexOf('.');
+    const downloadId = idWithExt.slice(0, dotIdx);
+    const extension = idWithExt.slice(dotIdx + 1);
+    await serveDownload(downloadId, extension, res, req.originalUrl);
+  });
+
+  // Compound format: /downloads/export-xxx/romanized.srt → id=export-xxx, extension=romanized.srt
+  app.get('/downloads/:downloadId/:extension', async (req, res) => {
+    const { downloadId, extension } = req.params;
+    await serveDownload(downloadId, extension, res, req.originalUrl);
   });
 
   // ── Streamable HTTP transport (/mcp) ──────────────────────────────────────────

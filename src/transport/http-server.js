@@ -84,12 +84,25 @@ export function startHttpServer(options = {}) {
 
       if (req.method === 'GET' && req.url.startsWith('/downloads/')) {
         const segments = req.url.split('/');
-        const [, , downloadId, ...rest] = segments;
-        // Strip trailing filename segment (e.g. "artist-song.srt") when present so the
-        // Redis key lookup uses only the extension portion of the path.
-        const hasFilename = rest.length > 1 && rest[rest.length - 1].includes('.');
-        const extensionParts = hasFilename ? rest.slice(0, -1) : rest;
-        const extension = extensionParts.join('/') || '';
+        const [, , idSegment, ...rest] = segments;
+
+        // Support two URL formats:
+        //   flat:     /downloads/export-xxx.srt         → id=export-xxx, extension=srt
+        //   compound: /downloads/export-xxx/romanized.srt → id=export-xxx, extension=romanized.srt
+        let downloadId, extension;
+        if (rest.length === 0 && idSegment && idSegment.includes('.')) {
+          // Flat format – extension is appended to the id with a dot.
+          const dotIdx = idSegment.lastIndexOf('.');
+          downloadId = idSegment.slice(0, dotIdx);
+          extension = idSegment.slice(dotIdx + 1);
+        } else {
+          // Compound / path-segment format.
+          downloadId = idSegment;
+          // Strip trailing human-readable filename (e.g. "artist-song.srt") when present.
+          const hasFilename = rest.length > 1 && rest[rest.length - 1].includes('.');
+          const extensionParts = hasFilename ? rest.slice(0, -1) : rest;
+          extension = extensionParts.join('/') || '';
+        }
         if (!downloadId || !extension) {
           logger.warn('Invalid download path', {
             context: 'http-download',
