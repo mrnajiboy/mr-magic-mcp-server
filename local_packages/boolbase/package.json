@@ -1,0 +1,8 @@
+{
+  "name": "boolbase",
+  "version": "1.0.0",
+  "description": "Local inline copy — two simple boolean function factories",
+  "main": "index.js",
+  "type": "commonjs",
+  "license": "ISC"
+}
