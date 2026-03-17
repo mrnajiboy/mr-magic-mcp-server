@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.30](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.1.29...mr-magic-mcp-server-v0.1.30) (2026-03-17)
+
+
+### Bug Fixes
+
+* outdated axios dependency security risk ([4880227](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/48802276a1fa48982b50c99a6c9a2cf47023482d))
+
 ## [0.1.29](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.1.28...mr-magic-mcp-server-v0.1.29) (2026-03-17)
 
 
