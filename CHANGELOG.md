@@ -2,12 +2,11 @@
 
 ## [0.1.29](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.1.28...mr-magic-mcp-server-v0.1.29) (2026-03-17)
 
-
 ### Bug Fixes
 
-* FORREAL SYNC ([16cc055](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/16cc0554c1413e5aed9561edf5993404fdfc95d7))
-* romanization + srt extension bugs ([78edffa](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/78edffaaaa24313d27aad7ed5746d6f8078c0d2f))
-* THIS SHOULD SYNC EVERYBODY ([fa10120](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/fa1012088550f31e471ae9bb26da5c81c655f150))
+- FORREAL SYNC ([16cc055](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/16cc0554c1413e5aed9561edf5993404fdfc95d7))
+- romanization + srt extension bugs ([78edffa](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/78edffaaaa24313d27aad7ed5746d6f8078c0d2f))
+- THIS SHOULD SYNC EVERYBODY ([fa10120](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/fa1012088550f31e471ae9bb26da5c81c655f150))
 
 ## [0.1.28](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.1.27...mr-magic-mcp-server-v0.1.28) (2026-03-15)
 
