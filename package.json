@@ -69,5 +69,29 @@
     "eslint-plugin-import-x": "^4.15.1",
     "playwright": "^1.58.2",
     "prettier": "^3.8.1"
+  },
+  "overrides": {
+    "es-define-property": "npm:@socketregistry/es-define-property@^1",
+    "es-set-tostringtag": "npm:@socketregistry/es-set-tostringtag@^1",
+    "function-bind": "npm:@socketregistry/function-bind@^1",
+    "gopd": "npm:@socketregistry/gopd@^1",
+    "has-symbols": "npm:@socketregistry/has-symbols@^1",
+    "has-tostringtag": "npm:@socketregistry/has-tostringtag@^1",
+    "hasown": "npm:@socketregistry/hasown@^1",
+    "object-assign": "npm:@socketregistry/object-assign@^1",
+    "safer-buffer": "npm:@socketregistry/safer-buffer@^1",
+    "side-channel": "npm:@socketregistry/side-channel@^1"
+  },
+  "resolutions": {
+    "es-define-property": "npm:@socketregistry/es-define-property@^1",
+    "es-set-tostringtag": "npm:@socketregistry/es-set-tostringtag@^1",
+    "function-bind": "npm:@socketregistry/function-bind@^1",
+    "gopd": "npm:@socketregistry/gopd@^1",
+    "has-symbols": "npm:@socketregistry/has-symbols@^1",
+    "has-tostringtag": "npm:@socketregistry/has-tostringtag@^1",
+    "hasown": "npm:@socketregistry/hasown@^1",
+    "object-assign": "npm:@socketregistry/object-assign@^1",
+    "safer-buffer": "npm:@socketregistry/safer-buffer@^1",
+    "side-channel": "npm:@socketregistry/side-channel@^1"
   }
 }
