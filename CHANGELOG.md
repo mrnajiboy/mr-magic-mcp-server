@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.6](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.2.5...mr-magic-mcp-server-v0.2.6) (2026-03-17)
+
+
+### Features
+
+* update workflow api key naming conventions ([d1141c8](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/d1141c8f4d5c8623c81c684f96ad3c978dc67d23))
+
+
+### Bug Fixes
+
+* subtitles download format ([73877aa](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/73877aa70ea05347e02db0ee3619e73d506dd15b))
+
 ## [0.2.5](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.2.4...mr-magic-mcp-server-v0.2.5) (2026-03-17)
 
 
