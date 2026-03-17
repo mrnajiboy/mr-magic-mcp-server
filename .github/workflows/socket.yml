@@ -2,8 +2,8 @@
 # This workflow runs Socket Security scans on every commit to any branch
 # It automatically detects git repository information and handles different event types
 
-name: Socket Security Scan
-run-name: Socket Security Github Action
+name: Socket Security
+run-name: Socket Security Check
 
 on:
   push:
