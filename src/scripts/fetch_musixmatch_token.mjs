@@ -2,7 +2,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { chromium } from 'playwright-chromium';
+import { chromium } from 'playwright';
 import '../src/utils/config.js';
 
 const AUTH_URL = 'https://auth.musixmatch.com/';

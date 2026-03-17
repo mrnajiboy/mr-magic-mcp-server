@@ -1,6 +1,43 @@
-import Hangul from 'hangul-js';
-
 const HANGUL_REGEX = /[\u1100-\u11FF\u3130-\u318F\uAC00-\uD7AF]/;
+
+// Hangul syllable decomposition tables (Unicode standard)
+const HANGUL_INITIALS = [
+  'ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ',
+  'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'
+];
+const HANGUL_VOWELS = [
+  'ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ',
+  'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ'
+];
+const HANGUL_FINALS = [
+  null, 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ', 'ㄺ',
+  'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ', 'ㅁ', 'ㅂ', 'ㅄ', 'ㅅ',
+  'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'
+];
+
+/**
+ * Decompose a word into grouped jamo arrays — one sub-array per syllable block.
+ * Non-Hangul characters are wrapped in a single-element array.
+ * Equivalent to hangul-js Hangul.disassemble(word, true).
+ */
+function disassembleGrouped(word) {
+  const result = [];
+  for (const char of word) {
+    const cp = char.codePointAt(0);
+    if (cp >= 0xac00 && cp <= 0xd7a3) {
+      const syllable = cp - 0xac00;
+      const initialIdx = Math.floor(syllable / (21 * 28));
+      const vowelIdx = Math.floor((syllable % (21 * 28)) / 28);
+      const finalIdx = syllable % 28;
+      const jamo = [HANGUL_INITIALS[initialIdx], HANGUL_VOWELS[vowelIdx]];
+      if (finalIdx > 0) jamo.push(HANGUL_FINALS[finalIdx]);
+      result.push(jamo);
+    } else {
+      result.push([char]);
+    }
+  }
+  return result;
+}
 
 const ROMAN_MAP = {
   ㄱ: 'g',
@@ -69,7 +106,7 @@ function romanizeWord(word) {
   if (!word) return '';
   let grouped = [];
   try {
-    grouped = Hangul.disassemble(word, true);
+    grouped = disassembleGrouped(word);
   } catch (error) {
     return word;
   }
