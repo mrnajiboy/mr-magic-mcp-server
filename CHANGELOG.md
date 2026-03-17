@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.5](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.2.4...mr-magic-mcp-server-v0.2.5) (2026-03-17)
+
+
+### Bug Fixes
+
+* dependency changes! ([4989908](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/4989908328b7400d2f9cca805ef9d1068430744f))
+* update local boolbase linting file ([7935983](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/79359834b4f4f95274635f5da0d17c39c9bf7e46))
+* update more dependencies, add local copy for boolbase logic calls ([87af961](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/87af961fd2cb386ee20bb52109fa12e5793f46d5))
+
 ## [0.2.4](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.2.3...mr-magic-mcp-server-v0.2.4) (2026-03-17)
 
 ### Features
