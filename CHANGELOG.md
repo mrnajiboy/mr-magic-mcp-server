@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.2.2...mr-magic-mcp-server-v0.2.3) (2026-03-17)
+
+
+### Bug Fixes
+
+* updated release-please workflow to format on push. ([7c16492](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/7c164929e04c449491aaede52ea0c70530b459b2))
+
 ## [0.2.2](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.2.1...mr-magic-mcp-server-v0.2.2) (2026-03-17)
 
 ### Bug Fixes
