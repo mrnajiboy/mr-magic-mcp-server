@@ -85,7 +85,11 @@ export function startHttpServer(options = {}) {
       if (req.method === 'GET' && req.url.startsWith('/downloads/')) {
         const segments = req.url.split('/');
         const [, , downloadId, ...rest] = segments;
-        const extension = rest?.join('/') || '';
+        // Strip trailing filename segment (e.g. "artist-song.srt") when present so the
+        // Redis key lookup uses only the extension portion of the path.
+        const hasFilename = rest.length > 1 && rest[rest.length - 1].includes('.');
+        const extensionParts = hasFilename ? rest.slice(0, -1) : rest;
+        const extension = extensionParts.join('/') || '';
         if (!downloadId || !extension) {
           logger.warn('Invalid download path', {
             context: 'http-download',

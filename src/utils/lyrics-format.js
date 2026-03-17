@@ -74,7 +74,16 @@ function romanizeWord(word) {
     return word;
   }
   const romanized = grouped
-    .map((characters) => characters.map((char) => ROMAN_MAP[char] ?? char).join(''))
+    .map((characters) =>
+      characters
+        .map((char, idx) => {
+          // ㅇ is silent as the initial consonant (position 0 in every syllable group)
+          // and pronounced 'ng' only when it appears as a final consonant.
+          if (char === 'ㅇ' && idx === 0) return '';
+          return ROMAN_MAP[char] ?? char;
+        })
+        .join('')
+    )
     .join('');
   if (!romanized) return word;
   return romanized[0]?.toUpperCase() + romanized.slice(1);

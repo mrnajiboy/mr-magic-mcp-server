@@ -30,7 +30,8 @@ export default class RedisStorage {
 
     const expiresAt = new Date(Date.now() + this.ttl * 1000).toISOString();
     const base = this.downloadBaseUrl?.replace(/[\/]+$/, '') || '';
-    const url = `${base}/downloads/${id}/${extension}`;
+    const bareExt = extension.includes('.') ? extension.split('.').pop() : extension;
+    const url = `${base}/downloads/${id}/${extension}/${baseName}.${bareExt}`;
     return new ExportStorageResult({ url, expiresAt, skipped: false });
   }
 }
