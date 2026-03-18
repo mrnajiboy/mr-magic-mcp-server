@@ -9,11 +9,10 @@
 
 ## [0.3.4](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.3...mr-magic-mcp-server-v0.3.4) (2026-03-18)
 
-
 ### Bug Fixes
 
-* full search and find behavior sync for mcp tool calls ([6a66d8c](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/6a66d8c99f2e0eecb0bb33c83cf0ca8150afc975))
-* refined search and find algorithm to more accurately determine best results. ([9aa2f60](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/9aa2f60f22c911c55cd395c8b0124fe8bf22fe67))
+- full search and find behavior sync for mcp tool calls ([6a66d8c](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/6a66d8c99f2e0eecb0bb33c83cf0ca8150afc975))
+- refined search and find algorithm to more accurately determine best results. ([9aa2f60](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/9aa2f60f22c911c55cd395c8b0124fe8bf22fe67))
 
 ## [0.3.3](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.2...mr-magic-mcp-server-v0.3.3) (2026-03-18)
 

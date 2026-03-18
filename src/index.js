@@ -43,7 +43,9 @@ function rankRecord(record) {
 async function tryProviders(track, { syncedOnly = false, providerNames = [] } = {}) {
   const matches = [];
   let bestSynced = null;
-  let bestOverall = null;
+  // Only track candidates that have actual lyric text — metadata-only stubs
+  // (e.g. Melon returning a record with plainLyrics: null) never become best.
+  let bestWithContent = null;
   const chosenProviders =
     providerNames.length > 0
       ? providers.filter((provider) => providerNames.includes(provider.name))
@@ -56,15 +58,23 @@ async function tryProviders(track, { syncedOnly = false, providerNames = [] } = 
     const scored = { provider: provider.name, result: candidate, score: rankRecord(candidate) };
     matches.push(scored);
 
-    if (!bestOverall || scored.score > bestOverall.score) {
-      bestOverall = scored;
+    // Only promote as best when the candidate actually has lyric content.
+    if (lyricContentScore(candidate) > 0) {
+      if (!bestWithContent || scored.score > bestWithContent.score) {
+        bestWithContent = scored;
+      }
     }
-    if (candidate.synced && (!bestSynced || scored.score > bestSynced.score)) {
+    if (
+      candidate.synced &&
+      lyricContentScore(candidate) > 0 &&
+      (!bestSynced || scored.score > bestSynced.score)
+    ) {
       bestSynced = scored;
     }
   }
 
-  const best = syncedOnly ? (bestSynced ?? null) : (bestSynced ?? bestOverall ?? null);
+  // best is null when no provider returned actual lyric content for this track.
+  const best = syncedOnly ? (bestSynced ?? null) : (bestSynced ?? bestWithContent ?? null);
   return {
     matches,
     best

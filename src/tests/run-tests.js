@@ -259,6 +259,41 @@ function testAutoPickSyncedWithContentBeatsSyncedEmpty() {
   console.log('autoPick: synced+content beats synced+empty even with lower confidence: ok');
 }
 
+function testEmptyRecordNeverBecomesBest() {
+  // Simulate the tryProviders bestWithContent guard directly.
+  // When all candidates are metadata-only (no lyric text), bestWithContent must stay null.
+  const emptyRecords = [
+    { plainLyrics: null, syncedLyrics: null, synced: false, confidence: 0.5 }, // Melon stub
+    { plainLyrics: '', syncedLyrics: null, synced: false, confidence: 0.3 } // empty string
+  ];
+  let bestWithContent = null;
+  for (const candidate of emptyRecords) {
+    if (lyricContentScore(candidate) > 0) {
+      bestWithContent = candidate;
+    }
+  }
+  assert.ok(
+    bestWithContent === null,
+    'metadata-only records must not be promoted as best — bestWithContent should remain null'
+  );
+
+  // Contrast: a record with actual text IS selected
+  const withLyrics = { plainLyrics: 'line one\nline two', syncedLyrics: null, confidence: 0.1 };
+  let bestWithContentFromMixed = null;
+  for (const candidate of [...emptyRecords, withLyrics]) {
+    if (lyricContentScore(candidate) > 0) {
+      bestWithContentFromMixed = candidate;
+    }
+  }
+  assert.ok(
+    bestWithContentFromMixed === withLyrics,
+    'when a content-bearing record is present, it should be promoted over empty ones'
+  );
+
+  divider();
+  console.log('empty records never become best — content guard works: ok');
+}
+
 async function testBuildPayloadFromResultReturnsCacheKey() {
   // build a minimal find result with plain lyrics — no network call needed
   const best = {
@@ -273,7 +308,10 @@ async function testBuildPayloadFromResultReturnsCacheKey() {
   const context = buildActionContext({});
   const payload = await buildPayloadFromResult(result, context);
 
-  assert.ok(payload.lyricsCacheKey, 'buildPayloadFromResult should include lyricsCacheKey when best has plain lyrics');
+  assert.ok(
+    payload.lyricsCacheKey,
+    'buildPayloadFromResult should include lyricsCacheKey when best has plain lyrics'
+  );
   assert.equal(typeof payload.lyricsCacheKey, 'string', 'lyricsCacheKey should be a string');
 
   // Verify the cache was actually populated
@@ -283,7 +321,11 @@ async function testBuildPayloadFromResultReturnsCacheKey() {
 
   // Verify key stability — same artist/title always yields the same key
   const expectedKey = catalogCacheKey({ artist: 'Dylan Cotrone', title: 'Cigarette' });
-  assert.equal(payload.lyricsCacheKey, expectedKey, 'lyricsCacheKey should match catalogCacheKey for the track');
+  assert.equal(
+    payload.lyricsCacheKey,
+    expectedKey,
+    'lyricsCacheKey should match catalogCacheKey for the track'
+  );
 
   divider();
   console.log('buildPayloadFromResult returns lyricsCacheKey and populates cache: ok');
@@ -302,7 +344,10 @@ async function testBuildPayloadFromResultNoCacheKeyWhenNoLyrics() {
   const context = buildActionContext({});
   const payload = await buildPayloadFromResult(result, context);
 
-  assert.ok(!payload.lyricsCacheKey, 'buildPayloadFromResult should NOT include lyricsCacheKey when best has no lyrics');
+  assert.ok(
+    !payload.lyricsCacheKey,
+    'buildPayloadFromResult should NOT include lyricsCacheKey when best has no lyrics'
+  );
 
   divider();
   console.log('buildPayloadFromResult omits lyricsCacheKey when best has no lyrics: ok');
@@ -320,6 +365,7 @@ async function run() {
   testAutoPickPrefersContentOverEmpty();
   testAutoPickRicherContentWins();
   testAutoPickSyncedWithContentBeatsSyncedEmpty();
+  testEmptyRecordNeverBecomesBest();
   await testBuildPayloadFromResultReturnsCacheKey();
   await testBuildPayloadFromResultNoCacheKeyWhenNoLyrics();
   const toolNames = mcpToolDefinitions.map((tool) => tool.name);
