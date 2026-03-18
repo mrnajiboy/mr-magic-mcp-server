@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import dotenv from 'dotenv';
+import dotenvx from '@dotenvx/dotenvx';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -9,7 +9,11 @@ const projectRoot = path.resolve(__dirname, '..', '..');
 const resolvedRoot = process.env.MR_MAGIC_ROOT || projectRoot;
 const resolvedEnvPath = process.env.MR_MAGIC_ENV_PATH || path.join(resolvedRoot, '.env');
 
-dotenv.config({ path: resolvedEnvPath });
+// Only load .env on local instances — skip on any known server environment
+// (Render sets RENDER automatically; NODE_ENV=production covers other platforms).
+if (!process.env.RENDER && process.env.NODE_ENV !== 'production') {
+  dotenvx.config({ path: resolvedEnvPath });
+}
 
 export function getProjectRoot() {
   return resolvedRoot;
