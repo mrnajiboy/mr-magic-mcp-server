@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-import { normalizeLyricRecord } from '../provider-result-schema.js';
+import { normalizeLyricRecord, lyricContentScore } from '../provider-result-schema.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('provider:lrclib');
@@ -40,6 +40,22 @@ async function querySearch(track) {
   }
 }
 
+/**
+ * Pick the best candidate from a list: prefer synced over plain, then prefer
+ * richer lyric content. This ensures fetchFromLrclib always returns a synced
+ * result when one is available rather than the first incidentally-ordered one.
+ */
+function chooseBestCandidate(candidates) {
+  if (!candidates.length) return null;
+  return candidates.slice().sort((a, b) => {
+    // Synced results come first
+    const syncedDiff = (b.synced ? 1 : 0) - (a.synced ? 1 : 0);
+    if (syncedDiff !== 0) return syncedDiff;
+    // Among equally-synced results, prefer richer content
+    return lyricContentScore(b) - lyricContentScore(a);
+  })[0];
+}
+
 export async function fetchFromLrclib(track) {
   try {
     const results = await querySearch(track);
@@ -47,16 +63,19 @@ export async function fetchFromLrclib(track) {
       logger.debug('LRCLIB: no results found', { track });
       return null;
     }
-    const exactMatch = results.find((record) => {
+    const exactMatches = results.filter((record) => {
       const sameTitle = record.title?.toLowerCase() === track.title?.toLowerCase();
       const sameArtist = record.artist?.toLowerCase() === track.artist?.toLowerCase();
       return sameTitle && sameArtist;
     });
-    const result = exactMatch ?? results[0];
+    // Prefer exact matches; if none, fall back to all results.
+    // Within each group, prefer synced then richer content.
+    const result = chooseBestCandidate(exactMatches) ?? chooseBestCandidate(results);
     logger.debug('LRCLIB: match selected', {
-      exact: Boolean(exactMatch),
-      title: result.title,
-      artist: result.artist
+      exact: exactMatches.length > 0,
+      synced: result?.synced,
+      title: result?.title,
+      artist: result?.artist
     });
     return result;
   } catch (error) {
