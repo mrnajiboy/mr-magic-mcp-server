@@ -92,9 +92,9 @@ async function upstashCmd({ url, token }, command) {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
-    body: JSON.stringify(command),
+    body: JSON.stringify(command)
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -129,7 +129,7 @@ function cfValuesUrl({ accountId, namespaceId }, key) {
 async function cfGet(cfg, key) {
   try {
     const res = await fetch(cfValuesUrl(cfg, key), {
-      headers: { Authorization: `Bearer ${cfg.apiToken}` },
+      headers: { Authorization: `Bearer ${cfg.apiToken}` }
     });
     if (res.status === 404) return null;
     if (!res.ok) return null;
@@ -146,9 +146,9 @@ async function cfSet(cfg, key, value, ttlSeconds) {
     method: 'PUT',
     headers: {
       Authorization: `Bearer ${cfg.apiToken}`,
-      'Content-Type': 'text/plain',
+      'Content-Type': 'text/plain'
     },
-    body: value,
+    body: value
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');

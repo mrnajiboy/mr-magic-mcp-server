@@ -29,6 +29,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "cleanup": "eslint . --fix && prettier --write .",
     "test": "node src/tests/run-tests.js",
     "fetch:musixmatch-token": "node src/scripts/fetch_musixmatch_token.mjs",
     "push:musixmatch-token": "node src/scripts/push_musixmatch_token.mjs",

@@ -40,9 +40,9 @@ const { values } = parseArgs({
   args: process.argv.slice(2),
   options: {
     token: { type: 'string', short: 't' },
-    help:  { type: 'boolean', short: 'h' },
+    help: { type: 'boolean', short: 'h' }
   },
-  strict: false,
+  strict: false
 });
 
 if (values.help) {
@@ -114,7 +114,9 @@ async function main() {
       anyFailed = true;
     }
   } else {
-    console.log('  — KV store: not configured (set UPSTASH_REDIS_REST_URL/TOKEN or CF_* vars to enable)');
+    console.log(
+      '  — KV store: not configured (set UPSTASH_REDIS_REST_URL/TOKEN or CF_* vars to enable)'
+    );
   }
 
   if (anyFailed) {

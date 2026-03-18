@@ -2,35 +2,31 @@
 
 ## [0.3.0](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.2.6...mr-magic-mcp-server-v0.3.0) (2026-03-18)
 
-
 ### ⚠ BREAKING CHANGES
 
-* token logic for musixmatch + genius reworked and clarified for ephemeral instances
+- token logic for musixmatch + genius reworked and clarified for ephemeral instances
 
 ### ref
 
-* token logic for musixmatch + genius reworked and clarified for ephemeral instances ([e7616de](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/e7616de546c0f493043738e68fccfc4d00c0c354))
+- token logic for musixmatch + genius reworked and clarified for ephemeral instances ([e7616de](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/e7616de546c0f493043738e68fccfc4d00c0c354))
 
 ## [0.2.6](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.2.5...mr-magic-mcp-server-v0.2.6) (2026-03-17)
 
-
 ### Features
 
-* update workflow api key naming conventions ([d1141c8](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/d1141c8f4d5c8623c81c684f96ad3c978dc67d23))
-
+- update workflow api key naming conventions ([d1141c8](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/d1141c8f4d5c8623c81c684f96ad3c978dc67d23))
 
 ### Bug Fixes
 
-* subtitles download format ([73877aa](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/73877aa70ea05347e02db0ee3619e73d506dd15b))
+- subtitles download format ([73877aa](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/73877aa70ea05347e02db0ee3619e73d506dd15b))
 
 ## [0.2.5](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.2.4...mr-magic-mcp-server-v0.2.5) (2026-03-17)
 
-
 ### Bug Fixes
 
-* dependency changes! ([4989908](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/4989908328b7400d2f9cca805ef9d1068430744f))
-* update local boolbase linting file ([7935983](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/79359834b4f4f95274635f5da0d17c39c9bf7e46))
-* update more dependencies, add local copy for boolbase logic calls ([87af961](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/87af961fd2cb386ee20bb52109fa12e5793f46d5))
+- dependency changes! ([4989908](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/4989908328b7400d2f9cca805ef9d1068430744f))
+- update local boolbase linting file ([7935983](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/79359834b4f4f95274635f5da0d17c39c9bf7e46))
+- update more dependencies, add local copy for boolbase logic calls ([87af961](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/87af961fd2cb386ee20bb52109fa12e5793f46d5))
 
 ## [0.2.4](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.2.3...mr-magic-mcp-server-v0.2.4) (2026-03-17)
 

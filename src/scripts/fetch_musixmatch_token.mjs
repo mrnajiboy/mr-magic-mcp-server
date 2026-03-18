@@ -65,7 +65,9 @@ function printDeploymentBlock(tokenValue) {
 
   console.log('EPHEMERAL / SERVERLESS — MANUAL ENV VAR OVERRIDE');
   console.log('  Copy the token below and set it in your platform dashboard.');
-  console.log('  The server reads MUSIXMATCH_DIRECT_TOKEN on startup (highest priority env var):\n');
+  console.log(
+    '  The server reads MUSIXMATCH_DIRECT_TOKEN on startup (highest priority env var):\n'
+  );
   console.log(`  MUSIXMATCH_DIRECT_TOKEN=${tokenString}\n`);
 
   console.log('─'.repeat(68) + '\n');
@@ -105,14 +107,37 @@ async function main() {
 
   // Each launcher returns a BrowserContext (launchPersistentContext skips browser.newContext()).
   const candidates = [
-    ['chrome',          () => chromium.launchPersistentContext(sessionDir, { ...chromiumOpts, channel: 'chrome' })],
-    ['brave (channel)', () => chromium.launchPersistentContext(sessionDir, { ...chromiumOpts, channel: 'brave' })],
-    ['brave (path)',    () => chromium.launchPersistentContext(sessionDir, { ...chromiumOpts, executablePath: '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser' })],
-    ['msedge',          () => chromium.launchPersistentContext(sessionDir, { ...chromiumOpts, channel: 'msedge' })],
-    ['comet',           () => chromium.launchPersistentContext(sessionDir, { ...chromiumOpts, executablePath: '/Applications/Comet.app/Contents/MacOS/Comet' })],
-    ['firefox',         () => firefox.launchPersistentContext(sessionDir, { ...baseOpts })],
+    [
+      'chrome',
+      () => chromium.launchPersistentContext(sessionDir, { ...chromiumOpts, channel: 'chrome' })
+    ],
+    [
+      'brave (channel)',
+      () => chromium.launchPersistentContext(sessionDir, { ...chromiumOpts, channel: 'brave' })
+    ],
+    [
+      'brave (path)',
+      () =>
+        chromium.launchPersistentContext(sessionDir, {
+          ...chromiumOpts,
+          executablePath: '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser'
+        })
+    ],
+    [
+      'msedge',
+      () => chromium.launchPersistentContext(sessionDir, { ...chromiumOpts, channel: 'msedge' })
+    ],
+    [
+      'comet',
+      () =>
+        chromium.launchPersistentContext(sessionDir, {
+          ...chromiumOpts,
+          executablePath: '/Applications/Comet.app/Contents/MacOS/Comet'
+        })
+    ],
+    ['firefox', () => firefox.launchPersistentContext(sessionDir, { ...baseOpts })],
     ['safari (webkit)', () => webkit.launchPersistentContext(sessionDir, { ...baseOpts })],
-    ['bundled chromium',() => chromium.launchPersistentContext(sessionDir, { ...chromiumOpts })],
+    ['bundled chromium', () => chromium.launchPersistentContext(sessionDir, { ...chromiumOpts })]
   ];
 
   // If BROWSER is set, move that candidate to the front.
@@ -120,7 +145,7 @@ async function main() {
   const orderedCandidates = browserEnv
     ? [
         ...candidates.filter(([label]) => label.startsWith(browserEnv)),
-        ...candidates.filter(([label]) => !label.startsWith(browserEnv)),
+        ...candidates.filter(([label]) => !label.startsWith(browserEnv))
       ]
     : candidates;
 
@@ -190,7 +215,7 @@ async function main() {
   // Write to all configured storage backends in parallel.
   await Promise.allSettled([
     saveToken(parsed, decodedDesktopCookie),
-    saveToKv(parsed, decodedDesktopCookie),
+    saveToKv(parsed, decodedDesktopCookie)
   ]);
 
   // Extract the raw token string for the deployment hint.

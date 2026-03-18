@@ -64,6 +64,7 @@ MUSIXMATCH_DIRECT_TOKEN=your_token \
 Connect your client to `http://localhost:3444/mcp` (or your public URL + `/mcp`).
 
 The same server also exposes the **legacy SSE** endpoints for older clients:
+
 - `GET  /sse` — opens the event stream
 - `POST /messages?sessionId=...` — sends JSON-RPC messages
 
@@ -135,14 +136,16 @@ On Render free tier you cannot SSH in or open a browser. The recommended pattern
 1. Run `npm run fetch:musixmatch-token` locally, copy the token JSON from the output.
 
 2. In the Render Dashboard → **Environment** tab, set:
-   - `MUSIXMATCH_DIRECT_TOKEN` = `<your token JSON>` *(used as both push source and runtime override)*
+   - `MUSIXMATCH_DIRECT_TOKEN` = `<your token JSON>` _(used as both push source and runtime override)_
    - `UPSTASH_REDIS_REST_URL` = your Upstash endpoint
    - `UPSTASH_REDIS_REST_TOKEN` = your Upstash token
 
 3. Set the Render **Start Command** to:
+
    ```
    npm run push:musixmatch-token && npm run server:mcp:http
    ```
+
    On every (re)start, the token is pushed to Upstash then the server reads it
    from KV. If `MUSIXMATCH_DIRECT_TOKEN` is unset the push step is a silent no-op.
 
@@ -224,18 +227,18 @@ Token resolution order (first match wins):
 2. **KV store** — Upstash Redis (priority 1) or Cloudflare KV (priority 2)
 3. **On-disk cache** — `.cache/musixmatch-token.json` (local dev / persistent servers)
 
-| Variable                        | Description                                                                                                           |
-| ------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `MUSIXMATCH_DIRECT_TOKEN`       | Static bearer token. Recommended for production / ephemeral hosts. Also used as push source by `push:musixmatch-token`. |
-| `UPSTASH_REDIS_REST_URL`        | Upstash Redis KV backend URL. Also used by the export backend — set once, used for both.                              |
-| `UPSTASH_REDIS_REST_TOKEN`      | Upstash Redis KV bearer token. Takes precedence over Cloudflare KV when both are set.                                 |
-| `CF_API_TOKEN`                  | Cloudflare API token with `KV:Edit` permission (Cloudflare KV backend).                                               |
-| `CF_ACCOUNT_ID`                 | Cloudflare account ID (Cloudflare KV backend).                                                                        |
-| `CF_KV_NAMESPACE_ID`            | Cloudflare KV namespace ID (Cloudflare KV backend).                                                                   |
-| `MUSIXMATCH_TOKEN_KV_KEY`       | KV key name for the token store. Default: `mr-magic:musixmatch-token`.                                                |
-| `MUSIXMATCH_TOKEN_KV_TTL_SECONDS` | Token TTL in the KV store (seconds). Default: `2592000` (30 days).                                                  |
-| `MUSIXMATCH_TOKEN_CACHE`        | Path to the on-disk cache file. Default: `.cache/musixmatch-token.json`.                                              |
-| `MUSIXMATCH_AUTO_FETCH`         | Set to `1` to attempt headless token re-fetch when no token is found.                                                 |
+| Variable                          | Description                                                                                                             |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `MUSIXMATCH_DIRECT_TOKEN`         | Static bearer token. Recommended for production / ephemeral hosts. Also used as push source by `push:musixmatch-token`. |
+| `UPSTASH_REDIS_REST_URL`          | Upstash Redis KV backend URL. Also used by the export backend — set once, used for both.                                |
+| `UPSTASH_REDIS_REST_TOKEN`        | Upstash Redis KV bearer token. Takes precedence over Cloudflare KV when both are set.                                   |
+| `CF_API_TOKEN`                    | Cloudflare API token with `KV:Edit` permission (Cloudflare KV backend).                                                 |
+| `CF_ACCOUNT_ID`                   | Cloudflare account ID (Cloudflare KV backend).                                                                          |
+| `CF_KV_NAMESPACE_ID`              | Cloudflare KV namespace ID (Cloudflare KV backend).                                                                     |
+| `MUSIXMATCH_TOKEN_KV_KEY`         | KV key name for the token store. Default: `mr-magic:musixmatch-token`.                                                  |
+| `MUSIXMATCH_TOKEN_KV_TTL_SECONDS` | Token TTL in the KV store (seconds). Default: `2592000` (30 days).                                                      |
+| `MUSIXMATCH_TOKEN_CACHE`          | Path to the on-disk cache file. Default: `.cache/musixmatch-token.json`.                                                |
+| `MUSIXMATCH_AUTO_FETCH`           | Set to `1` to attempt headless token re-fetch when no token is found.                                                   |
 
 ### Export and storage
 
