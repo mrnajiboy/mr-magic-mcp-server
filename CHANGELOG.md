@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.1](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.0...mr-magic-mcp-server-v0.3.1) (2026-03-18)
+
+
+### Bug Fixes
+
+* linting and prettier formatting cleanup, added cleanup script ([924b3e4](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/924b3e4dd9db7638befce93dca95850af50e9859))
+
+
+### Documentation
+
+* full README rewrite ([a602da9](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/a602da9391944341e2d55422f0b7846ee8965ae5))
+* update env example structure ([171a523](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/171a523bb850ad90d64499ffab4b195c6bc35c43))
+
 ## [0.3.0](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.2.6...mr-magic-mcp-server-v0.3.0) (2026-03-18)
 
 ### ⚠ BREAKING CHANGES
