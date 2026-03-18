@@ -9,24 +9,21 @@
 
 ## [0.3.7](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.6...mr-magic-mcp-server-v0.3.7) (2026-03-18)
 
-
 ### Performance Improvements
 
-* major overhaul of korean romanization ([9841c5d](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/9841c5d16a20d9792b3d8fd4173f8feebc38dd9d))
+- major overhaul of korean romanization ([9841c5d](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/9841c5d16a20d9792b3d8fd4173f8feebc38dd9d))
 
 ## [0.3.6](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.5...mr-magic-mcp-server-v0.3.6) (2026-03-18)
 
-
 ### Bug Fixes
 
-* update algo ([910e77a](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/910e77a5465e1e7b8ae91d86de0f4afab03317a8))
+- update algo ([910e77a](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/910e77a5465e1e7b8ae91d86de0f4afab03317a8))
 
 ## [0.3.5](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.4...mr-magic-mcp-server-v0.3.5) (2026-03-18)
 
-
 ### Bug Fixes
 
-* search and find tool call algorithms ([5104c92](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/5104c9247cb1b443291310a6a93c39b8ec3dabae))
+- search and find tool call algorithms ([5104c92](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/5104c9247cb1b443291310a6a93c39b8ec3dabae))
 
 ## [0.3.4](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.3...mr-magic-mcp-server-v0.3.4) (2026-03-18)
 

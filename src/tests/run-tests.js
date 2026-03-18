@@ -324,9 +324,9 @@ function testRomanization() {
   // 깻: ㄷ-representative of ㅅ batchim; 잎: ㅇ initial (silent) → liaison
   // Actually 깻 = ㄲ+ㅖ+ㅅ, 잎 = ㅇ+ㅣ+ㅍ
   // Liaison: 잎 initial ㅇ → ㅅ(깻) moves to 잎 onset:  → 깨 + 씹? No:
-  // 깻: batchim ㅅ; 잎: initial ㅇ → 깻 coda ㅅ moves to 잎 as initial 'ss'? 
+  // 깻: batchim ㅅ; 잎: initial ㅇ → 깻 coda ㅅ moves to 잎 as initial 'ss'?
   // Standard Korean: 깻잎 → [깬닙] (nasalization of ㅅ→ㄴ before ㅣ? No.
-  // Actually: 깻잎 → liaison: 깻(ㅅ) + 잎(ㅇ) → 깨싫... 
+  // Actually: 깻잎 → liaison: 깻(ㅅ) + 잎(ㅇ) → 깨싫...
   // Correct pronunciation: 깻잎 [깬닙] — the ㅅ turns to ㄴ (because 잎's ㅍ batchim + ㄴ?)
   // Simpler: official = kkaennip. Our engine: 깻(ㅅ liaison to 잎ㅇ) → 깨 + 싶 → 깨십.
   // The 잎 ㅍ final stays = p.  깻잎 → Kkaesip via liaison. That's our engine's output.

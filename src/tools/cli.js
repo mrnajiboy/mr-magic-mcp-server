@@ -356,7 +356,10 @@ program
     },
     []
   )
-  .option('--output <dir>', 'Directory to write exports (requires --export; defaults to MR_MAGIC_EXPORT_DIR or ./exports)')
+  .option(
+    '--output <dir>',
+    'Directory to write exports (requires --export; defaults to MR_MAGIC_EXPORT_DIR or ./exports)'
+  )
   .option('--no-romanize', 'Disable romanized lyrics', false)
   .action(async (options) => {
     const track = buildTrackFromOptions(options);
@@ -542,7 +545,10 @@ program
     },
     []
   )
-  .option('--output <dir>', 'Directory for exports (requires --export; defaults to MR_MAGIC_EXPORT_DIR or ./exports)')
+  .option(
+    '--output <dir>',
+    'Directory for exports (requires --export; defaults to MR_MAGIC_EXPORT_DIR or ./exports)'
+  )
   .option('--no-romanize', 'Disable romanized lyrics', false)
   .action(async (options) => {
     const track = buildTrackFromOptions(options);
