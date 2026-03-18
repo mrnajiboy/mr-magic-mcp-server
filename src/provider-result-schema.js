@@ -39,10 +39,8 @@ export function countLyricLines(text) {
 export function lyricContentScore(record) {
   if (!record) return 0;
 
-  const plainText =
-    typeof record.plainLyrics === 'string' ? record.plainLyrics.trim() : '';
-  const syncedText =
-    typeof record.syncedLyrics === 'string' ? record.syncedLyrics.trim() : '';
+  const plainText = typeof record.plainLyrics === 'string' ? record.plainLyrics.trim() : '';
+  const syncedText = typeof record.syncedLyrics === 'string' ? record.syncedLyrics.trim() : '';
 
   const hasAny = Boolean(plainText || syncedText);
   if (!hasAny) return 0;

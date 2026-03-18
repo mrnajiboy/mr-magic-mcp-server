@@ -250,9 +250,7 @@ function testAutoPickSyncedWithContentBeatsSyncedEmpty() {
     'synced result with actual lyrics beats synced result with no lyrics'
   );
   divider();
-  console.log(
-    'autoPick: synced+content beats synced+empty even with lower confidence: ok'
-  );
+  console.log('autoPick: synced+content beats synced+empty even with lower confidence: ok');
 }
 
 async function run() {

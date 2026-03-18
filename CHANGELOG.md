@@ -2,17 +2,15 @@
 
 ## [0.3.3](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.2...mr-magic-mcp-server-v0.3.3) (2026-03-18)
 
-
 ### Dependencies
 
-* dotenv swap for dotenvx ([2e874e8](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/2e874e8d2dadf283f12e29834a4b9a005f41c4b8))
+- dotenv swap for dotenvx ([2e874e8](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/2e874e8d2dadf283f12e29834a4b9a005f41c4b8))
 
 ## [0.3.2](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.1...mr-magic-mcp-server-v0.3.2) (2026-03-18)
 
-
 ### Bug Fixes
 
-* updated root endpoint responses for both servers ([58e92f6](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/58e92f669da9f7f4e34fc673874f12f5610040ed))
+- updated root endpoint responses for both servers ([58e92f6](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/58e92f669da9f7f4e34fc673874f12f5610040ed))
 
 ## [0.3.1](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.0...mr-magic-mcp-server-v0.3.1) (2026-03-18)
 

@@ -436,7 +436,7 @@ program
       const relevanceB = queryRelevance(b) * 100;
       const contentA = lyricContentScore(a.rawResult) * 10 + (a.syncedRaw ? 0.5 : 0);
       const contentB = lyricContentScore(b.rawResult) * 10 + (b.syncedRaw ? 0.5 : 0);
-      return (relevanceB + contentB) - (relevanceA + contentA);
+      return relevanceB + contentB - (relevanceA + contentA);
     });
 
     const table = unsortedRows.map((row, idx) => ({ index: idx + 1, ...row }));
