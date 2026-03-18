@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.5](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.4...mr-magic-mcp-server-v0.3.5) (2026-03-18)
+
+
+### Bug Fixes
+
+* search and find tool call algorithms ([5104c92](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/5104c9247cb1b443291310a6a93c39b8ec3dabae))
+
 ## [0.3.4](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.3...mr-magic-mcp-server-v0.3.4) (2026-03-18)
 
 
