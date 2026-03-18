@@ -6,7 +6,6 @@ import {
   buildActionContext,
   buildPayloadFromResult,
   buildCatalogPayload,
-  exportBestResult,
   formatRecord,
   catalogCache,
   catalogCacheKey
@@ -403,8 +402,9 @@ export async function handleMcpTool(name, args = {}) {
     const result = await runFind(track, options);
     const context = buildActionContext({ ...options, export: true });
     const payload = await buildPayloadFromResult(result, context);
-    const exports = await exportBestResult(result, context);
-    return { result: payload, exports };
+    // buildPayloadFromResult already calls exportBestResult internally when
+    // context.shouldExport is true — avoid exporting twice by reusing payload.exports.
+    return { result: payload, exports: payload.exports ?? null };
   }
 
   if (name === 'format_lyrics') {
