@@ -35,35 +35,99 @@ automations, and CLI aficionados can all request lyrics from a single toolchain.
 
 ## Installation
 
-### Quick start — npx (no clone required)
+Mr. Magic publishes four named binaries through npm:
 
-The easiest way to use Mr. Magic is via `npx`. No clone or local install needed —
-the package is fetched from npm on first run and cached locally.
+| Binary            | Transport                              | Default port |
+| ----------------- | -------------------------------------- | ------------ |
+| `mcp-server`      | MCP stdio                              | n/a (stdio)  |
+| `mcp-http-server` | MCP Streamable HTTP & SSE + legacy SSE | `3444`       |
+| `http-server`     | JSON HTTP automation                   | `3333`       |
+| `mrmagic-cli`     | CLI                                    | n/a          |
 
-#### MCP stdio server (local MCP clients — Cline, Claude Desktop, etc.)
+Choose the option that matches how you'll use Mr. Magic.
+
+---
+
+### Option 1 — Local clone (recommended for persistent use)
+
+Cloning the repo is the **simplest setup for local MCP clients** (Cline, Claude Desktop, etc.)
+and for anyone who wants to use all features without extra ceremony.
+Credentials live in a local `.env` file — no need to inject every variable through an MCP client
+config. Token fetch scripts, the Playwright workflow, and local export storage all work out of the box.
+
+1. Clone and install:
+
+   ```bash
+   git clone https://github.com/mrnajiboy/mr-magic-mcp-server.git
+   cd mr-magic-mcp-server
+   npm install
+   ```
+
+2. Create a `.env` file (copy `.env.example` as a starting point) and fill in your credentials.
+   See [Environment Variables](#environment-variables) for the full list.
+
+3. Run the desired entrypoint:
+
+   | What you want                      | Command                           |
+   | ---------------------------------- | --------------------------------- |
+   | MCP stdio (local MCP clients)      | `node src/bin/mcp-server.js`      |
+   | MCP Streamable HTTP & SSE (remote) | `node src/bin/mcp-http-server.js` |
+   | JSON HTTP automation               | `node src/bin/http-server.js`     |
+   | CLI                                | `node src/bin/cli.js --help`      |
+
+   Or use the npm scripts:
+   ```bash
+   npm run server:mcp        # MCP stdio
+   npm run server:mcp:http   # MCP Streamable HTTP & SSE — 127.0.0.1:3444
+   npm run server:http       # JSON HTTP — 127.0.0.1:3333
+   npm run cli -- --help     # CLI
+   ```
+
+   > ⚠️ **Stdio MCP clients:** Do not use `npm run server:mcp` in your MCP client config.
+   > Use `node src/bin/mcp-server.js` directly. The npm script preamble is written to stdout
+   > before Node starts and causes `"Unexpected token '>'"` JSON-RPC errors on every connection.
+
+See [MCP Client Configuration → Local repo](#local-repo--cline) for the client config snippets.
+
+---
+
+### Option 2 — npx (no clone, ephemeral or CI use)
+
+`npx` is useful for quick one-off runs or CI contexts, but has an important limitation:
+**the spawned process cannot read a local `.env` file** — every credential must be passed
+as an environment variable in the shell or in your MCP client's `env` block.
+
+This package publishes **multiple binaries**, so you must always specify which one you want
+using `--package` and then the binary name. `npx -y mr-magic-mcp-server` is **not valid**
+for this package — it would error because no binary named `mr-magic-mcp-server` exists.
+
+#### MCP stdio server (for MCP client config)
 
 ```bash
-npx -y mr-magic-mcp-server
+# Shell (test only — real credentials come from MCP client env block)
+MR_MAGIC_QUIET_STDIO=1 \
+GENIUS_CLIENT_ID=your_id \
+GENIUS_CLIENT_SECRET=your_secret \
+MUSIXMATCH_DIRECT_TOKEN='...' \
+  npx -y --package mr-magic-mcp-server mcp-server
 ```
 
-Credentials are passed via the `env` block in your MCP client config (see
-[MCP Client Configuration](#mcp-client-configuration)).
+For MCP clients (Cline, Claude Desktop, etc.), put credentials in the `env` block of your
+config — see [MCP Client Configuration → npx](#npx-no-clone-required).
 
-#### MCP Streamable HTTP server (remote / browser-based MCP clients)
-
-The Streamable HTTP server is the correct choice for TypingMind, any browser-based
-client, or whenever you're hosting Mr. Magic on a remote machine.
+#### MCP Streamable HTTP & SSE server (for remote / browser-based MCP clients)
 
 ```bash
-# Streamable HTTP — listens on port 3444, endpoint: /mcp
-GENIUS_DIRECT_TOKEN=your_token \
-MUSIXMATCH_DIRECT_TOKEN=your_token \
+# Streamable HTTP & SSE — listens on port 3444, endpoint: /mcp
+GENIUS_CLIENT_ID=your_id \
+GENIUS_CLIENT_SECRET=your_secret \
+MUSIXMATCH_DIRECT_TOKEN='...' \
   npx -y --package mr-magic-mcp-server mcp-http-server
 ```
 
 Connect your client to `http://localhost:3444/mcp` (or your public URL + `/mcp`).
 
-The same server also exposes the **legacy SSE** endpoints for older clients:
+The same server exposes the **legacy SSE** endpoints for older clients:
 
 - `GET  /sse` — opens the event stream
 - `POST /messages?sessionId=...` — sends JSON-RPC messages
@@ -74,22 +138,49 @@ Both protocols run on the same port simultaneously — no extra config needed.
 
 ```bash
 # JSON HTTP — listens on port 3333, endpoint: POST /
-GENIUS_DIRECT_TOKEN=your_token \
+GENIUS_CLIENT_ID=your_id \
+GENIUS_CLIENT_SECRET=your_secret \
+MUSIXMATCH_DIRECT_TOKEN='...' \
   npx -y --package mr-magic-mcp-server http-server
 ```
 
-#### Global install (binaries always on PATH)
+#### CLI
+
+```bash
+# Run a one-off CLI command
+GENIUS_CLIENT_ID=your_id \
+  npx -y --package mr-magic-mcp-server mrmagic-cli find --artist "Coldplay" --title "Yellow"
+```
+
+#### npx reference — all entrypoints
+
+| What you want                    | Command                                                    |
+| -------------------------------- | ---------------------------------------------------------- |
+| MCP stdio                        | `npx -y --package mr-magic-mcp-server mcp-server`         |
+| MCP Streamable HTTP & SSE (+SSE) | `npx -y --package mr-magic-mcp-server mcp-http-server`    |
+| JSON HTTP automation             | `npx -y --package mr-magic-mcp-server http-server`        |
+| CLI                              | `npx -y --package mr-magic-mcp-server mrmagic-cli --help` |
+
+---
+
+### Option 3 — Global install (binaries always on PATH)
 
 ```bash
 npm install -g mr-magic-mcp-server
 
 mcp-server           # MCP stdio server
-mcp-http-server      # Streamable HTTP MCP server (+ legacy SSE on same port)
+mcp-http-server      # Streamable HTTP & SSE MCP server (+ legacy SSE on same port)
 http-server          # JSON HTTP automation server
 mrmagic-cli --help   # CLI
 ```
 
-#### Musixmatch token for npx / ephemeral / headless installs
+When the binary is launched by an MCP client, it does **not** automatically read a `.env` file
+unless you point to one via `MR_MAGIC_ENV_PATH`. Either pass credentials through the client
+`env` block or set them as system/user environment variables.
+
+---
+
+### Musixmatch token for npx / ephemeral / headless installs
 
 When running via `npx`, on Render free tier, or on any server without a browser or
 persistent filesystem, the Musixmatch token cannot be captured via Playwright there.
@@ -157,59 +248,18 @@ On Render free tier you cannot SSH in or open a browser. The recommended pattern
 > Genius OAuth `client_credentials` endpoint at runtime, auto-refreshes the token
 > in memory, and never needs a browser, a KV store, or a captured session token.
 
-### Local repo (development / contribution)
-
-1. Clone or download the repository:
-
-   ```bash
-   git clone https://github.com/mrnajiboy/mr-magic-mcp-server.git
-   cd mr-magic-mcp-server
-   ```
-
-2. Install dependencies:
-
-   ```bash
-   npm install
-   ```
-
-   > `npm install` does **not** add `mrmagic-cli` to your shell `PATH`.
-   > For local repo usage, run the CLI via `npm run cli -- ...` or `node src/bin/cli.js ...`.
-   > Run `npm link` (dev symlink) or install globally to get `mrmagic-cli` on `PATH`.
-
-3. Configure `.env` (see [Environment Variables](#environment-variables)) or export
-   env vars in your shell before running any commands.
-
-4. Run the desired entrypoint:
-   - MCP stdio server: `npm run server:mcp`
-   - MCP Streamable HTTP server: `npm run server:mcp:http`
-   - JSON HTTP automation server: `npm run server:http`
-   - CLI: `npm run cli -- --help`
-
 ## Environment Variables
 
 Copy `.env.example` to `.env` (or inject via your platform dashboard). Variables are
 grouped below by purpose.
 
-### Server and runtime
-
-| Variable                   | Default          | Description                                                                                                                                                                                                      |
-| -------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PORT`                     | `3444` / `3333`  | Override server port. On Render this is set automatically (default `10000`).                                                                                                                                     |
-| `LOG_LEVEL`                | `info`           | Verbosity: `error` \| `warn` \| `info` \| `debug`.                                                                                                                                                               |
-| `MR_MAGIC_QUIET_STDIO`     | `0`              | Set to `1` to suppress non-error stdout logs (forces `LOG_LEVEL=error`). Recommended under stdio MCP clients.                                                                                                    |
-| `MR_MAGIC_HTTP_TIMEOUT_MS` | `10000`          | Global outbound HTTP timeout in milliseconds.                                                                                                                                                                    |
-| `MR_MAGIC_ROOT`            | _(project root)_ | Override the project root used for `.env` and `.cache` path resolution.                                                                                                                                          |
-| `MR_MAGIC_ENV_PATH`        | _(auto)_         | Point to a specific `.env` file instead of `<project root>/.env`.                                                                                                                                                |
-| `MR_MAGIC_ALLOWED_HOSTS`   | _(empty)_        | Comma-separated extra hostnames allowed for DNS rebinding protection when binding to `0.0.0.0`. `RENDER_EXTERNAL_HOSTNAME` is included automatically on Render. Only needed for custom domains.                  |
-| `MR_MAGIC_SESSIONLESS`     | `0`              | Set to `1` to force **sessionless mode** on the MCP Streamable HTTP server — each request is handled by a fresh, temporary server/transport with no in-memory session state. Auto-enabled on Render (see below). |
-
 ### Genius credentials
 
-| Variable               | Description                                                                                                        |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Variable               | Description                                                                                                         |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | `GENIUS_CLIENT_ID`     | OAuth client ID for auto-refresh (recommended). Get from [genius.com/api-clients](https://genius.com/api-clients). |
-| `GENIUS_CLIENT_SECRET` | OAuth client secret for auto-refresh (recommended).                                                                |
-| `GENIUS_DIRECT_TOKEN`  | Static direct bearer token. Used when client credentials are unavailable.                                          |
+| `GENIUS_CLIENT_SECRET` | OAuth client secret for auto-refresh (recommended).                                                                 |
+| `GENIUS_DIRECT_TOKEN`  | Static direct bearer token. Used when client credentials are unavailable.                                           |
 
 Token resolution order (first match wins):
 
@@ -221,41 +271,52 @@ Token resolution order (first match wins):
 
 ### Musixmatch credentials
 
+| Variable                          | Description                                                                                                              |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `MUSIXMATCH_DIRECT_TOKEN`         | Static bearer token. Recommended for production / ephemeral hosts. Also used as push source by `push:musixmatch-token`. |
+| `MUSIXMATCH_TOKEN_KV_KEY`         | KV key name for the token store. Default: `mr-magic:musixmatch-token`.                                                  |
+| `MUSIXMATCH_TOKEN_KV_TTL_SECONDS` | Token TTL in the KV store (seconds). Default: `2592000` (30 days).                                                      |
+| `MUSIXMATCH_TOKEN_CACHE`          | Path to the on-disk cache file. Default: `.cache/musixmatch-token.json`.                                                |
+| `MUSIXMATCH_AUTO_FETCH`           | Set to `1` to attempt headless token re-fetch when no token is found.                                                   |
+
 Token resolution order (first match wins):
 
 1. **Env var** — `MUSIXMATCH_DIRECT_TOKEN`
 2. **KV store** — Upstash Redis (priority 1) or Cloudflare KV (priority 2)
 3. **On-disk cache** — `.cache/musixmatch-token.json` (local dev / persistent servers)
 
-| Variable                          | Description                                                                                                             |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `MUSIXMATCH_DIRECT_TOKEN`         | Static bearer token. Recommended for production / ephemeral hosts. Also used as push source by `push:musixmatch-token`. |
-| `UPSTASH_REDIS_REST_URL`          | Upstash Redis KV backend URL. Also used by the export backend — set once, used for both.                                |
-| `UPSTASH_REDIS_REST_TOKEN`        | Upstash Redis KV bearer token. Takes precedence over Cloudflare KV when both are set.                                   |
-| `CF_API_TOKEN`                    | Cloudflare API token with `KV:Edit` permission (Cloudflare KV backend).                                                 |
-| `CF_ACCOUNT_ID`                   | Cloudflare account ID (Cloudflare KV backend).                                                                          |
-| `CF_KV_NAMESPACE_ID`              | Cloudflare KV namespace ID (Cloudflare KV backend).                                                                     |
-| `MUSIXMATCH_TOKEN_KV_KEY`         | KV key name for the token store. Default: `mr-magic:musixmatch-token`.                                                  |
-| `MUSIXMATCH_TOKEN_KV_TTL_SECONDS` | Token TTL in the KV store (seconds). Default: `2592000` (30 days).                                                      |
-| `MUSIXMATCH_TOKEN_CACHE`          | Path to the on-disk cache file. Default: `.cache/musixmatch-token.json`.                                                |
-| `MUSIXMATCH_AUTO_FETCH`           | Set to `1` to attempt headless token re-fetch when no token is found.                                                   |
-
 ### Export and storage
 
-| Variable                            | Default    | Description                                                                                                                    |
-| ----------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Variable                            | Default    | Description                                                                                                                     |
+| ----------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | `MR_MAGIC_EXPORT_BACKEND`           | `local`    | Storage backend: `local` \| `inline` \| `redis`.                                                                               |
-| `MR_MAGIC_EXPORT_DIR`               | `exports/` | Absolute path for local exports. Required when backend is `local`.                                                             |
-| `MR_MAGIC_EXPORT_TTL_SECONDS`       | `3600`     | TTL for `local` and `redis` backends (ignored for `inline`).                                                                   |
-| `MR_MAGIC_DOWNLOAD_BASE_URL`        | _(none)_   | Public base URL for download links, e.g. `https://lyrics.example.com`.                                                         |
+| `MR_MAGIC_EXPORT_DIR`               | `exports/` | Absolute path for local exports. Required when backend is `local`.                                                              |
+| `MR_MAGIC_EXPORT_TTL_SECONDS`       | `3600`     | TTL for `local` and `redis` backends (ignored for `inline`).                                                                    |
+| `MR_MAGIC_DOWNLOAD_BASE_URL`        | _(none)_   | Public base URL for download links, e.g. `https://lyrics.example.com`.                                                          |
 | `MR_MAGIC_INLINE_PAYLOAD_MAX_CHARS` | `1500`     | Character threshold at which `build_catalog_payload` auto-promotes to `reference` transport when `omitInlineLyrics` is `true`. |
-| `UPSTASH_REDIS_REST_URL`            | _(none)_   | Required when `MR_MAGIC_EXPORT_BACKEND=redis`.                                                                                 |
-| `UPSTASH_REDIS_REST_TOKEN`          | _(none)_   | Required when `MR_MAGIC_EXPORT_BACKEND=redis`.                                                                                 |
+| `UPSTASH_REDIS_REST_URL`            | —          | Upstash Redis KV backend URL. Also used by the export backend when `MR_MAGIC_EXPORT_BACKEND=redis` — set once, used for both.  |
+| `UPSTASH_REDIS_REST_TOKEN`          | —          | Upstash Redis KV bearer token. Takes precedence over Cloudflare KV when both are set.                                          |
+| `CF_API_TOKEN`                      | —          | Cloudflare API token with `KV:Edit` permission (Cloudflare KV backend).                                                        |
+| `CF_ACCOUNT_ID`                     | —          | Cloudflare account ID (Cloudflare KV backend).                                                                                  |
+| `CF_KV_NAMESPACE_ID`                | —          | Cloudflare KV namespace ID (Cloudflare KV backend).                                                                             |
+
+### Server and runtime
+
+| Variable                   | Default          | Description                                                                                                                                                                                                             |
+| -------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`                     | `3444` / `3333`  | Override server port. On Render this is set automatically (default `10000`).                                                                                                                                            |
+| `LOG_LEVEL`                | `info`           | Verbosity: `error` \| `warn` \| `info` \| `debug`.                                                                                                                                                                     |
+| `MR_MAGIC_QUIET_STDIO`     | `0`              | Set to `1` to suppress non-error stdout logs (forces `LOG_LEVEL=error`). Recommended under stdio MCP clients.                                                                                                           |
+| `MR_MAGIC_HTTP_TIMEOUT_MS` | `10000`          | Global outbound HTTP timeout in milliseconds.                                                                                                                                                                           |
+| `MR_MAGIC_ROOT`            | _(project root)_ | Override the project root used for `.env` and `.cache` path resolution.                                                                                                                                                 |
+| `MR_MAGIC_ENV_PATH`        | _(auto)_         | Point to a specific `.env` file instead of `<project root>/.env`.                                                                                                                                                      |
+| `MR_MAGIC_ALLOWED_HOSTS`   | _(empty)_        | Comma-separated extra hostnames allowed for DNS rebinding protection when binding to `0.0.0.0`. `RENDER_EXTERNAL_HOSTNAME` is included automatically on Render. Only needed for custom domains.                         |
+| `MR_MAGIC_SESSIONLESS`     | `0`              | Set to `1` to force **sessionless mode** on the MCP Streamable HTTP & SSE server — each request is handled by a fresh, temporary server/transport with no in-memory session state. Auto-enabled on Render (see below). |
 
 ### Airtable
 
-| Variable                         | Description                                                                                                                                            |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Variable                         | Description                                                                                                                                             |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `AIRTABLE_PERSONAL_ACCESS_TOKEN` | Required for `push_catalog_to_airtable`. Generate at [airtable.com/create/tokens](https://airtable.com/create/tokens) with `data.records:write` scope. |
 
 ### Melon
@@ -266,12 +327,12 @@ Token resolution order (first match wins):
 
 ### Diagnostics and debugging
 
-| Variable                        | Default | Description                                                                            |
-| ------------------------------- | ------- | -------------------------------------------------------------------------------------- |
-| `MR_MAGIC_MCP_HTTP_DIAGNOSTICS` | `0`     | Set to `1` to log enriched request metadata at the Streamable HTTP transport boundary. |
-| `MR_MAGIC_LOG_TOOL_ARGS_CHUNKS` | `0`     | Set to `1` to emit chunk-by-chunk MCP tool argument previews for truncation debugging. |
-| `MR_MAGIC_TOOL_ARG_CHUNK_SIZE`  | `400`   | Chunk size (chars) used when chunk logging is enabled.                                 |
-| `MR_MAGIC_SDK_REPRO_HTTP_DEBUG` | `0`     | Set to `1` for verbose HTTP traces in the SDK repro harness script.                    |
+| Variable                        | Default | Description                                                                                  |
+| ------------------------------- | ------- | -------------------------------------------------------------------------------------------- |
+| `MR_MAGIC_MCP_HTTP_DIAGNOSTICS` | `0`     | Set to `1` to log enriched request metadata at the Streamable HTTP & SSE transport boundary. |
+| `MR_MAGIC_LOG_TOOL_ARGS_CHUNKS` | `0`     | Set to `1` to emit chunk-by-chunk MCP tool argument previews for truncation debugging.       |
+| `MR_MAGIC_TOOL_ARG_CHUNK_SIZE`  | `400`   | Chunk size (chars) used when chunk logging is enabled.                                       |
+| `MR_MAGIC_SDK_REPRO_HTTP_DEBUG` | `0`     | Set to `1` for verbose HTTP traces in the SDK repro harness script.                          |
 
 ## Provider Credentials
 
@@ -354,7 +415,7 @@ e.g. `https://lyrics.example.com`. Download links are built as
 
 Both HTTP servers serve `/downloads/:id/:ext` routes:
 
-- **`server:mcp:http`** (port `3444`) — the Streamable HTTP MCP server includes its
+- **`server:mcp:http`** (port `3444`) — the Streamable HTTP & SSE MCP server includes its
   own `/downloads` route. If you are already running this server, no additional HTTP
   server is needed for Redis exports on Render or any remote deployment.
 - **`server:http`** (port `3333`) — the JSON HTTP automation server also exposes the
@@ -380,11 +441,11 @@ Run whichever entrypoint you need via npm scripts:
 ```bash
 npm run server:http        # JSON HTTP automation — 127.0.0.1:3333 by default
 npm run server:mcp         # MCP stdio transport   — ideal for local MCP clients
-npm run server:mcp:http    # Streamable HTTP MCP   — 127.0.0.1:3444 by default
+npm run server:mcp:http    # Streamable HTTP & SSE MCP   — 127.0.0.1:3444 by default
 npm run cli -- --help      # CLI entrypoint
 ```
 
-Set provider tokens via `.env` before running. `dotenv` is for local convenience only —
+Set provider tokens via `.env` before running. `dotenv` dependency is for local convenience only —
 production environments should inject vars directly.
 
 ## Remote Deployment
@@ -428,7 +489,7 @@ Recommended Render service settings:
 
 #### Sessionless mode on Render (automatic)
 
-When `RENDER=true` is detected, the MCP Streamable HTTP server automatically operates
+When `RENDER=true` is detected, the MCP Streamable HTTP & SSE server automatically operates
 in **sessionless mode**. This is essential for multi-instance deployments where Render
 routes requests across several processes:
 
@@ -447,12 +508,12 @@ a similar load-balanced, stateless deployment is used.
 
 ### Transport selection
 
-| Transport            | Command                   | Use case                            |
-| -------------------- | ------------------------- | ----------------------------------- |
-| MCP stdio            | `npm run server:mcp`      | Local MCP clients that speak stdio  |
-| MCP Streamable HTTP  | `npm run server:mcp:http` | Remote MCP clients                  |
-| JSON HTTP automation | `npm run server:http`     | Container / remote automations      |
-| CLI                  | `npm run cli`             | Ad-hoc / SSH / CI one-shot commands |
+| Transport                  | Command                   | Use case                            |
+| -------------------------- | ------------------------- | ----------------------------------- |
+| MCP stdio                  | `npm run server:mcp`      | Local MCP clients that speak stdio  |
+| MCP Streamable HTTP & SSE  | `npm run server:mcp:http` | Remote MCP clients                  |
+| JSON HTTP automation       | `npm run server:http`     | Container / remote automations      |
+| CLI                        | `npm run cli`             | Ad-hoc / SSH / CI one-shot commands |
 
 ## HTTP Endpoints
 
@@ -463,8 +524,8 @@ transports. These are accessible without any MCP or JSON-RPC framing.
 | --------------------- | ----------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `/health`             | `GET`             | Both                   | Liveness / readiness probe. Returns `{ "status": "ok", "providers": [...] }`.                                                                                 |
 | `/downloads/:id/:ext` | `GET`             | Both                   | Serve a Redis-backed export by ID and file extension (e.g. `plain`, `lrc`, `srt`). Returns `200 text/plain` on hit, `404` when the key is expired or missing. |
-| `/mcp`                | `POST/GET/DELETE` | `server:mcp:http` only | MCP **Streamable HTTP** transport endpoint (JSON-RPC 2.0). Each `initialize` request creates an independent session — reconnects work correctly.              |
-| `/sse`                | `GET`             | `server:mcp:http` only | MCP **legacy SSE** transport. Opens a server-sent event stream. For MCP clients that use the pre-Streamable HTTP protocol.                                    |
+| `/mcp`                | `POST/GET/DELETE` | `server:mcp:http` only | MCP **Streamable HTTP & SSE** transport endpoint (JSON-RPC 2.0). Each `initialize` request creates an independent session — reconnects work correctly.        |
+| `/sse`                | `GET`             | `server:mcp:http` only | MCP **legacy SSE** transport. Opens a server-sent event stream. For MCP clients that use the pre-Streamable HTTP & SSE protocol.                              |
 | `/messages`           | `POST`            | `server:mcp:http` only | Companion to `/sse`. Routes JSON-RPC messages to the correct SSE session via `?sessionId=` query param.                                                       |
 | `/`                   | `POST`            | `server:http` only     | JSON HTTP automation endpoint (action-based API).                                                                                                             |
 
@@ -545,7 +606,7 @@ Responses:
 
 ## MCP Tools
 
-Both the stdio and Streamable HTTP transports expose the same tool registry:
+Both the stdio and Streamable HTTP & SSE transports expose the same tool registry:
 
 | Tool                       | Purpose                                                                                                                             |
 | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -600,7 +661,7 @@ this forces a two-step create → PATCH so the full payload is never sent in one
 
 ### Bundled prompt template
 
-`prompts/airtable-song-importer.md` (shipped in the npm package) is a ready-to-use
+`prompts/airtable-song-importer.md` (shipped in the source package) is a ready-to-use
 system prompt for MCP assistants that bulk-import songs into Airtable. It covers:
 
 - Phased execution: resolve → bulk create → write lyrics → SRT export
@@ -700,10 +761,63 @@ Recommended presets:
 
 Mr. Magic supports two connection modes depending on where the MCP client runs:
 
-| Mode                         | Transport                            | When to use                                                                       |
-| ---------------------------- | ------------------------------------ | --------------------------------------------------------------------------------- |
-| **Local (stdio)**            | `mcp-server` binary via stdin/stdout | Cline, Claude Desktop, and any client that runs locally on the same machine       |
-| **Remote (Streamable HTTP)** | `POST https://your-server.com/mcp`   | TypingMind, browser-based clients, and any client connecting to a deployed server |
+| Mode                               | Transport                            | When to use                                                                       |
+| ---------------------------------- | ------------------------------------ | --------------------------------------------------------------------------------- |
+| **Local (stdio)**                  | `mcp-server` binary via stdin/stdout | Cline, Claude Desktop, and any client that runs locally on the same machine       |
+| **Remote (Streamable HTTP & SSE)** | `POST https://your-server.com/mcp`   | TypingMind, browser-based clients, and any client connecting to a deployed server |
+
+### Configuration modes at a glance
+
+The right way to supply environment variables depends on how the server is launched:
+
+| Config mode                                                            | How it starts                                                     | How to pass env vars                                              | `.env` file read? |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------- | ----------------- |
+| **Local source**                                                 | `node src/bin/mcp-server.js` or `npm run server:mcp`             | `.env` in project root, or shell exports                          | ✅ yes            |
+| **Local npx**                                                  | `npx --package mr-magic-mcp-server mcp-server` via MCP client    | `env` block in MCP client config (see below)                      | ❌ no             |
+| **Persistent server** (VPS, global install, Docker with persistent FS) | `mcp-server` binary or `npm run server:mcp:http`                 | `.env` file **or** platform environment variables                 | ✅ if present     |
+| **Ephemeral server** (Render free tier, containers, serverless)        | `npx` or process started fresh each time                          | Platform environment variables (Render Dashboard, Docker `--env`) | ❌ no             |
+
+> **`npx` and MCP clients:** When a local MCP client (Cline, Claude Desktop, etc.) starts the
+> server via `npx`, the spawned process has **no access to your `.env` file** — your
+> project root and shell environment are not inherited. Every required variable must be
+> provided in the `env` block of your MCP client config. See the npx snippet below.
+
+### Required variables by deployment type
+
+#### Ephemeral / npx / stateless hosts (no persistent filesystem)
+
+These variables should be passed explicitly — the server cannot fall back to `.env` or on-disk caches:
+
+| Variable                                                  | Purpose                                                              | Required when                                                             |
+| --------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `GENIUS_CLIENT_ID` + `GENIUS_CLIENT_SECRET`               | Genius auto-refresh (recommended)                                    | Using Genius                                                              |
+| `GENIUS_DIRECT_TOKEN`                                     | Static Genius token (alternative)                                    | Using Genius without OAuth credentials                                    |
+| `MUSIXMATCH_DIRECT_TOKEN`                                 | Musixmatch token (highest priority)                                  | Using Musixmatch                                                          |
+| `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`     | KV store for Musixmatch token + Redis export backend                 | Musixmatch via KV **or** `MR_MAGIC_EXPORT_BACKEND=redis`                  |
+| `MR_MAGIC_EXPORT_BACKEND`                                 | Storage backend for exports (`inline` or `redis`)                   | Exporting lyrics; use `inline` if no Redis                                |
+| `MR_MAGIC_DOWNLOAD_BASE_URL`                              | Base URL for download links                                          | `MR_MAGIC_EXPORT_BACKEND=redis` only                                      |
+| `AIRTABLE_PERSONAL_ACCESS_TOKEN`                          | Airtable push tool                                                   | Using `push_catalog_to_airtable`                                          |
+| `MR_MAGIC_QUIET_STDIO`                                    | Suppress non-error stdout (set to `1`)                               | stdio MCP clients — avoids JSON-RPC parse errors                          |
+
+> 💡 **Musixmatch on ephemeral hosts:** The on-disk token cache (`.cache/musixmatch-token.json`)
+> is **not** available when running via `npx` or on ephemeral servers. Use `MUSIXMATCH_DIRECT_TOKEN`
+> directly, or configure Upstash Redis (`UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`) and
+> run `push:musixmatch-token` once to store the token in KV. See
+> [Musixmatch token for npx / ephemeral / headless installs](#musixmatch-token-for-npx--ephemeral--headless-installs).
+
+#### Local source / persistent servers (writable filesystem present)
+
+In addition to the provider credentials above, local and persistent deployments can also use:
+
+| Variable                              | Purpose                                                               |
+| ------------------------------------- | --------------------------------------------------------------------- |
+| `MR_MAGIC_EXPORT_BACKEND=local`       | Write export files to disk (default; not usable on ephemeral hosts)   |
+| `MR_MAGIC_EXPORT_DIR`                 | Directory to write local exports into                                 |
+| `MR_MAGIC_ROOT` / `MR_MAGIC_ENV_PATH` | Override project root / `.env` path resolution                       |
+| `MUSIXMATCH_AUTO_FETCH`               | Auto re-run the Playwright fetch script when no token found (requires browser) |
+
+On-disk token caches (`.cache/genius-token.json`, `.cache/musixmatch-token.json`) are also
+read automatically when a persistent filesystem is available and the above env vars are not set.
 
 ---
 
@@ -714,20 +828,70 @@ Mr. Magic supports two connection modes depending on where the MCP client runs:
 > written to stdout before Node starts, and stdio MCP clients try to parse every stdout
 > line as JSON-RPC, causing "Unexpected token '>'" errors on every connection.
 
-#### npx (recommended — no clone required)
+#### npx (no clone required)
 
-Works with any local MCP client that supports `command` / `args`:
+Works with any local MCP client that supports `command` / `args`. Because this package
+publishes multiple binaries, you must use `--package` to name the package and then
+explicitly name the `mcp-server` binary. This is the correct form — do not use
+`npx -y mr-magic-mcp-server` (no binary by that name exists).
+
+> ⚠️ **`npx` does not read your local `.env` file.** The process is spawned by the MCP
+> client and has no access to your project directory or shell environment. All credentials
+> and configuration must be provided in the `env` block below. For a simpler setup,
+> prefer [Local repo — Cline](#local-repo--cline) which reads `.env` automatically.
 
 ```json
 {
   "mcpServers": {
     "Mr. Magic": {
       "command": "npx",
-      "args": ["-y", "mr-magic-mcp-server"],
+      "args": ["-y", "--package", "mr-magic-mcp-server", "mcp-server"],
       "env": {
-        "GENIUS_DIRECT_TOKEN": "...",
+        "MR_MAGIC_QUIET_STDIO": "1",
+
+        "GENIUS_CLIENT_ID": "...",
+        "GENIUS_CLIENT_SECRET": "...",
+
         "MUSIXMATCH_DIRECT_TOKEN": "...",
+
+        "UPSTASH_REDIS_REST_URL": "https://xxx.upstash.io",
+        "UPSTASH_REDIS_REST_TOKEN": "...",
+
         "AIRTABLE_PERSONAL_ACCESS_TOKEN": "..."
+      }
+    }
+  }
+}
+```
+
+Variable notes:
+
+- `MR_MAGIC_QUIET_STDIO=1` — **always set this for stdio clients**. Suppresses non-error
+  stdout so the MCP client doesn't see log lines as JSON-RPC noise.
+- `GENIUS_CLIENT_ID` + `GENIUS_CLIENT_SECRET` — recommended for auto-refresh. Use
+  `GENIUS_DIRECT_TOKEN` instead for a static token (no auto-refresh).
+- `MUSIXMATCH_DIRECT_TOKEN` — required if using Musixmatch. Must be the full token
+  JSON payload (from `npm run fetch:musixmatch-token`). Omit only if you've already
+  pushed the token to a KV store via `push:musixmatch-token` (then supply `UPSTASH_*`
+  and the KV lookup handles it at runtime).
+- `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` — optional but recommended:
+  enables KV-backed Musixmatch token storage (so you can refresh the token without
+  updating the client config) and unlocks the `redis` export backend.
+- `AIRTABLE_PERSONAL_ACCESS_TOKEN` — only required if using `push_catalog_to_airtable`.
+
+Minimal config (Genius + Musixmatch, no Airtable, no Redis):
+
+```json
+{
+  "mcpServers": {
+    "Mr. Magic": {
+      "command": "npx",
+      "args": ["-y", "--package", "mr-magic-mcp-server", "mcp-server"],
+      "env": {
+        "MR_MAGIC_QUIET_STDIO": "1",
+        "GENIUS_CLIENT_ID": "...",
+        "GENIUS_CLIENT_SECRET": "...",
+        "MUSIXMATCH_DIRECT_TOKEN": "..."
       }
     }
   }
@@ -736,13 +900,39 @@ Works with any local MCP client that supports `command` / `args`:
 
 #### Global install
 
-After `npm install -g mr-magic-mcp-server`, the `mcp-server` binary is on `PATH`:
+After `npm install -g mr-magic-mcp-server`, the `mcp-server` binary is on `PATH`.
+When launched by an MCP client, the global binary **can** read a `.env` file if
+`MR_MAGIC_ENV_PATH` points to one — otherwise pass credentials via the `env` block
+just like the `npx` config above, or set them as system/user-level environment
+variables so they're available to all spawned processes.
 
 ```json
 {
   "mcpServers": {
     "Mr. Magic": {
-      "command": "mcp-server"
+      "command": "mcp-server",
+      "env": {
+        "MR_MAGIC_QUIET_STDIO": "1",
+        "GENIUS_CLIENT_ID": "...",
+        "GENIUS_CLIENT_SECRET": "...",
+        "MUSIXMATCH_DIRECT_TOKEN": "..."
+      }
+    }
+  }
+}
+```
+
+Or, if you keep a `.env` file somewhere on disk:
+
+```json
+{
+  "mcpServers": {
+    "Mr. Magic": {
+      "command": "mcp-server",
+      "env": {
+        "MR_MAGIC_QUIET_STDIO": "1",
+        "MR_MAGIC_ENV_PATH": "/Users/you/.config/mr-magic/.env"
+      }
     }
   }
 }
@@ -750,7 +940,9 @@ After `npm install -g mr-magic-mcp-server`, the `mcp-server` binary is on `PATH`
 
 #### Local repo — Cline
 
-Cline supports `cwd`, so you can invoke `node` directly:
+Cline supports `cwd`, so you can invoke `node` directly. The server reads `.env`
+from the project root automatically — no `env` block needed for credentials you've
+already set there (though you may still want `MR_MAGIC_QUIET_STDIO`):
 
 ```json
 {
@@ -761,7 +953,10 @@ Cline supports `cwd`, so you can invoke `node` directly:
       "type": "stdio",
       "command": "node",
       "args": ["src/bin/mcp-server.js"],
-      "cwd": "/Users/you/Documents/Code/MCP/mr-magic-mcp-server"
+      "cwd": "/Users/you/Documents/Code/MCP/mr-magic-mcp-server",
+      "env": {
+        "MR_MAGIC_QUIET_STDIO": "1"
+      }
     }
   }
 }
@@ -769,14 +964,18 @@ Cline supports `cwd`, so you can invoke `node` directly:
 
 #### Local repo — clients without `cwd` support
 
-For local clients that don't support a working-directory option, use a shell wrapper:
+For local clients that don't support a working-directory option, use a shell wrapper.
+The `cd` sets the project root so `.env` is found automatically:
 
 ```json
 {
   "mcpServers": {
     "Mr. Magic": {
       "command": "/bin/sh",
-      "args": ["-c", "cd /Users/you/Code/mr-magic-mcp-server && node src/bin/mcp-server.js"]
+      "args": ["-c", "cd /Users/you/Code/mr-magic-mcp-server && node src/bin/mcp-server.js"],
+      "env": {
+        "MR_MAGIC_QUIET_STDIO": "1"
+      }
     }
   }
 }
@@ -784,11 +983,32 @@ For local clients that don't support a working-directory option, use a shell wra
 
 ---
 
-### Remote clients (Streamable HTTP)
+### Remote clients (Streamable HTTP & SSE)
 
 When Mr. Magic is deployed on a remote host (Render, VPS, etc.), connect via the
-Streamable HTTP MCP endpoint (`/mcp`). Credentials are configured server-side via
+Streamable HTTP & SSE MCP endpoint (`/mcp`). Credentials are configured server-side via
 environment variables — no `env` block is needed in the client config.
+
+#### Generic remote client (URL-based config)
+
+Any client that accepts a plain MCP endpoint URL:
+
+```
+https://your-server.com/mcp
+```
+
+
+#### Legacy SSE clients
+
+Some older MCP clients use the pre-Streamable HTTP & SSE SSE protocol instead of `POST /mcp`.
+For those, use the legacy SSE endpoint:
+
+```
+GET  https://your-server.com/sse        ← opens the event stream
+POST https://your-server.com/messages   ← sends JSON-RPC messages
+```
+
+The server supports both protocols simultaneously — no restart or reconfiguration needed.
 
 #### TypingMind
 
@@ -813,26 +1033,6 @@ extension (Chrome / Edge). Once your server is deployed:
 > Extensions settings). If the message persists, update the extension from the Chrome /
 > Edge Web Store. No changes to Mr. Magic or your server configuration are required.
 
-#### Legacy SSE clients
-
-Some older MCP clients use the pre-Streamable HTTP SSE protocol instead of `POST /mcp`.
-For those, use the legacy SSE endpoint:
-
-```
-GET  https://your-server.com/sse        ← opens the event stream
-POST https://your-server.com/messages   ← sends JSON-RPC messages
-```
-
-The server supports both protocols simultaneously — no restart or reconfiguration needed.
-
-#### Generic remote client (URL-based config)
-
-Any client that accepts a plain MCP endpoint URL:
-
-```
-https://your-server.com/mcp
-```
-
 ## CLI
 
 A single CLI entrypoint (`mrmagic-cli`) is published with the package. Inside the
@@ -848,7 +1048,7 @@ installed globally.
 | `mrmagic-cli select`          | Pick first match from a prioritized provider list.      | `--providers`, `--artist`, `--title`, `--require-synced`                                                   |
 | `mrmagic-cli server`          | Start the JSON automation API.                          | `--host`, `--port`, `--remote`                                                                             |
 | `mrmagic-cli server:mcp`      | Start the MCP stdio server.                             | —                                                                                                          |
-| `mrmagic-cli server:mcp:http` | Start the Streamable HTTP MCP server.                   | `--host`, `--port`, `--remote`, `--sessionless`                                                            |
+| `mrmagic-cli server:mcp:http` | Start the Streamable HTTP & SSE MCP server.             | `--host`, `--port`, `--remote`, `--sessionless`                                                            |
 | `mrmagic-cli search-provider` | Query a single provider only.                           | `--provider`, `--artist`, `--title`                                                                        |
 | `mrmagic-cli status`          | Print provider readiness.                               | —                                                                                                          |
 
@@ -884,10 +1084,10 @@ For direct binary usage: `mrmagic-cli search --artist "K/DA" --title "I'll Show 
 Automated checks:
 
 ```bash
-npm run test                  # full bundled test runner
-node src/tests/mcp-tools.test.js  # raw MCP integration harness
-npm run repro:mcp:arg-boundary       # JSON-RPC argument boundary repro
-npm run repro:mcp:arg-boundary:sdk   # SDK client transport repro
+npm run test                             # full bundled test runner
+node src/tests/mcp-tools.test.js         # raw MCP integration harness
+npm run repro:mcp:arg-boundary           # JSON-RPC argument boundary repro
+npm run repro:mcp:arg-boundary:sdk       # SDK client transport repro
 npm run lint
 npm run format:check
 ```
@@ -962,7 +1162,7 @@ EXPORT_URL=$(curl -sS -X POST http://127.0.0.1:3333 \
 curl -sS "$EXPORT_URL" | head -n 10
 ```
 
-### MCP Streamable HTTP server (`server:mcp:http`)
+### MCP Streamable HTTP & SSE server (`server:mcp:http`)
 
 Start the server:
 
@@ -1153,26 +1353,12 @@ both a REST API and an MCP endpoint under one deployment.
 npm run server:http       # JSON HTTP automation — port 3333
 
 # Terminal 2
-npm run server:mcp:http   # Streamable HTTP MCP  — port 3444
+npm run server:mcp:http   # Streamable HTTP & SSE MCP  — port 3444
 ```
-
 > **Note:** Running both is **not** required for Redis exports. The MCP HTTP server
 > (`server:mcp:http`) includes its own `/downloads/:id/:ext` route, so a single
 > `server:mcp:http` instance is self-sufficient for Redis-backed download links.
 > Only run `server:http` alongside it if you also need the JSON HTTP automation API.
-
-## Provider Notes
-
-- **LRCLIB** — Public API with synced lyric coverage. No auth required.
-- **Genius** — Requires `GENIUS_CLIENT_ID` + `GENIUS_CLIENT_SECRET` (auto-refresh,
-  recommended) or `GENIUS_DIRECT_TOKEN` (static direct token).
-- **Musixmatch** — Requires a token. Use `MUSIXMATCH_DIRECT_TOKEN` for production /
-  ephemeral hosts; use the on-disk cache token (`npm run fetch:musixmatch-token`) for
-  local dev. See [Musixmatch](#musixmatch) for the full workflow.
-- **Melon** — Works anonymously. Set `MELON_COOKIE` for pinned / reproducible sessions.
-
-Providers are queried concurrently and results are normalized into a shared schema
-exposed via the CLI, HTTP API, and MCP tools.
 
 ## Changelog
 
