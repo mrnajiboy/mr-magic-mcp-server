@@ -129,6 +129,10 @@ export async function startMcpHttpServer(options = {}) {
   const app = createMcpExpressApp({ host, ...(allowedHosts ? { allowedHosts } : {}) });
 
   // ── Health check ─────────────────────────────────────────────────────────────
+  app.get('/', async (_req, res) => {
+    res.json({ status: 'ok', providers: await getProviderStatus() });
+  });
+
   app.get('/health', async (_req, res) => {
     res.json({ status: 'ok', providers: await getProviderStatus() });
   });
