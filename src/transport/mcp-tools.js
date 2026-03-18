@@ -1,6 +1,7 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 
 import { runFind, runSearch, runProviderSearch } from '../core/find-service.js';
+import { lyricContentScore } from '../provider-result-schema.js';
 import {
   buildActionContext,
   buildPayloadFromResult,
@@ -422,7 +423,12 @@ export async function handleMcpTool(name, args = {}) {
       return { error: 'No matches provided' };
     }
     const { provider, requireSynced, index } = args.criteria || {};
-    let filtered = matches;
+    // Strip entries with no actual lyric content (e.g. unhydrated search stubs)
+    // so the caller never accidentally selects an empty result.
+    let filtered = matches.filter((entry) => lyricContentScore(entry.result) > 0);
+    if (filtered.length === 0) {
+      return { error: 'No matches with lyric content found' };
+    }
     if (provider) {
       filtered = filtered.filter((entry) => entry.provider === provider);
     }

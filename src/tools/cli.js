@@ -390,19 +390,23 @@ program
       })
     );
 
-    // Build rows without final indices first so we can sort before numbering.
-    const unsortedRows = enriched.flatMap((entry) =>
-      entry.results.map((result) => ({
-        provider: entry.provider,
-        synced: result.synced,
-        syncedRaw: result.synced,
-        title: result.title,
-        artist: result.artist,
-        plainPreview: extractPlainPreview(result),
-        syncedPreview: extractSyncedPreview(result),
-        rawResult: result
-      }))
-    );
+    // Build rows without final indices first so we can filter/sort before numbering.
+    // Filter out any result that has no lyric content at all (empty stubs from lazy providers
+    // like Melon or Genius that were not successfully hydrated should not appear in results).
+    const unsortedRows = enriched
+      .flatMap((entry) =>
+        entry.results.map((result) => ({
+          provider: entry.provider,
+          synced: result.synced,
+          syncedRaw: result.synced,
+          title: result.title,
+          artist: result.artist,
+          plainPreview: extractPlainPreview(result),
+          syncedPreview: extractSyncedPreview(result),
+          rawResult: result
+        }))
+      )
+      .filter((row) => lyricContentScore(row.rawResult) > 0);
 
     /**
      * Score how well a result matches the user's query (0–2).
@@ -627,7 +631,13 @@ program
         providerNames,
         syncedOnly: options.syncedOnly
       });
-      chooserEntries = buildChooserEntries(Array.isArray(result.matches) ? result.matches : []);
+      // Filter out matches with no lyric content before building the chooser so that
+      // empty provider stubs (e.g. Melon returning a shell record with no lyrics) don't
+      // appear as selectable options.
+      const contentMatches = (Array.isArray(result.matches) ? result.matches : []).filter(
+        (entry) => lyricContentScore(entry.result) > 0
+      );
+      chooserEntries = buildChooserEntries(contentMatches);
       totalResults = chooserEntries.length;
 
       if ((options.choose || options.index) && totalResults === 0) {

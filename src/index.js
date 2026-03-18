@@ -74,7 +74,11 @@ async function tryProviders(track, { syncedOnly = false, providerNames = [] } = 
 export async function findLyrics(track, options = {}) {
   const { matches, best } = await tryProviders(track, options);
   return {
-    matches: matches.map(({ provider, result }) => ({ provider, result })),
+    // Filter out candidates with no actual lyric content (empty / unhydrated stubs).
+    // This keeps the matches list clean for all consumers: CLI, MCP tools, HTTP server.
+    matches: matches
+      .filter(({ result }) => lyricContentScore(result) > 0)
+      .map(({ provider, result }) => ({ provider, result })),
     best: best?.result ?? null
   };
 }
@@ -82,7 +86,9 @@ export async function findLyrics(track, options = {}) {
 export async function findSyncedLyrics(track, options = {}) {
   const { matches, best } = await tryProviders(track, { ...options, syncedOnly: true });
   return {
-    matches: matches.map(({ provider, result }) => ({ provider, result })),
+    matches: matches
+      .filter(({ result }) => lyricContentScore(result) > 0)
+      .map(({ provider, result }) => ({ provider, result })),
     best: best?.result ?? null
   };
 }
