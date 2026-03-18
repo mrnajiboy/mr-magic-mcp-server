@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.7](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.6...mr-magic-mcp-server-v0.3.7) (2026-03-18)
+
+
+### Performance Improvements
+
+* major overhaul of korean romanization ([9841c5d](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/9841c5d16a20d9792b3d8fd4173f8feebc38dd9d))
+
 ## [0.3.6](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.5...mr-magic-mcp-server-v0.3.6) (2026-03-18)
 
 
