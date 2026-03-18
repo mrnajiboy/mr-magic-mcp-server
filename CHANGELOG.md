@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.3.0](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.2.6...mr-magic-mcp-server-v0.3.0) (2026-03-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* token logic for musixmatch + genius reworked and clarified for ephemeral instances
+
+### ref
+
+* token logic for musixmatch + genius reworked and clarified for ephemeral instances ([e7616de](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/e7616de546c0f493043738e68fccfc4d00c0c354))
+
 ## [0.2.6](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.2.5...mr-magic-mcp-server-v0.2.6) (2026-03-17)
 
 
