@@ -22,6 +22,7 @@ import {
 import { exportLyrics, deriveFormatSet } from '../core/export.js';
 import { fetchFromMelon } from '../providers/melon.js';
 import { fetchFromGenius } from '../providers/genius.js';
+import { lyricContentScore } from '../provider-result-schema.js';
 
 async function hydrateSearchResult(provider, result, cache) {
   if (result.plainLyrics || result.syncedLyrics) {
@@ -389,10 +390,9 @@ program
       })
     );
 
-    let globalIndex = 1;
-    const table = enriched.flatMap((entry) =>
+    // Build rows without final indices first so we can sort before numbering.
+    const unsortedRows = enriched.flatMap((entry) =>
       entry.results.map((result) => ({
-        index: globalIndex++,
         provider: entry.provider,
         synced: result.synced,
         syncedRaw: result.synced,
@@ -403,6 +403,39 @@ program
         rawResult: result
       }))
     );
+
+    /**
+     * Score how well a result matches the user's query (0–2).
+     *  +1.0 for title match (substring, case-insensitive)
+     *  +1.0 for artist match (substring, case-insensitive)
+     * This is the strongest factor so that relevant results always lead,
+     * even if an irrelevant result from the same search happens to have more lyric text.
+     */
+    function queryRelevance(row) {
+      const qTitle = (track.title || '').toLowerCase();
+      const qArtist = (track.artist || '').toLowerCase();
+      const rTitle = (row.title || '').toLowerCase();
+      const rArtist = (row.artist || '').toLowerCase();
+      let score = 0;
+      if (qTitle && (rTitle.includes(qTitle) || qTitle.includes(rTitle))) score += 1;
+      if (qArtist && (rArtist.includes(qArtist) || qArtist.includes(rArtist))) score += 1;
+      return score;
+    }
+
+    // Sort priority:
+    //  1. Relevance to query (weight ×100) — ensures on-target results always lead
+    //  2. Has actual lyric content (weight ×10) — content beats empty stubs
+    //  3. Synced bonus (0.5) + content richness — finer tie-breaking
+    // Stable JS sort preserves original provider order within equal-scoring rows.
+    unsortedRows.sort((a, b) => {
+      const relevanceA = queryRelevance(a) * 100;
+      const relevanceB = queryRelevance(b) * 100;
+      const contentA = lyricContentScore(a.rawResult) * 10 + (a.syncedRaw ? 0.5 : 0);
+      const contentB = lyricContentScore(b.rawResult) * 10 + (b.syncedRaw ? 0.5 : 0);
+      return (relevanceB + contentB) - (relevanceA + contentA);
+    });
+
+    const table = unsortedRows.map((row, idx) => ({ index: idx + 1, ...row }));
 
     if (table.length === 0) {
       console.log('No matches found');
