@@ -21,6 +21,7 @@
     ".env.example"
   ],
   "scripts": {
+    "cleanup": "eslint . --fix && prettier --write .",
     "cli": "node src/bin/cli.js",
     "server:http": "node src/bin/http-server.js",
     "server:mcp": "node src/bin/mcp-server.js",
@@ -29,7 +30,6 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "cleanup": "eslint . --fix && prettier --write .",
     "test": "node src/tests/run-tests.js",
     "fetch:musixmatch-token": "node src/scripts/fetch_musixmatch_token.mjs",
     "push:musixmatch-token": "node src/scripts/push_musixmatch_token.mjs",
