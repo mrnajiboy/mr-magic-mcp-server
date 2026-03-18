@@ -19,6 +19,7 @@ matchSummary.forEach((m) => console.log(' ', JSON.stringify(m)));
 console.log('best provider:', findResult.best?.provider ?? 'none');
 console.log('best hasPlain:', Boolean(findResult.best?.plainLyrics?.trim()));
 console.log('best hasSynced:', Boolean(findResult.best?.syncedLyrics?.trim()));
+console.log('lyricsCacheKey:', findResult.lyricsCacheKey ?? '(none)');
 
 const emptyMatches = matchSummary.filter((m) => !m.hasPlain && !m.hasSynced);
 if (emptyMatches.length > 0) {
@@ -26,6 +27,17 @@ if (emptyMatches.length > 0) {
   process.exitCode = 1;
 } else {
   console.log('PASS: all matches have lyric content');
+}
+
+const hasBestLyrics =
+  Boolean(findResult.best?.plainLyrics?.trim()) || Boolean(findResult.best?.syncedLyrics?.trim());
+if (hasBestLyrics && !findResult.lyricsCacheKey) {
+  console.error('FAIL: find_lyrics resolved lyrics but did not return lyricsCacheKey');
+  process.exitCode = 1;
+} else if (hasBestLyrics) {
+  console.log('PASS: lyricsCacheKey present when lyrics resolved');
+} else {
+  console.log('NOTE: no lyrics resolved, lyricsCacheKey expected to be absent');
 }
 
 // ── search_lyrics ─────────────────────────────────────────────────────────────

@@ -9,6 +9,12 @@ import {
   lyricContentScore,
   countLyricLines
 } from '../provider-result-schema.js';
+import {
+  buildPayloadFromResult,
+  buildActionContext,
+  catalogCacheKey,
+  catalogCache
+} from '../services/lyrics-service.js';
 import { mcpToolDefinitions, handleMcpTool } from '../transport/mcp-tools.js';
 
 const divider = () => console.log('\n---');
@@ -253,6 +259,55 @@ function testAutoPickSyncedWithContentBeatsSyncedEmpty() {
   console.log('autoPick: synced+content beats synced+empty even with lower confidence: ok');
 }
 
+async function testBuildPayloadFromResultReturnsCacheKey() {
+  // build a minimal find result with plain lyrics — no network call needed
+  const best = {
+    provider: 'genius',
+    title: 'Cigarette',
+    artist: 'Dylan Cotrone',
+    plainLyrics: 'I was always a mean kid\nCould not hold my tongue',
+    syncedLyrics: null,
+    synced: false
+  };
+  const result = { matches: [{ provider: 'genius', result: best }], best };
+  const context = buildActionContext({});
+  const payload = await buildPayloadFromResult(result, context);
+
+  assert.ok(payload.lyricsCacheKey, 'buildPayloadFromResult should include lyricsCacheKey when best has plain lyrics');
+  assert.equal(typeof payload.lyricsCacheKey, 'string', 'lyricsCacheKey should be a string');
+
+  // Verify the cache was actually populated
+  const cached = catalogCache.get(payload.lyricsCacheKey);
+  assert.ok(cached, 'catalog cache should have an entry for the returned key');
+  assert.ok(cached.plainLyrics, 'cached entry should include plain lyrics');
+
+  // Verify key stability — same artist/title always yields the same key
+  const expectedKey = catalogCacheKey({ artist: 'Dylan Cotrone', title: 'Cigarette' });
+  assert.equal(payload.lyricsCacheKey, expectedKey, 'lyricsCacheKey should match catalogCacheKey for the track');
+
+  divider();
+  console.log('buildPayloadFromResult returns lyricsCacheKey and populates cache: ok');
+}
+
+async function testBuildPayloadFromResultNoCacheKeyWhenNoLyrics() {
+  const best = {
+    provider: 'melon',
+    title: 'Cigarette',
+    artist: 'Dylan Cotrone',
+    plainLyrics: null,
+    syncedLyrics: null,
+    synced: false
+  };
+  const result = { matches: [], best };
+  const context = buildActionContext({});
+  const payload = await buildPayloadFromResult(result, context);
+
+  assert.ok(!payload.lyricsCacheKey, 'buildPayloadFromResult should NOT include lyricsCacheKey when best has no lyrics');
+
+  divider();
+  console.log('buildPayloadFromResult omits lyricsCacheKey when best has no lyrics: ok');
+}
+
 async function run() {
   testAutoPickPrefersSynced();
   testAutoPickFallbackWhenNoSynced();
@@ -265,6 +320,8 @@ async function run() {
   testAutoPickPrefersContentOverEmpty();
   testAutoPickRicherContentWins();
   testAutoPickSyncedWithContentBeatsSyncedEmpty();
+  await testBuildPayloadFromResultReturnsCacheKey();
+  await testBuildPayloadFromResultNoCacheKeyWhenNoLyrics();
   const toolNames = mcpToolDefinitions.map((tool) => tool.name);
   console.log('MCP tooling available:', toolNames.join(', '));
   console.log('All sanity checks passed');

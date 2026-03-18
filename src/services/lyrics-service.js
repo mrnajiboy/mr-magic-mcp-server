@@ -114,6 +114,21 @@ export async function buildPayloadFromResult(result, context) {
     if (context.shouldExport) {
       payload.exports = await exportBestResult(result, context);
     }
+
+    // Populate the in-memory catalog cache so push_catalog_to_airtable can be
+    // used immediately after find_lyrics / find_synced_lyrics / export_lyrics —
+    // the agent does NOT have to call build_catalog_payload first.
+    const best = result.best;
+    const plainLyrics = payload.formatted?.plainLyrics || best.plainLyrics || '';
+    if (plainLyrics) {
+      const key = catalogCacheKey({ artist: best.artist, title: best.title });
+      catalogCache.set(key, {
+        plainLyrics,
+        romanizedPlainLyrics: payload.formatted?.romanizedPlain || null,
+        preferRomanized: context.includeRomanization
+      });
+      payload.lyricsCacheKey = key;
+    }
   }
   return payload;
 }

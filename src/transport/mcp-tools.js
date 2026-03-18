@@ -8,7 +8,8 @@ import {
   buildCatalogPayload,
   exportBestResult,
   formatRecord,
-  catalogCache
+  catalogCache,
+  catalogCacheKey
 } from '../services/lyrics-service.js';
 import { pushCatalogToAirtable } from '../services/airtable-writer.js';
 import { getProviderStatus } from '../index.js';
@@ -171,7 +172,10 @@ const matchSchema = {
 export const mcpToolDefinitions = [
   {
     name: 'find_lyrics',
-    description: 'Find the best lyric match across providers (prefers synced when available).',
+    description:
+      'Find the best lyric match across providers (prefers synced when available). ' +
+      'Returns lyricsCacheKey when lyrics are resolved — pass this to push_catalog_to_airtable ' +
+      'without calling build_catalog_payload first.',
     inputSchema: {
       type: 'object',
       description: 'Provide a track description (and optional hints) to look up lyrics.',
@@ -202,7 +206,9 @@ export const mcpToolDefinitions = [
   },
   {
     name: 'find_synced_lyrics',
-    description: 'Find lyrics but reject any candidates that lack timestamps.',
+    description:
+      'Find lyrics but reject any candidates that lack timestamps. ' +
+      'Returns lyricsCacheKey when synced lyrics are resolved.',
     inputSchema: {
       type: 'object',
       description:
@@ -253,7 +259,9 @@ export const mcpToolDefinitions = [
   },
   {
     name: 'export_lyrics',
-    description: 'Find lyrics and save plain/LRC/SRT plus romanized variants to disk.',
+    description:
+      'Find lyrics and save plain/LRC/SRT plus romanized variants to disk. ' +
+      'Also returns lyricsCacheKey so push_catalog_to_airtable can be called immediately.',
     inputSchema: {
       type: 'object',
       description: 'Provide the track and export options to write files to disk.',
@@ -266,7 +274,9 @@ export const mcpToolDefinitions = [
   },
   {
     name: 'format_lyrics',
-    description: 'Find lyrics and return formatted text (with optional romanization) in-memory.',
+    description:
+      'Find lyrics and return formatted text (with optional romanization) in-memory. ' +
+      'Also returns lyricsCacheKey so push_catalog_to_airtable can be called immediately.',
     inputSchema: {
       type: 'object',
       description: 'Provide the track and formatting options for in-memory rendering.',
@@ -407,7 +417,19 @@ export async function handleMcpTool(name, args = {}) {
       includeRomanization: !options?.noRomanize,
       includeSynced: options?.includeSynced ?? true
     });
-    return { formatted, best };
+    // Populate the catalog cache so push_catalog_to_airtable can be used
+    // immediately without a separate build_catalog_payload call.
+    let lyricsCacheKey = null;
+    const plainLyrics = formatted.plainLyrics || best.plainLyrics || '';
+    if (plainLyrics) {
+      lyricsCacheKey = catalogCacheKey({ artist: best.artist, title: best.title });
+      catalogCache.set(lyricsCacheKey, {
+        plainLyrics,
+        romanizedPlainLyrics: formatted.romanizedPlain || null,
+        preferRomanized: !options?.noRomanize
+      });
+    }
+    return { formatted, best, lyricsCacheKey };
   }
 
   if (name === 'build_catalog_payload') {
