@@ -1,6 +1,6 @@
 {
   "name": "mr-magic-mcp-server",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Lyrics MCP server connecting LRCLIB, Genius, Musixmatch, and Melon",
   "type": "module",
   "main": "src/index.js",
