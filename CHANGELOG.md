@@ -2,17 +2,15 @@
 
 ## [0.3.9](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.8...mr-magic-mcp-server-v0.3.9) (2026-03-18)
 
-
 ### Bug Fixes
 
-* prettier ([7766bea](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/7766bea2bcad278ef9d9573478900c5a80a9ab9c))
+- prettier ([7766bea](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/7766bea2bcad278ef9d9573478900c5a80a9ab9c))
 
 ## [0.3.8](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.7...mr-magic-mcp-server-v0.3.8) (2026-03-18)
 
-
 ### Bug Fixes
 
-* exports directory override ([76a31a8](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/76a31a8aaa9d7759d34de6d7a5ffe10a4eab4930))
+- exports directory override ([76a31a8](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/76a31a8aaa9d7759d34de6d7a5ffe10a4eab4930))
 
 ## [0.3.7](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.6...mr-magic-mcp-server-v0.3.7) (2026-03-18)
 
