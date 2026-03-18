@@ -25,7 +25,7 @@ async function ensureGeniusAuth() {
     await getGeniusToken();
     return;
   }
-  assertEnv(['GENIUS_ACCESS_TOKEN']);
+  assertEnv(['GENIUS_DIRECT_TOKEN']);
 }
 
 function normalizeHit(hit, query) {

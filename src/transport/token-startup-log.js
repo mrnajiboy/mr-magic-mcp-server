@@ -37,7 +37,7 @@ async function logGeniusStatus(context) {
     context,
     provider: 'genius',
     clientCredentialsPresent: diagnostics.clientCredentialsPresent,
-    fallbackTokenPresent: diagnostics.fallbackTokenPresent,
+    directTokenPresent: diagnostics.directTokenPresent,
     cacheTokenPresent: diagnostics.cacheTokenPresent,
     cacheTokenExpired: diagnostics.cacheTokenExpired
   });
@@ -73,7 +73,7 @@ async function logGeniusStatus(context) {
     logger.warn('Genius credentials missing', {
       context,
       provider: 'genius',
-      details: 'set GENIUS_CLIENT_ID/SECRET or GENIUS_ACCESS_TOKEN'
+      details: 'set GENIUS_CLIENT_ID/SECRET or GENIUS_DIRECT_TOKEN'
     });
   }
 }
@@ -86,8 +86,7 @@ async function logMusixmatchStatus(context) {
     context,
     provider: 'musixmatch',
     cachePath: diagnostics.cachePath,
-    userEnvPresent: diagnostics.userEnvPresent,
-    envPresent: diagnostics.envPresent,
+    directEnvPresent: diagnostics.directEnvPresent,
     runtimeTokenCached: diagnostics.runtimeTokenCached,
     lastLoadedFrom: diagnostics.lastLoadedFrom
   });
@@ -117,7 +116,7 @@ async function logMusixmatchStatus(context) {
       context,
       provider: 'musixmatch',
       details:
-        'run npm run fetch:musixmatch-token to capture the cache token, or set MUSIXMATCH_FALLBACK_TOKEN as a fallback token for ephemeral deployments'
+        'run npm run fetch:musixmatch-token to capture the cache token, or set MUSIXMATCH_DIRECT_TOKEN as a direct token for ephemeral deployments'
     });
   }
 }

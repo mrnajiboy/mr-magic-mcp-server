@@ -23,7 +23,7 @@ export function getEnvValue(name) {
   return process.env[name] ?? null;
 }
 
-const DEFAULT_REQUIRED = ['GENIUS_ACCESS_TOKEN'];
+const DEFAULT_REQUIRED = ['GENIUS_DIRECT_TOKEN'];
 const warnedMissingEnvCache = new Set();
 
 function getMissingEnvVars(requiredVars = DEFAULT_REQUIRED) {

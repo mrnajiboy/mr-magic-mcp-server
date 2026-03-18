@@ -3,7 +3,8 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import axios from 'axios';
-import '../src/utils/config.js';
+import '../utils/config.js';
+import { describeKvBackend, isKvConfigured, kvSet } from '../utils/kv-store.js';
 
 const TOKEN_ENDPOINT = 'https://api.genius.com/oauth/token';
 
@@ -17,10 +18,10 @@ function printDeploymentBlock(accessToken) {
   console.log('LOCAL DEVELOPMENT (cache token)');
   console.log('  Token written to the cache file above.');
   console.log('  The server reads it on startup when a writable filesystem is available.\n');
-  console.log('RENDER / EPHEMERAL DEPLOYMENTS (fallback token)');
+  console.log('RENDER / EPHEMERAL DEPLOYMENTS (direct token)');
   console.log('  If you cannot use client_credentials, set the token as an env var');
-  console.log('  in your platform dashboard. It acts as a static fallback token:\n');
-  console.log(`  GENIUS_ACCESS_TOKEN=${accessToken}\n`);
+  console.log('  in your platform dashboard. It acts as a static direct token:\n');
+  console.log(`  GENIUS_DIRECT_TOKEN=${accessToken}\n`);
   console.log("  Note: static tokens don't auto-refresh. Redeploy with a new token");
   console.log('  if/when it expires. The client_credentials path avoids this entirely.');
   console.log('─'.repeat(68) + '\n');
@@ -65,6 +66,22 @@ async function main() {
     );
     console.log(`\nCache token written to: ${cachePath}`);
     console.log('(The server reads this file on startup when a writable filesystem is available.)');
+
+    // Write to KV store if configured (ephemeral hosts, npx installs).
+    if (isKvConfigured()) {
+      const kvKey = process.env.GENIUS_TOKEN_KV_KEY || 'mr-magic:genius-token';
+      const kvTtl = parseInt(process.env.GENIUS_TOKEN_KV_TTL_SECONDS || '3600', 10);
+      const kvPayload = JSON.stringify({
+        access_token: accessToken,
+        expires_at: Date.now() + (expiresIn || 3600) * 1000
+      });
+      try {
+        await kvSet(kvKey, kvPayload, kvTtl);
+        console.log(`Token written to KV store (${describeKvBackend()}) under key: ${kvKey}`);
+      } catch (err) {
+        console.warn(`Failed to write token to KV store: ${err.message}`);
+      }
+    }
 
     printDeploymentBlock(accessToken);
   } catch (error) {

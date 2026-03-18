@@ -37,27 +37,122 @@ automations, and CLI aficionados can all request lyrics from a single toolchain.
 
 ### Quick start — npx (no clone required)
 
-The easiest way to use Mr. Magic in an MCP client is via `npx`. No clone or local
-install needed — the package is fetched from npm on first run and cached locally:
+The easiest way to use Mr. Magic is via `npx`. No clone or local install needed —
+the package is fetched from npm on first run and cached locally.
+
+#### MCP stdio server (local MCP clients — Cline, Claude Desktop, etc.)
 
 ```bash
 npx -y mr-magic-mcp-server
 ```
 
-Or install globally so the binaries are always on `PATH`:
+Credentials are passed via the `env` block in your MCP client config (see
+[MCP Client Configuration](#mcp-client-configuration)).
+
+#### MCP Streamable HTTP server (remote / browser-based MCP clients)
+
+The Streamable HTTP server is the correct choice for TypingMind, any browser-based
+client, or whenever you're hosting Mr. Magic on a remote machine.
+
+```bash
+# Streamable HTTP — listens on port 3444, endpoint: /mcp
+GENIUS_DIRECT_TOKEN=your_token \
+MUSIXMATCH_DIRECT_TOKEN=your_token \
+  npx -y --package mr-magic-mcp-server mcp-http-server
+```
+
+Connect your client to `http://localhost:3444/mcp` (or your public URL + `/mcp`).
+
+The same server also exposes the **legacy SSE** endpoints for older clients:
+- `GET  /sse` — opens the event stream
+- `POST /messages?sessionId=...` — sends JSON-RPC messages
+
+Both protocols run on the same port simultaneously — no extra config needed.
+
+#### JSON HTTP automation server
+
+```bash
+# JSON HTTP — listens on port 3333, endpoint: POST /
+GENIUS_DIRECT_TOKEN=your_token \
+  npx -y --package mr-magic-mcp-server http-server
+```
+
+#### Global install (binaries always on PATH)
 
 ```bash
 npm install -g mr-magic-mcp-server
-```
 
-When installed globally, start any server directly:
-
-```bash
-mcp-server           # MCP stdio server (recommended for local MCP clients)
-mcp-http-server      # Streamable HTTP MCP server
+mcp-server           # MCP stdio server
+mcp-http-server      # Streamable HTTP MCP server (+ legacy SSE on same port)
 http-server          # JSON HTTP automation server
 mrmagic-cli --help   # CLI
 ```
+
+#### Musixmatch token for npx / ephemeral / headless installs
+
+When running via `npx`, on Render free tier, or on any server without a browser or
+persistent filesystem, the Musixmatch token cannot be captured via Playwright there.
+The workflow is:
+
+1. **Capture the token locally** (one-time on any machine with a browser):
+
+   ```bash
+   git clone https://github.com/mrnajiboy/mr-magic-mcp-server.git
+   cd mr-magic-mcp-server && npm install
+   npm run fetch:musixmatch-token
+   ```
+
+   After signing in, the script prints the full token JSON payload.
+   Copy the entire printed JSON object (the `MUSIXMATCH_DIRECT_TOKEN=...` line).
+
+2. **Push to KV** so the server can read it on every cold start.
+   Set up Upstash Redis (free tier at [console.upstash.com](https://console.upstash.com/redis))
+   and run the push script with KV credentials. No browser needed:
+
+   ```bash
+   UPSTASH_REDIS_REST_URL=https://xxx.upstash.io \
+   UPSTASH_REDIS_REST_TOKEN=your_upstash_token \
+   MUSIXMATCH_DIRECT_TOKEN='<paste token JSON here>' \
+     npm run push:musixmatch-token
+   ```
+
+3. **Start the server** with the same Upstash credentials — it reads the token from
+   KV on every cold start (no `MUSIXMATCH_DIRECT_TOKEN` needed when KV is configured):
+
+   ```bash
+   GENIUS_DIRECT_TOKEN=... \
+   UPSTASH_REDIS_REST_URL=https://xxx.upstash.io \
+   UPSTASH_REDIS_REST_TOKEN=your_upstash_token \
+     npx -y --package mr-magic-mcp-server mcp-http-server
+   ```
+
+4. Re-run steps 1–2 only when the Musixmatch token expires (typically ~30 days).
+
+#### Musixmatch on Render (headless, no SSH)
+
+On Render free tier you cannot SSH in or open a browser. The recommended pattern is:
+
+1. Run `npm run fetch:musixmatch-token` locally, copy the token JSON from the output.
+
+2. In the Render Dashboard → **Environment** tab, set:
+   - `MUSIXMATCH_DIRECT_TOKEN` = `<your token JSON>` *(used as both push source and runtime override)*
+   - `UPSTASH_REDIS_REST_URL` = your Upstash endpoint
+   - `UPSTASH_REDIS_REST_TOKEN` = your Upstash token
+
+3. Set the Render **Start Command** to:
+   ```
+   npm run push:musixmatch-token && npm run server:mcp:http
+   ```
+   On every (re)start, the token is pushed to Upstash then the server reads it
+   from KV. If `MUSIXMATCH_DIRECT_TOKEN` is unset the push step is a silent no-op.
+
+4. When the token expires: update `MUSIXMATCH_DIRECT_TOKEN` from a fresh local
+   `fetch:musixmatch-token` run, trigger a redeploy on Render. Done.
+
+> **Genius on ephemeral hosts:** Genius does not need this flow.
+> Set `GENIUS_CLIENT_ID` + `GENIUS_CLIENT_SECRET` instead — the server calls the
+> Genius OAuth `client_credentials` endpoint at runtime, auto-refreshes the token
+> in memory, and never needs a browser, a KV store, or a captured session token.
 
 ### Local repo (development / contribution)
 
@@ -111,23 +206,36 @@ grouped below by purpose.
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `GENIUS_CLIENT_ID`     | OAuth client ID for auto-refresh (recommended). Get from [genius.com/api-clients](https://genius.com/api-clients). |
 | `GENIUS_CLIENT_SECRET` | OAuth client secret for auto-refresh (recommended).                                                                |
-| `GENIUS_ACCESS_TOKEN`  | Static fallback bearer token. Used when client credentials are unavailable.                                        |
+| `GENIUS_DIRECT_TOKEN`  | Static direct bearer token. Used when client credentials are unavailable.                                          |
 
 Token resolution order (first match wins):
 
 1. In-memory runtime cache
 2. Auto-refresh via `GENIUS_CLIENT_ID` + `GENIUS_CLIENT_SECRET` ← **recommended**
-3. `GENIUS_ACCESS_TOKEN` env var (static, no auto-refresh)
-4. On-disk `.cache/genius-token.json` (local dev only)
+3. `GENIUS_DIRECT_TOKEN` env var (static, no auto-refresh)
+4. KV store — Upstash Redis or Cloudflare KV (written automatically by auto-refresh)
+5. On-disk `.cache/genius-token.json` (local dev only)
 
 ### Musixmatch credentials
 
-| Variable                        | Description                                                              |
-| ------------------------------- | ------------------------------------------------------------------------ |
-| `MUSIXMATCH_FALLBACK_TOKEN`     | Token env var (1st priority). Use for production / ephemeral hosts.      |
-| `MUSIXMATCH_ALT_FALLBACK_TOKEN` | Token env var (2nd priority). Alternative name for the same token.       |
-| `MUSIXMATCH_TOKEN_CACHE`        | Path to the on-disk cache file. Default: `.cache/musixmatch-token.json`. |
-| `MUSIXMATCH_AUTO_FETCH`         | Set to `1` to attempt headless token re-fetch when no token is found.    |
+Token resolution order (first match wins):
+
+1. **Env var** — `MUSIXMATCH_DIRECT_TOKEN`
+2. **KV store** — Upstash Redis (priority 1) or Cloudflare KV (priority 2)
+3. **On-disk cache** — `.cache/musixmatch-token.json` (local dev / persistent servers)
+
+| Variable                        | Description                                                                                                           |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `MUSIXMATCH_DIRECT_TOKEN`       | Static bearer token. Recommended for production / ephemeral hosts. Also used as push source by `push:musixmatch-token`. |
+| `UPSTASH_REDIS_REST_URL`        | Upstash Redis KV backend URL. Also used by the export backend — set once, used for both.                              |
+| `UPSTASH_REDIS_REST_TOKEN`      | Upstash Redis KV bearer token. Takes precedence over Cloudflare KV when both are set.                                 |
+| `CF_API_TOKEN`                  | Cloudflare API token with `KV:Edit` permission (Cloudflare KV backend).                                               |
+| `CF_ACCOUNT_ID`                 | Cloudflare account ID (Cloudflare KV backend).                                                                        |
+| `CF_KV_NAMESPACE_ID`            | Cloudflare KV namespace ID (Cloudflare KV backend).                                                                   |
+| `MUSIXMATCH_TOKEN_KV_KEY`       | KV key name for the token store. Default: `mr-magic:musixmatch-token`.                                                |
+| `MUSIXMATCH_TOKEN_KV_TTL_SECONDS` | Token TTL in the KV store (seconds). Default: `2592000` (30 days).                                                  |
+| `MUSIXMATCH_TOKEN_CACHE`        | Path to the on-disk cache file. Default: `.cache/musixmatch-token.json`.                                              |
+| `MUSIXMATCH_AUTO_FETCH`         | Set to `1` to attempt headless token re-fetch when no token is found.                                                 |
 
 ### Export and storage
 
@@ -173,7 +281,7 @@ Genius credentials are resolved in this order — the first available source win
    refreshed in memory. **Recommended for all deployments**, including Render and
    ephemeral hosts. No disk, no scripts, no manual token copying.
 
-2. **Fallback token** (`GENIUS_ACCESS_TOKEN`) — a static bearer token. Works
+2. **Direct token** (`GENIUS_DIRECT_TOKEN`) — a static bearer token. Works
    everywhere but does not auto-refresh. Update by redeploying with a new value.
 
 3. **Cache token** (`.cache/genius-token.json`) — written by `npm run fetch:genius-token`.
@@ -185,9 +293,8 @@ Musixmatch uses a captured browser session token. There is no OAuth callback.
 
 **For production / ephemeral hosts (Render, containers):**
 
-Set `MUSIXMATCH_FALLBACK_TOKEN` (first priority) or `MUSIXMATCH_ALT_FALLBACK_TOKEN`
-(second priority) directly in your environment. These are the only reliable options
-when the filesystem may be wiped between restarts.
+Set `MUSIXMATCH_DIRECT_TOKEN` directly in your environment. This is the highest-priority
+env var option and the only reliable one when the filesystem may be wiped between restarts.
 
 **For local development:**
 
@@ -205,11 +312,11 @@ The workflow:
 3. After the redirect to `https://www.musixmatch.com/discover`, the script prints
    the captured token and writes the cache file.
 4. **For remote deployments:** copy the `token` value from the printed JSON and set
-   it as `MUSIXMATCH_FALLBACK_TOKEN` in your platform environment. Do **not** rely on
+   it as `MUSIXMATCH_DIRECT_TOKEN` in your platform environment. Do **not** rely on
    the cache file surviving restarts on ephemeral hosts.
 
 > **Developer accounts:** Get API access from [developer.musixmatch.com](https://developer.musixmatch.com)
-> and set the resulting token as `MUSIXMATCH_FALLBACK_TOKEN`.
+> and set the resulting token as `MUSIXMATCH_DIRECT_TOKEN`.
 >
 > **Public accounts:** Visit [auth.musixmatch.com](https://auth.musixmatch.com), sign in,
 > and capture the token using the script above.
@@ -309,7 +416,7 @@ Recommended Render service settings:
 
 - **Start Command:** `npm run server:mcp:http`
 - **Environment:** set provider credentials (`GENIUS_CLIENT_ID`, `GENIUS_CLIENT_SECRET`,
-  `MUSIXMATCH_FALLBACK_TOKEN`, etc.) in the Render Dashboard → Environment tab
+  `MUSIXMATCH_DIRECT_TOKEN`, etc.) in the Render Dashboard → Environment tab
 - **Health Check Path:** `/health` (returns `{ "status": "ok", "providers": [...] }`)
 
 > For custom domains, add them to `MR_MAGIC_ALLOWED_HOSTS` (comma-separated) in
@@ -615,8 +722,8 @@ Works with any local MCP client that supports `command` / `args`:
       "command": "npx",
       "args": ["-y", "mr-magic-mcp-server"],
       "env": {
-        "GENIUS_ACCESS_TOKEN": "...",
-        "MUSIXMATCH_FALLBACK_TOKEN": "...",
+        "GENIUS_DIRECT_TOKEN": "...",
+        "MUSIXMATCH_DIRECT_TOKEN": "...",
         "AIRTABLE_PERSONAL_ACCESS_TOKEN": "..."
       }
     }
@@ -1055,8 +1162,8 @@ npm run server:mcp:http   # Streamable HTTP MCP  — port 3444
 
 - **LRCLIB** — Public API with synced lyric coverage. No auth required.
 - **Genius** — Requires `GENIUS_CLIENT_ID` + `GENIUS_CLIENT_SECRET` (auto-refresh,
-  recommended) or `GENIUS_ACCESS_TOKEN` (static fallback token).
-- **Musixmatch** — Requires a token. Use `MUSIXMATCH_FALLBACK_TOKEN` for production /
+  recommended) or `GENIUS_DIRECT_TOKEN` (static direct token).
+- **Musixmatch** — Requires a token. Use `MUSIXMATCH_DIRECT_TOKEN` for production /
   ephemeral hosts; use the on-disk cache token (`npm run fetch:musixmatch-token`) for
   local dev. See [Musixmatch](#musixmatch) for the full workflow.
 - **Melon** — Works anonymously. Set `MELON_COOKIE` for pinned / reproducible sessions.

@@ -3,20 +3,28 @@ import path from 'node:path';
 
 import { getEnvValue, getProjectRoot } from '../config.js';
 import { createLogger } from '../logger.js';
+import { describeKvBackend, isKvConfigured, kvGet, kvSet } from '../kv-store.js';
 
 const logger = createLogger('musixmatch-token-manager');
 
 // Token source terminology used throughout this module:
-//   • Cache token   — loaded from the on-disk cache file written by the fetch script.
-//                     Only reliable when a persistent, writable filesystem is available
-//                     (i.e. local development). Ephemeral hosts (Render free tier, etc.)
-//                     may not have a writable FS, so the cache token is unavailable there.
-//   • Fallback token — the token value supplied directly via MUSIXMATCH_FALLBACK_TOKEN or
-//                     MUSIXMATCH_ALT_USER_TOKEN environment variables.  This is the recommended
-//                     approach for production and remote deployments where the filesystem
-//                     cannot be relied upon for persistence.
+//   • Direct token   — MUSIXMATCH_DIRECT_TOKEN env var.  A static bearer token set
+//                      directly in the environment.  Recommended for production and
+//                      remote deployments where the filesystem cannot be relied upon
+//                      for persistence.  Highest priority after in-memory cache.
+//   • KV token       — stored in a remote KV store (Upstash Redis or Cloudflare KV).
+//                      Ideal for ephemeral/serverless deployments and npx installs
+//                      where there is no local filesystem at all.
+//   • Cache token    — loaded from the on-disk cache file written by the fetch script.
+//                      Only reliable when a persistent, writable filesystem is available
+//                      (i.e. local development). Ephemeral hosts (Render free tier, etc.)
+//                      may not have a writable FS, so the cache token is unavailable there.
+
+// KV key and TTL — configurable via env vars.
+const KV_KEY = process.env.MUSIXMATCH_TOKEN_KV_KEY || 'mr-magic:musixmatch-token';
+const KV_TTL_SECONDS = parseInt(process.env.MUSIXMATCH_TOKEN_KV_TTL_SECONDS || '2592000', 10); // 30 days
 const TOKEN_CACHE_PATH =
-  process.env.MUSIXMATCH_ALT_USER_TOKEN_CACHE ||
+  process.env.MUSIXMATCH_TOKEN_CACHE ||
   path.join(getProjectRoot(), '.cache', 'musixmatch-token.json');
 
 let cachedToken = null;
@@ -60,7 +68,7 @@ async function writeCachedToken(token, desktopCookie) {
   if (!dirOk) {
     logger.warn(
       'Musixmatch token cache directory unavailable (read-only or restricted filesystem). ' +
-        'Token was NOT persisted to disk. Set MUSIXMATCH_FALLBACK_TOKEN as an environment variable ' +
+        'Token was NOT persisted to disk. Set MUSIXMATCH_DIRECT_TOKEN as an environment variable ' +
         'to ensure the token survives restarts in remote/ephemeral deployments.',
       { cachePath: TOKEN_CACHE_PATH }
     );
@@ -75,36 +83,65 @@ async function writeCachedToken(token, desktopCookie) {
   }
 }
 
+// ─── KV store helpers ─────────────────────────────────────────────────────────
+
+async function readKvToken() {
+  if (!isKvConfigured()) return null;
+  try {
+    const raw = await kvGet(KV_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed?.token) {
+      cachedToken = parsed.token;
+      cachedDesktopCookie = parsed.desktopCookie || null;
+      lastLoadedFrom = `kv:${describeKvBackend()}`;
+      return cachedToken;
+    }
+  } catch {
+    // KV read error — not fatal; fall through to disk cache
+  }
+  return null;
+}
+
+async function writeKvToken(token, desktopCookie) {
+  if (!isKvConfigured() || !token) return;
+  try {
+    const payload = JSON.stringify({ token, ...(desktopCookie ? { desktopCookie } : {}) });
+    await kvSet(KV_KEY, payload, KV_TTL_SECONDS);
+  } catch (error) {
+    logger.warn('Failed to persist Musixmatch token to KV store', {
+      backend: describeKvBackend(),
+      error: error?.message
+    });
+  }
+}
+
 /**
  * Resolve the Musixmatch token using the following priority order:
  *   1. In-memory runtime cache (already resolved this session)
- *   2. MUSIXMATCH_FALLBACK_TOKEN env var  — fallback token, first-priority env source
- *   3. MUSIXMATCH_ALT_USER_TOKEN env var       — fallback token, second-priority env source
- *   4. On-disk cache file             — cache token, local dev only
+ *   2. MUSIXMATCH_DIRECT_TOKEN env var — direct/static bearer token (highest env priority)
+ *   3. KV store                        — Upstash Redis or Cloudflare KV (ephemeral/npx)
+ *   4. On-disk cache file              — local dev / persistent server only
  */
 export async function getMusixmatchToken() {
   if (cachedToken) {
     return cachedToken;
   }
 
-  // Prioritize env vars — these survive restarts on ephemeral hosts
-  const userToken = getEnvValue('MUSIXMATCH_FALLBACK_TOKEN');
-  if (userToken) {
-    cachedToken = userToken;
-    lastLoadedFrom = 'env:MUSIXMATCH_FALLBACK_TOKEN';
+  // 2. Direct token from env var — survives restarts on ephemeral hosts without any external service
+  const directToken = getEnvValue('MUSIXMATCH_DIRECT_TOKEN');
+  if (directToken) {
+    cachedToken = directToken;
+    lastLoadedFrom = 'env:MUSIXMATCH_DIRECT_TOKEN';
     cachedDesktopCookie = null;
     return cachedToken;
   }
 
-  const envToken = getEnvValue('MUSIXMATCH_ALT_USER_TOKEN');
-  if (envToken) {
-    cachedToken = envToken;
-    lastLoadedFrom = 'env:MUSIXMATCH_ALT_USER_TOKEN';
-    cachedDesktopCookie = null;
-    return cachedToken;
-  }
+  // 3. KV store — ideal for ephemeral deployments and npx installs with no local filesystem
+  const kvToken = await readKvToken();
+  if (kvToken) return kvToken;
 
-  // Fall back to disk cache for local development
+  // 4. On-disk cache — local dev / persistent hosts with a writable filesystem
   return readCachedToken();
 }
 
@@ -113,10 +150,16 @@ export async function setMusixmatchToken(token, { desktopCookie } = {}) {
   cachedToken = token;
   lastLoadedFrom = 'runtime';
   cachedDesktopCookie = desktopCookie || null;
-  await writeCachedToken(token, desktopCookie);
+  // Write to both storage backends in parallel; failures are logged, not thrown.
+  await Promise.allSettled([
+    writeCachedToken(token, desktopCookie),
+    writeKvToken(token, desktopCookie)
+  ]);
   logger.info('Musixmatch token updated', {
     source: 'runtime',
-    desktopCookiePresent: Boolean(desktopCookie)
+    desktopCookiePresent: Boolean(desktopCookie),
+    kvConfigured: isKvConfigured(),
+    kvBackend: describeKvBackend()
   });
 }
 
@@ -129,8 +172,7 @@ export function describeMusixmatchTokenSource() {
 }
 
 export async function getMusixmatchTokenDiagnostics() {
-  const userEnvToken = getEnvValue('MUSIXMATCH_FALLBACK_TOKEN');
-  const envToken = getEnvValue('MUSIXMATCH_ALT_USER_TOKEN');
+  const directEnvToken = getEnvValue('MUSIXMATCH_DIRECT_TOKEN');
 
   const diagnostics = {
     cachePath: TOKEN_CACHE_PATH,
@@ -140,8 +182,9 @@ export async function getMusixmatchTokenDiagnostics() {
     cacheBytes: 0,
     cacheTokenPresent: false,
     cacheError: null,
-    userEnvPresent: Boolean(userEnvToken),
-    envPresent: Boolean(envToken),
+    directEnvPresent: Boolean(directEnvToken),
+    kvConfigured: isKvConfigured(),
+    kvBackend: describeKvBackend(),
     runtimeTokenCached: Boolean(cachedToken),
     lastLoadedFrom,
     resolvedSource: 'none'
@@ -160,10 +203,8 @@ export async function getMusixmatchTokenDiagnostics() {
 
   if (cachedToken) {
     diagnostics.resolvedSource = lastLoadedFrom;
-  } else if (userEnvToken) {
-    diagnostics.resolvedSource = 'env:MUSIXMATCH_FALLBACK_TOKEN';
-  } else if (envToken) {
-    diagnostics.resolvedSource = 'env:MUSIXMATCH_ALT_USER_TOKEN';
+  } else if (directEnvToken) {
+    diagnostics.resolvedSource = 'env:MUSIXMATCH_DIRECT_TOKEN';
   } else if (diagnostics.cacheTokenPresent) {
     diagnostics.resolvedSource = 'cache';
   } else {

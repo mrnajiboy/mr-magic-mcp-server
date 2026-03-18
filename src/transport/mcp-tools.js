@@ -435,11 +435,10 @@ export async function handleMcpTool(name, args = {}) {
 
   if (name === 'runtime_status') {
     const CREDENTIAL_KEYS = [
-      'GENIUS_ACCESS_TOKEN',
+      'GENIUS_DIRECT_TOKEN',
       'GENIUS_CLIENT_ID',
       'GENIUS_CLIENT_SECRET',
-      'MUSIXMATCH_ALT_USER_TOKEN',
-      'MUSIXMATCH_FALLBACK_TOKEN',
+      'MUSIXMATCH_DIRECT_TOKEN',
       'MELON_COOKIE'
     ];
     return {

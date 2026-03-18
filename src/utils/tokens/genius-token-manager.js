@@ -5,23 +5,32 @@ import axios from 'axios';
 
 import { getEnvValue, getProjectRoot } from '../config.js';
 import { createLogger } from '../logger.js';
+import { describeKvBackend, isKvConfigured, kvGet, kvSet } from '../kv-store.js';
 
 const GENIUS_TOKEN_ENDPOINT = 'https://api.genius.com/oauth/token';
 const logger = createLogger('genius-token-manager');
 
 // Token source terminology used throughout this module:
-//   • Auto-refresh   — GENIUS_CLIENT_ID + GENIUS_CLIENT_SECRET env vars.
-//                      The server calls the Genius OAuth client_credentials endpoint
-//                      at runtime and keeps the token refreshed in memory automatically.
-//                      This is the recommended approach for all deployments: no disk,
-//                      no scripts, and no manual token copying needed.
-//   • Fallback token — GENIUS_ACCESS_TOKEN env var.  A static bearer token set directly
-//                      in the environment.  Does not auto-refresh; redeploy when expired.
-//                      Use this only when client_credentials are unavailable.
-//   • Cache token    — on-disk .cache/genius-token.json written by the fetch script.
-//                      Only reliable when a persistent, writable filesystem is available
-//                      (i.e. local development). Ephemeral hosts (Render free tier, etc.)
-//                      should use the auto-refresh or fallback token paths instead.
+//   • Auto-refresh    — GENIUS_CLIENT_ID + GENIUS_CLIENT_SECRET env vars.
+//                       The server calls the Genius OAuth client_credentials endpoint
+//                       at runtime and keeps the token refreshed in memory automatically.
+//                       This is the recommended approach for all deployments: no disk,
+//                       no scripts, and no manual token copying needed.
+//                       On success the token is also persisted to KV + disk cache.
+//   • Direct token    — GENIUS_DIRECT_TOKEN env var.  A static bearer token set directly
+//                       in the environment.  Does not auto-refresh; redeploy when expired.
+//                       Use this only when client_credentials are unavailable.
+//   • KV token        — stored in a remote KV store (Upstash Redis or Cloudflare KV).
+//                       Written automatically when client_credentials refresh succeeds.
+//                       Ideal for ephemeral/serverless deployments and npx installs.
+//   • Cache token     — on-disk .cache/genius-token.json written by the fetch script or
+//                       by a successful client_credentials refresh.  Only reliable when
+//                       a persistent, writable filesystem is available (local dev).
+//                       Ephemeral hosts should use auto-refresh, direct token, or KV.
+
+// KV key and TTL — configurable via env vars.
+const KV_KEY = process.env.GENIUS_TOKEN_KV_KEY || 'mr-magic:genius-token';
+const KV_TTL_SECONDS = parseInt(process.env.GENIUS_TOKEN_KV_TTL_SECONDS || '3600', 10); // 1 hour
 
 // Token cache path — must match the path used by src/scripts/fetch_genius_token.mjs.
 const TOKEN_CACHE_PATH =
@@ -32,7 +41,7 @@ let cachedExpiry = 0;
 let lastAuthMode = 'unknown';
 
 function getFallbackToken() {
-  return getEnvValue('GENIUS_ACCESS_TOKEN');
+  return getEnvValue('GENIUS_DIRECT_TOKEN');
 }
 
 function tokenExpired() {
@@ -53,6 +62,59 @@ async function readCachedToken() {
   } catch {
     // Cache file absent or unreadable — not an error in remote environments.
     return null;
+  }
+}
+
+async function writeCachedToken(accessToken, expiresIn) {
+  if (!accessToken) return;
+  try {
+    await fs.mkdir(path.dirname(TOKEN_CACHE_PATH), { recursive: true });
+    await fs.writeFile(
+      TOKEN_CACHE_PATH,
+      JSON.stringify({
+        access_token: accessToken,
+        expires_at: Date.now() + (Number(expiresIn) || 3600) * 1000
+      }),
+      'utf8'
+    );
+  } catch (error) {
+    logger.warn('Failed to persist Genius token cache', { error: error?.message });
+  }
+}
+
+// ─── KV store helpers ─────────────────────────────────────────────────────────
+
+async function readKvToken() {
+  if (!isKvConfigured()) return null;
+  try {
+    const raw = await kvGet(KV_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed?.access_token) {
+      cachedToken = parsed.access_token;
+      cachedExpiry = parsed.expires_at ?? Date.now() + 3_600_000;
+      lastAuthMode = `kv:${describeKvBackend()}`;
+      return cachedToken;
+    }
+  } catch {
+    // KV read error — not fatal; fall through to disk cache
+  }
+  return null;
+}
+
+async function writeKvToken(accessToken, expiresIn) {
+  if (!isKvConfigured() || !accessToken) return;
+  try {
+    const payload = JSON.stringify({
+      access_token: accessToken,
+      expires_at: Date.now() + (Number(expiresIn) || 3600) * 1000
+    });
+    await kvSet(KV_KEY, payload, KV_TTL_SECONDS);
+  } catch (error) {
+    logger.warn('Failed to persist Genius token to KV store', {
+      backend: describeKvBackend(),
+      error: error?.message
+    });
   }
 }
 
@@ -82,6 +144,8 @@ async function fetchClientCredentialsToken() {
     cachedExpiry = Date.now() + ttl * 1000;
     lastAuthMode = 'client_credentials';
     logger.info('Genius token refreshed', { ttlSeconds: ttl });
+    // Persist to durable backends in parallel so ephemeral hosts survive restarts.
+    await Promise.allSettled([writeCachedToken(accessToken, ttl), writeKvToken(accessToken, ttl)]);
     return cachedToken;
   } catch (error) {
     logger.error('Failed to refresh Genius token', {
@@ -95,8 +159,10 @@ async function fetchClientCredentialsToken() {
  * Resolve the Genius token using the following priority order:
  *   1. In-memory runtime cache (already resolved this session)
  *   2. Auto-refresh via GENIUS_CLIENT_ID + GENIUS_CLIENT_SECRET (client_credentials)
- *   3. GENIUS_ACCESS_TOKEN env var — fallback token
- *   4. On-disk .cache/genius-token.json — cache token, local dev only
+ *      → on success, writes to KV store + disk cache
+ *   3. GENIUS_DIRECT_TOKEN env var — static bearer token override
+ *   4. KV store — Upstash Redis or Cloudflare KV (ephemeral/npx)
+ *   5. On-disk .cache/genius-token.json — cache token, local dev only
  */
 export async function getGeniusToken({ forceRefresh = false } = {}) {
   if (!forceRefresh && !tokenExpired()) {
@@ -109,17 +175,21 @@ export async function getGeniusToken({ forceRefresh = false } = {}) {
     return token;
   }
 
-  // 3. Fallback token from env var (static, no auto-refresh)
+  // 3. Direct token from env var (static override, no auto-refresh)
   const fallback = getFallbackToken();
   if (fallback && fallback !== cachedToken) {
-    logger.warn('Using Genius fallback token from GENIUS_ACCESS_TOKEN env var');
+    logger.warn('Using Genius direct token from GENIUS_DIRECT_TOKEN env var');
     cachedToken = fallback;
     cachedExpiry = Date.now() + 86_400_000; // 1 day placeholder
-    lastAuthMode = 'env_access_token';
+    lastAuthMode = 'env_direct_token';
     return cachedToken;
   }
 
-  // 4. Cache token from disk (local dev convenience only)
+  // 4. KV store — ideal for ephemeral deployments and npx installs
+  const kvToken = await readKvToken();
+  if (kvToken) return kvToken;
+
+  // 5. Cache token from disk (local dev convenience only)
   const cached = await readCachedToken();
   if (cached) {
     logger.info('Using Genius cache token from disk', { cachePath: TOKEN_CACHE_PATH });
@@ -156,7 +226,10 @@ export function describeGeniusAuthMode() {
     return 'client_credentials';
   }
   if (getFallbackToken()) {
-    return 'env_access_token';
+    return 'env_direct_token';
+  }
+  if (isKvConfigured()) {
+    return 'kv_store';
   }
   return 'none';
 }
@@ -164,12 +237,14 @@ export function describeGeniusAuthMode() {
 export async function getGeniusDiagnostics() {
   const clientId = getEnvValue('GENIUS_CLIENT_ID');
   const clientSecret = getEnvValue('GENIUS_CLIENT_SECRET');
-  const fallback = getFallbackToken();
+  const directToken = getFallbackToken();
   const ttlMs = Math.max(cachedExpiry - Date.now(), 0);
 
   const diagnostics = {
     clientCredentialsPresent: Boolean(clientId && clientSecret),
-    fallbackTokenPresent: Boolean(fallback),
+    directTokenPresent: Boolean(directToken),
+    kvConfigured: isKvConfigured(),
+    kvBackend: describeKvBackend(),
     runtimeTokenCached: Boolean(cachedToken),
     runtimeTokenExpiresInMs: cachedToken ? ttlMs : 0,
     lastAuthMode: describeGeniusAuthMode(),

@@ -30,7 +30,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "node src/tests/run-tests.js",
-    "fetch:musixmatch-token": "node src/scripts/fetch_MUSIXMATCH_ALT_FALLBACK_TOKEN.mjs",
+    "fetch:musixmatch-token": "node src/scripts/fetch_musixmatch_token.mjs",
+    "push:musixmatch-token": "node src/scripts/push_musixmatch_token.mjs",
     "fetch:genius-token": "node src/scripts/fetch_genius_token.mjs",
     "repro:mcp:arg-boundary": "node src/scripts/mcp-arg-boundary-repro.mjs",
     "repro:mcp:arg-boundary:sdk": "node src/scripts/mcp-arg-boundary-sdk-repro.mjs"
