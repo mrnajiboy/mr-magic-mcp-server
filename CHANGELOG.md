@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.1...mr-magic-mcp-server-v0.3.2) (2026-03-18)
+
+
+### Bug Fixes
+
+* updated root endpoint responses for both servers ([58e92f6](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/58e92f669da9f7f4e34fc673874f12f5610040ed))
+
 ## [0.3.1](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.0...mr-magic-mcp-server-v0.3.1) (2026-03-18)
 
 ### Bug Fixes
