@@ -5,3 +5,5 @@
 /node_modules
 /exports
 /.cache
+
+.env.keys
