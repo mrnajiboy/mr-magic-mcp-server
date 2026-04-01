@@ -163,6 +163,46 @@ function toLyricStrings(lyricInfo) {
   return { plain: plain || null, synced: null };
 }
 
+export async function fetchMelonBySongId(songId, track = {}) {
+  const normalizedSongId = songId?.toString().trim();
+  if (!normalizedSongId) {
+    return null;
+  }
+
+  const record = normalizeLyricRecord({
+    provider: 'melon',
+    id: normalizedSongId,
+    trackName: track.title || null,
+    artistName: track.artist || null,
+    albumName: track.album || null,
+    duration: null,
+    plainLyrics: null,
+    syncedLyrics: null,
+    sourceUrl: `https://www.melon.com/song/detail.htm?songId=${normalizedSongId}`,
+    confidence: 0.5,
+    synced: false,
+    status: 'ok',
+    raw: {
+      songId: normalizedSongId,
+      title: track.title || null,
+      artist: track.artist || null,
+      album: track.album || null
+    }
+  });
+
+  try {
+    const lyricInfo = await fetchLyricInfo(normalizedSongId);
+    const { plain, synced } = toLyricStrings(lyricInfo);
+    record.plainLyrics = plain;
+    record.syncedLyrics = synced;
+    recomputeSyncFlags(record);
+  } catch (error) {
+    logger.error('Melon lyricInfo request failed', { error, songId: normalizedSongId });
+  }
+
+  return record;
+}
+
 export async function searchMelon(track) {
   const pageHtml = await fetchSearchPage(track);
   return parseSearchPage(pageHtml).map((record) =>
@@ -185,17 +225,13 @@ export async function searchMelon(track) {
 }
 
 export async function fetchFromMelon(track) {
+  const requestedSongId = track?.songId || track?.providerId || track?.ids?.songId;
+  if (requestedSongId) {
+    return fetchMelonBySongId(requestedSongId, track);
+  }
+
   const candidates = await searchMelon(track);
   const primary = candidates[0];
   if (!primary) return null;
-  try {
-    const lyricInfo = await fetchLyricInfo(primary.providerId);
-    const { plain, synced } = toLyricStrings(lyricInfo);
-    primary.plainLyrics = plain;
-    primary.syncedLyrics = synced;
-    recomputeSyncFlags(primary);
-  } catch (error) {
-    logger.error('Melon lyricInfo request failed', { error, songId: primary.providerId });
-  }
-  return primary;
+  return fetchMelonBySongId(primary.providerId, primary);
 }

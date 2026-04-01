@@ -2,15 +2,13 @@
 
 ## [0.3.10](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.9...mr-magic-mcp-server-v0.3.10) (2026-03-18)
 
-
 ### Bug Fixes
 
-* find algo for best results. ([f01c725](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/f01c725e6dd7ffe32b24ef1c346c4c5c3771645b))
-
+- find algo for best results. ([f01c725](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/f01c725e6dd7ffe32b24ef1c346c4c5c3771645b))
 
 ### Documentation
 
-* prettier ([300f933](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/300f933f4ab6d4cde4365f7349db0f44254bd725))
+- prettier ([300f933](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/300f933f4ab6d4cde4365f7349db0f44254bd725))
 
 ## [0.3.9](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.8...mr-magic-mcp-server-v0.3.9) (2026-03-18)
 

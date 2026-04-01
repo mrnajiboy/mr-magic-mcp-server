@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 
-import { mcpToolDefinitions, handleMcpTool } from '../src/transport/mcp-tools.js';
-import { buildMcpResponse } from '../src/transport/mcp-response.js';
+import {
+  mcpToolDefinitions,
+  handleMcpTool,
+  buildResolvedReferenceResult
+} from '../transport/mcp-tools.js';
+import { buildMcpResponse } from '../transport/mcp-response.js';
 
 const sampleTrack = {
   title: 'Kill This Love',
@@ -60,6 +64,146 @@ async function testSearchProviderReturnsArray() {
     track: sampleTrack
   });
   assert.ok(Array.isArray(results));
+  const firstResult = results[0];
+  if (firstResult) {
+    assert.ok(!Object.prototype.hasOwnProperty.call(firstResult, 'plainLyrics'));
+    assert.ok(!Object.prototype.hasOwnProperty.call(firstResult, 'syncedLyrics'));
+    assert.ok(!Object.prototype.hasOwnProperty.call(firstResult, 'rawRecord'));
+    assert.equal(firstResult.reference?.provider, 'lrclib');
+  }
+}
+
+async function testSearchLyricsReturnsPreviewOnlyGroups() {
+  const groups = await handleMcpTool('search_lyrics', { track: sampleTrack });
+  assert.ok(Array.isArray(groups), 'search_lyrics should return provider groups');
+  const firstGroup = groups.find(
+    (group) => Array.isArray(group.results) && group.results.length > 0
+  );
+  if (firstGroup) {
+    const firstResult = firstGroup.results[0];
+    assert.ok(firstResult.reference?.provider, 'preview result should include provider reference');
+    assert.ok(!Object.prototype.hasOwnProperty.call(firstResult, 'plainLyrics'));
+    assert.ok(!Object.prototype.hasOwnProperty.call(firstResult, 'syncedLyrics'));
+    assert.ok(!Object.prototype.hasOwnProperty.call(firstResult, 'rawRecord'));
+  }
+}
+
+async function testSelectMatchAcceptsGroupedSearchResults() {
+  const response = await handleMcpTool('select_match', {
+    items: [
+      {
+        provider: 'melon',
+        results: [
+          {
+            provider: 'melon',
+            providerId: '38914304',
+            title: 'Summer Nights',
+            artist: 'St. Lucia',
+            synced: false,
+            reference: { provider: 'melon', providerId: '38914304', ids: { songId: '38914304' } }
+          }
+        ]
+      },
+      {
+        provider: 'lrclib',
+        results: [
+          {
+            provider: 'lrclib',
+            providerId: '25265938',
+            title: 'Summer Nights',
+            artist: 'St. Lucia',
+            synced: true,
+            reference: { provider: 'lrclib', providerId: '25265938', ids: { trackId: '25265938' } }
+          }
+        ]
+      }
+    ],
+    criteria: { provider: 'lrclib', requireSynced: true }
+  });
+  assert.equal(response?.result?.providerId, '25265938');
+}
+
+async function testFindLyricsAcceptsSelectedMatch() {
+  const results = await handleMcpTool('search_provider', {
+    provider: 'lrclib',
+    track: sampleTrack
+  });
+  const selected = results[0];
+  if (!selected) {
+    return;
+  }
+  const response = await handleMcpTool('find_lyrics', { match: selected });
+  assert.ok(response?.best, 'find_lyrics should resolve a selected search result');
+  assert.equal(response.best.providerId, selected.providerId);
+}
+
+async function testFindLyricsAcceptsReferenceOnlySelection() {
+  const results = await handleMcpTool('search_provider', {
+    provider: 'lrclib',
+    track: sampleTrack
+  });
+  const selected = results[0];
+  if (!selected?.reference) {
+    return;
+  }
+
+  const response = await handleMcpTool('find_lyrics', { reference: selected.reference });
+  assert.ok(response?.best, 'find_lyrics should resolve a bare provider reference');
+  assert.equal(response.best.providerId, selected.providerId);
+}
+
+async function testBuildCatalogPayloadAcceptsReferenceOnlySelection() {
+  const results = await handleMcpTool('search_provider', {
+    provider: 'lrclib',
+    track: sampleTrack
+  });
+  const selected = results[0];
+  if (!selected?.reference) {
+    return;
+  }
+
+  const response = await handleMcpTool('build_catalog_payload', {
+    reference: selected.reference,
+    options: { preferRomanized: false }
+  });
+  assert.ok(response?.provider, 'catalog payload should resolve from a bare provider reference');
+  assert.equal(response.providerId, selected.providerId);
+}
+
+async function testResolvedMelonReferenceWithoutLyricsIsRejected() {
+  const resolved = {
+    provider: 'melon',
+    providerId: '38914304',
+    title: 'Summer Nights',
+    artist: 'St. Lucia',
+    plainLyrics: null,
+    syncedLyrics: null,
+    synced: false
+  };
+
+  const result = buildResolvedReferenceResult(resolved);
+  assert.equal(result.best, null, 'empty Melon reference hydration should not become best');
+  assert.deepEqual(result.matches, [], 'empty Melon reference hydration should not produce matches');
+}
+
+async function testResolvedGeniusReferenceWithoutLyricsIsRejected() {
+  const resolved = {
+    provider: 'genius',
+    providerId: '12345',
+    title: 'Song',
+    artist: 'Artist',
+    plainLyrics: '   ',
+    syncedLyrics: null,
+    synced: false
+  };
+
+  const result = buildResolvedReferenceResult(resolved);
+  assert.equal(result.best, null, 'empty Genius reference hydration should not become best');
+  assert.deepEqual(
+    result.matches,
+    [],
+    'empty Genius reference hydration should not produce matches'
+  );
 }
 
 async function testFormatLyricsShape() {
@@ -233,6 +377,13 @@ async function run() {
   await testFindSyncedLyricsTool();
   await testSearchProviderRequiresProvider();
   await testSearchProviderReturnsArray();
+  await testSearchLyricsReturnsPreviewOnlyGroups();
+  await testSelectMatchAcceptsGroupedSearchResults();
+  await testFindLyricsAcceptsSelectedMatch();
+  await testFindLyricsAcceptsReferenceOnlySelection();
+  await testBuildCatalogPayloadAcceptsReferenceOnlySelection();
+  await testResolvedMelonReferenceWithoutLyricsIsRejected();
+  await testResolvedGeniusReferenceWithoutLyricsIsRejected();
   await testFormatLyricsShape();
   await testBuildCatalogPayload();
   await testBuildCatalogPayloadWithLyricsPayload();

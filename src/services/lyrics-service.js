@@ -95,6 +95,10 @@ export async function buildCatalogPayload(track, actionOptions = {}) {
   return buildCatalogResponse(result, track, actionOptions);
 }
 
+export async function buildCatalogPayloadFromResult(best, requestedTrack = {}, actionOptions = {}) {
+  return buildCatalogResponse({ best }, requestedTrack, actionOptions);
+}
+
 export async function exportBestResult(result, context) {
   if (!context.shouldExport || !result?.best) return null;
   return exportLyrics(result.best, {

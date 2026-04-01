@@ -1,13 +1,18 @@
 import { fetchFromLrclib, searchLrclib } from './providers/lrclib.js';
-import { fetchFromGenius, searchGenius, checkGeniusTokenReady } from './providers/genius.js';
+import {
+  fetchFromGenius,
+  searchGenius,
+  checkGeniusTokenReady,
+  fetchLyricsForGeniusSong
+} from './providers/genius.js';
 import {
   fetchFromMusixmatch,
   searchMusixmatch,
   checkMusixmatchTokenReady
 } from './providers/musixmatch.js';
-import { fetchFromMelon, searchMelon } from './providers/melon.js';
+import { fetchFromMelon, searchMelon, fetchMelonBySongId } from './providers/melon.js';
 import { getEnvValue } from './utils/config.js';
-import { lyricContentScore } from './provider-result-schema.js';
+import { buildProviderReferenceFingerprint, lyricContentScore } from './provider-result-schema.js';
 
 const providers = [
   { name: 'lrclib', fetch: fetchFromLrclib, search: searchLrclib },
@@ -119,6 +124,87 @@ export async function searchProvider(providerName, track) {
     return [];
   }
   return provider.search(track);
+}
+
+function buildLookupTrack(track = {}, reference = {}) {
+  return {
+    title: track.title || reference.title || '',
+    artist: track.artist || reference.artist || '',
+    album: track.album || reference.album || null,
+    duration: track.duration ?? reference.duration ?? null
+  };
+}
+
+function recordMatchesReference(record, reference = {}) {
+  if (!record || !reference) return false;
+
+  if (reference.providerId && record.providerId === reference.providerId.toString()) {
+    return true;
+  }
+
+  const referenceIds = reference.ids || {};
+  const recordIds = record.ids || {};
+  if (
+    Object.entries(referenceIds).some(
+      ([key, value]) => value !== null && value !== undefined && recordIds[key] === value.toString()
+    )
+  ) {
+    return true;
+  }
+
+  if (reference.sourceUrl && record.sourceUrl === reference.sourceUrl) {
+    return true;
+  }
+
+  if (reference.fingerprint) {
+    return buildProviderReferenceFingerprint(record) === reference.fingerprint;
+  }
+
+  return false;
+}
+
+export async function resolveProviderReference(reference, track = {}) {
+  if (!reference?.provider) {
+    return null;
+  }
+
+  const lookupTrack = buildLookupTrack(track, reference);
+
+  if (reference.provider === 'melon') {
+    const songId = reference.ids?.songId || reference.providerId;
+    return fetchMelonBySongId(songId, lookupTrack);
+  }
+
+  if (reference.provider === 'lrclib') {
+    const results = await searchLrclib(lookupTrack);
+    return results.find((record) => recordMatchesReference(record, reference)) ?? null;
+  }
+
+  if (reference.provider === 'musixmatch') {
+    const results = await searchMusixmatch(lookupTrack);
+    return results.find((record) => recordMatchesReference(record, reference)) ?? null;
+  }
+
+  if (reference.provider === 'genius') {
+    const results = await searchGenius(lookupTrack);
+    const exact = results.find((record) => recordMatchesReference(record, reference)) ?? null;
+    if (!exact) {
+      return null;
+    }
+    if (exact.sourceUrl) {
+      try {
+        const plainLyrics = await fetchLyricsForGeniusSong(exact.sourceUrl);
+        if (plainLyrics) {
+          exact.plainLyrics = plainLyrics;
+        }
+      } catch {
+        // Best effort hydration; return the exact metadata match even when scraping fails.
+      }
+    }
+    return exact;
+  }
+
+  return null;
 }
 
 export function selectMatch(matches, { providerName, requireSynced = false } = {}) {

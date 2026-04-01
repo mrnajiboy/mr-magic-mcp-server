@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 export function detectSyncedState(syncedLyrics) {
   if (!syncedLyrics) return { hasSynced: false, timestampCount: 0 };
   const lines = syncedLyrics
@@ -56,6 +58,40 @@ export function lyricContentScore(record) {
   return score;
 }
 
+function compactIds(entries) {
+  const ids = Object.fromEntries(
+    entries
+      .filter(([, value]) => value !== null && value !== undefined && value !== '')
+      .map(([key, value]) => [key, value.toString()])
+  );
+  return Object.keys(ids).length > 0 ? ids : null;
+}
+
+export function extractProviderIds(provider, raw = null, providerId = null) {
+  switch (provider) {
+    case 'melon':
+      return compactIds([['songId', raw?.songId ?? providerId]]);
+    case 'genius':
+      return compactIds([
+        ['songId', raw?.id ?? providerId],
+        ['apiPath', raw?.api_path],
+        ['iq', raw?.iq ?? raw?.stats?.iq]
+      ]);
+    case 'musixmatch':
+      return compactIds([
+        [
+          'trackId',
+          raw?.['matcher.track.get']?.message?.body?.track?.track_id ?? raw?.track_id ?? providerId
+        ],
+        ['commontrackId', raw?.['matcher.track.get']?.message?.body?.track?.commontrack_id]
+      ]);
+    case 'lrclib':
+      return compactIds([['trackId', raw?.id ?? providerId]]);
+    default:
+      return compactIds([['id', providerId]]);
+  }
+}
+
 export function normalizeLyricRecord({
   provider,
   id,
@@ -77,6 +113,7 @@ export function normalizeLyricRecord({
   return {
     provider,
     providerId: id?.toString() ?? null,
+    ids: extractProviderIds(provider, raw, id),
     title: trackName || null,
     artist: artistName || null,
     album: albumName || null,
@@ -101,4 +138,50 @@ export function recomputeSyncFlags(record) {
   record.plainOnly = hasPlainOnly && !hasSynced;
   record.timestampCount = timestampCount;
   return record;
+}
+
+function normalizeFingerprintValue(value) {
+  if (value === null || value === undefined) return '';
+  return value.toString().trim().replace(/\s+/g, ' ');
+}
+
+function compactFingerprintIds(ids = {}) {
+  return Object.entries(ids)
+    .filter(([, value]) => value !== null && value !== undefined && value !== '')
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key}:${normalizeFingerprintValue(value)}`)
+    .join('|');
+}
+
+function buildFingerprintSnippet(record = {}) {
+  const lyricText = [record.plainLyrics, record.syncedLyrics, record.plainPreview, record.syncedPreview]
+    .map((value) => normalizeFingerprintValue(value))
+    .find(Boolean);
+  return lyricText ? lyricText.slice(0, 100) : '';
+}
+
+export function buildProviderReferenceFingerprint(record = {}) {
+  if (!record || typeof record !== 'object') {
+    return null;
+  }
+
+  const provider = normalizeFingerprintValue(record.provider);
+  const providerId = normalizeFingerprintValue(record.providerId);
+  const ids = compactFingerprintIds(record.ids || {});
+  const sourceUrl = normalizeFingerprintValue(record.sourceUrl);
+  const title = normalizeFingerprintValue(record.title);
+  const artist = normalizeFingerprintValue(record.artist);
+  const album = normalizeFingerprintValue(record.album);
+  const duration = normalizeFingerprintValue(record.duration);
+  const snippet = !providerId && !ids && !sourceUrl ? buildFingerprintSnippet(record) : '';
+
+  const source = [provider, providerId, ids, sourceUrl, title, artist, album, duration, snippet]
+    .filter(Boolean)
+    .join('||');
+
+  if (!source) {
+    return null;
+  }
+
+  return createHash('sha256').update(source).digest('hex');
 }

@@ -1,17 +1,22 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 
 import { runFind, runSearch, runProviderSearch } from '../core/find-service.js';
-import { lyricContentScore } from '../provider-result-schema.js';
+import { extractPlainPreview, extractSyncedPreview } from '../core/preview.js';
+import {
+  buildProviderReferenceFingerprint,
+  lyricContentScore
+} from '../provider-result-schema.js';
 import {
   buildActionContext,
   buildPayloadFromResult,
   buildCatalogPayload,
+  buildCatalogPayloadFromResult,
   formatRecord,
   catalogCache,
   catalogCacheKey
 } from '../services/lyrics-service.js';
 import { pushCatalogToAirtable } from '../services/airtable-writer.js';
-import { getProviderStatus } from '../index.js';
+import { getProviderStatus, resolveProviderReference } from '../index.js';
 
 const trackSchema = {
   type: 'object',
@@ -120,22 +125,56 @@ const selectCriteriaSchema = {
   additionalProperties: false
 };
 
-const normalizedLyricRecordSchema = {
+const providerReferenceSchema = {
   type: 'object',
-  description: 'Normalized lyric record as returned by a provider search.',
+  description: 'Compact provider reference returned by MCP search tools for exact recall.',
   properties: {
     provider: { type: 'string', description: 'Provider slug for the result.' },
-    providerId: { type: 'string', description: 'Provider-specific identifier if available.' },
-    title: { type: 'string', description: 'Track title from the provider result.' },
-    artist: { type: 'string', description: 'Artist name from the provider result.' },
-    album: { type: 'string', description: 'Album name if provided.' },
+    providerId: {
+      type: ['string', 'null'],
+      description: 'Provider-specific identifier if available.'
+    },
+    ids: {
+      type: 'object',
+      description: 'Optional provider-specific identifiers such as Melon songId.',
+      additionalProperties: { type: 'string' }
+    },
+    title: { type: ['string', 'null'], description: 'Track title for provider recall.' },
+    artist: { type: ['string', 'null'], description: 'Artist name for provider recall.' },
+    album: { type: ['string', 'null'], description: 'Album name for provider recall.' },
     duration: {
-      type: 'string',
+      type: ['number', 'string', 'null'],
+      description: 'Track duration hint used when replaying provider lookups.'
+    },
+    sourceUrl: {
+      type: ['string', 'null'],
+      description: 'Canonical source URL for exact-result recall when available.'
+    },
+    fingerprint: {
+      type: ['string', 'null'],
+      description: 'Stable fingerprint for recalling preview-only matches without provider IDs.'
+    }
+  },
+  additionalProperties: false
+};
+
+const compactSearchResultSchema = {
+  type: 'object',
+  description: 'Compact MCP search result preview. Search tools never return full lyrics.',
+  properties: {
+    provider: { type: 'string', description: 'Provider slug for the result.' },
+    providerId: {
+      type: ['string', 'null'],
+      description: 'Provider-specific identifier if available.'
+    },
+    title: { type: ['string', 'null'], description: 'Track title from the provider result.' },
+    artist: { type: ['string', 'null'], description: 'Artist name from the provider result.' },
+    album: { type: ['string', 'null'], description: 'Album name if provided.' },
+    duration: {
+      type: ['number', 'null'],
       description: 'Duration (seconds) if reported.'
     },
-    plainLyrics: { type: 'string', description: 'Plain lyric text if hydrated.' },
-    syncedLyrics: { type: 'string', description: 'Synced lyric text if hydrated.' },
-    sourceUrl: { type: 'string', description: 'Canonical URL to view the lyrics.' },
+    sourceUrl: { type: ['string', 'null'], description: 'Canonical URL to view the lyrics.' },
     confidence: {
       type: 'number',
       description: 'Confidence score for the match (0-1 scale when available).'
@@ -150,10 +189,19 @@ const normalizedLyricRecordSchema = {
       description: 'Number of timestamped lines detected in synced lyrics.'
     },
     status: { type: ['string', 'null'], description: 'Provider-specific status for the record.' },
-    rawRecord: {
-      type: ['object', 'null'],
-      description: 'Unmodified provider payload for debugging/reference.'
-    }
+    hasLyrics: {
+      type: 'boolean',
+      description: 'True when the provider already returned lyric text.'
+    },
+    plainPreview: {
+      type: ['string', 'null'],
+      description: 'Short preview of plain lyrics when available.'
+    },
+    syncedPreview: {
+      type: ['string', 'null'],
+      description: 'Short preview of synced lyrics when available.'
+    },
+    reference: providerReferenceSchema
   },
   additionalProperties: false
 };
@@ -163,44 +211,214 @@ const matchSchema = {
   description: 'A single search result entry (provider + normalized lyric record).',
   properties: {
     provider: { type: 'string', description: 'Provider slug for the result.' },
-    result: normalizedLyricRecordSchema
+    result: compactSearchResultSchema
   },
   additionalProperties: false
 };
+
+const searchGroupSchema = {
+  type: 'object',
+  description: 'Provider bucket returned by search_lyrics with preview-only results.',
+  properties: {
+    provider: { type: 'string', description: 'Provider slug for this bucket.' },
+    results: {
+      type: 'array',
+      description: 'Compact preview-only matches for the provider.',
+      items: compactSearchResultSchema
+    }
+  },
+  additionalProperties: false
+};
+
+function compactStringMap(input = {}) {
+  const entries = Object.entries(input).filter(
+    ([, value]) => value !== null && value !== undefined && value !== ''
+  );
+  if (entries.length === 0) {
+    return undefined;
+  }
+  return Object.fromEntries(entries.map(([key, value]) => [key, value.toString()]));
+}
+
+function buildProviderReference(record = {}) {
+  const reference = {
+    provider: record.provider,
+    providerId: record.providerId ?? null,
+    title: record.title ?? null,
+    artist: record.artist ?? null,
+    album: record.album ?? null,
+    duration: record.duration ?? null,
+    sourceUrl: record.sourceUrl ?? null
+  };
+  const ids = compactStringMap(record.ids || {});
+  if (ids) {
+    reference.ids = ids;
+  }
+  reference.fingerprint = buildProviderReferenceFingerprint(record);
+  return reference;
+}
+
+function buildCompactSearchResult(record = {}) {
+  return {
+    provider: record.provider,
+    providerId: record.providerId ?? null,
+    title: record.title ?? null,
+    artist: record.artist ?? null,
+    album: record.album ?? null,
+    duration: record.duration ?? null,
+    sourceUrl: record.sourceUrl ?? null,
+    confidence: record.confidence ?? 0,
+    synced: Boolean(record.synced),
+    plainOnly: Boolean(record.plainOnly),
+    timestampCount: record.timestampCount ?? 0,
+    status: record.status ?? null,
+    hasLyrics: Boolean(record.plainLyrics || record.syncedLyrics),
+    plainPreview: extractPlainPreview(record) || null,
+    syncedPreview: extractSyncedPreview(record) || null,
+    reference: buildProviderReference(record)
+  };
+}
+
+function projectSearchGroups(groups = []) {
+  return groups.map((group) => ({
+    provider: group.provider,
+    results: Array.isArray(group.results)
+      ? group.results.map((record) => buildCompactSearchResult(record))
+      : []
+  }));
+}
+
+function normalizeMatchInput(match) {
+  if (!match || typeof match !== 'object') {
+    return null;
+  }
+
+  if (match.result && typeof match.result === 'object') {
+    return {
+      provider: match.provider || match.result.provider || match.result.reference?.provider || null,
+      result: match.result
+    };
+  }
+
+  if (match.reference || match.providerId || match.title || match.artist) {
+    return {
+      provider: match.provider || match.reference?.provider || null,
+      result: match
+    };
+  }
+
+  return null;
+}
+
+function flattenSelectableMatches(args = {}) {
+  const groupedItems = Array.isArray(args.items) ? args.items : [];
+  const groupedMatches = groupedItems.flatMap((item) =>
+    (item.results || []).map((result) => ({ provider: item.provider || result.provider, result }))
+  );
+  const directMatches = Array.isArray(args.matches)
+    ? args.matches.map((entry) => normalizeMatchInput(entry)).filter(Boolean)
+    : [];
+  return [...groupedMatches, ...directMatches];
+}
+
+function mergeTrackWithResult(track = {}, result = {}) {
+  return {
+    title: track.title || result.title || '',
+    artist: track.artist || result.artist || '',
+    album: track.album || result.album || null,
+    duration: track.duration ?? result.duration ?? null
+  };
+}
+
+function resolveLookupInputs(args = {}) {
+  const normalizedMatch = normalizeMatchInput(args.match);
+  const result = normalizedMatch?.result || {};
+  const reference = args.reference || result.reference || null;
+  const track = mergeTrackWithResult(args.track || {}, result);
+  return { track, reference };
+}
+
+function assertLookupInputs(track, reference) {
+  if (reference) {
+    return;
+  }
+
+  if (track?.title || track?.artist) {
+    return;
+  }
+
+  throw new McpError(
+    ErrorCode.InvalidParams,
+    'Provide track metadata or a provider reference from search_lyrics/search_provider'
+  );
+}
+
+async function resolveFindResult(args, options = {}, { syncedOnly = false } = {}) {
+  const { track, reference } = resolveLookupInputs(args);
+  assertLookupInputs(track, reference);
+
+  if (reference) {
+    const resolved = await resolveProviderReference(reference, track);
+    return buildResolvedReferenceResult(resolved, { syncedOnly });
+  }
+
+  return runFind(track, { ...options, syncedOnly });
+}
+
+export function buildResolvedReferenceResult(resolved, { syncedOnly = false } = {}) {
+  if (!resolved || lyricContentScore(resolved) <= 0) {
+    return { matches: [], best: null };
+  }
+
+  if (syncedOnly && !resolved.synced) {
+    return { matches: [], best: null };
+  }
+
+  return {
+    matches: [{ provider: resolved.provider, result: resolved }],
+    best: resolved
+  };
+}
 
 export const mcpToolDefinitions = [
   {
     name: 'find_lyrics',
     description:
-      'Find the best lyric match across providers (prefers synced when available). ' +
+      'Find the best lyric match across providers (prefers synced when available), or resolve an exact provider reference returned by the MCP search tools. ' +
       'Returns lyricsCacheKey when lyrics are resolved — pass this to push_catalog_to_airtable ' +
       'without calling build_catalog_payload first.',
     inputSchema: {
       type: 'object',
-      description: 'Provide a track description (and optional hints) to look up lyrics.',
+      description:
+        'Provide track metadata, or pass a compact provider reference / selected search result from search_lyrics or search_provider.',
       properties: {
         track: trackSchema,
+        reference: providerReferenceSchema,
+        match: matchSchema,
         options: {
           type: 'object',
           description: 'Optional provider hints or overrides.',
           additionalProperties: false
         }
       },
-      required: ['track']
+      additionalProperties: false
     }
   },
   {
     name: 'build_catalog_payload',
     description:
-      'Return a compact payload suitable for Airtable inserts/exports. For large lyrics, send object args and use omitInlineLyrics + lyricsPayloadMode to avoid JSON truncation in downstream automations. Airtable-safe compact mode can auto-promote payload transport to reference.',
+      'Return a compact payload suitable for Airtable inserts/exports. Accepts track metadata or an exact provider reference from the MCP search tools. For large lyrics, send object args and use omitInlineLyrics + lyricsPayloadMode to avoid JSON truncation in downstream automations. Airtable-safe compact mode can auto-promote payload transport to reference.',
     inputSchema: {
       type: 'object',
-      description: 'Provide a track plus optional catalog preferences.',
+      description:
+        'Provide a track, or pass a compact provider reference / selected search result plus optional catalog preferences.',
       properties: {
         track: trackSchema,
+        reference: providerReferenceSchema,
+        match: matchSchema,
         options: catalogOptionsSchema
       },
-      required: ['track']
+      additionalProperties: false
     }
   },
   {
@@ -211,24 +429,28 @@ export const mcpToolDefinitions = [
     inputSchema: {
       type: 'object',
       description:
-        'Provide a track description (and optional hints) to look up synced lyrics only.',
+        'Provide track metadata, or pass a compact provider reference / selected search result to look up synced lyrics only.',
       properties: {
         track: trackSchema,
+        reference: providerReferenceSchema,
+        match: matchSchema,
         options: {
           type: 'object',
           description: 'Optional provider hints or overrides.',
           additionalProperties: false
         }
       },
-      required: ['track']
+      additionalProperties: false
     }
   },
   {
     name: 'search_lyrics',
-    description: 'List candidate matches from every provider without downloading the lyrics yet.',
+    description:
+      'List preview-only candidate matches from every provider. MCP search results never include full lyrics or raw provider payloads.',
     inputSchema: {
       type: 'object',
-      description: 'Provide the basic track metadata to retrieve unhydrated matches.',
+      description:
+        'Provide the basic track metadata to retrieve preview-only matches and reusable provider references.',
       properties: {
         track: trackSchema
       },
@@ -237,10 +459,12 @@ export const mcpToolDefinitions = [
   },
   {
     name: 'search_provider',
-    description: 'Search a single provider (e.g., LRCLIB, Genius, Melon) for potential matches.',
+    description:
+      'Search a single provider (e.g., LRCLIB, Genius, Melon) for preview-only potential matches. MCP search results never include full lyrics or raw provider payloads.',
     inputSchema: {
       type: 'object',
-      description: 'Provide a track plus a provider slug to limit the search scope.',
+      description:
+        'Provide a track plus a provider slug to limit the search scope and return reusable provider references.',
       properties: {
         provider: {
           type: 'string',
@@ -259,16 +483,19 @@ export const mcpToolDefinitions = [
   {
     name: 'export_lyrics',
     description:
-      'Find lyrics and save plain/LRC/SRT plus romanized variants to disk. ' +
+      'Find lyrics and save plain/LRC/SRT plus romanized variants to disk, or resolve an exact provider reference from MCP search tools. ' +
       'Also returns lyricsCacheKey so push_catalog_to_airtable can be called immediately.',
     inputSchema: {
       type: 'object',
-      description: 'Provide the track and export options to write files to disk.',
+      description:
+        'Provide the track, or pass a compact provider reference / selected search result and export options to write files to disk.',
       properties: {
         track: trackSchema,
+        reference: providerReferenceSchema,
+        match: matchSchema,
         options: exportOptionsSchema
       },
-      required: ['track']
+      additionalProperties: false
     }
   },
   {
@@ -281,9 +508,11 @@ export const mcpToolDefinitions = [
       description: 'Provide the track and formatting options for in-memory rendering.',
       properties: {
         track: trackSchema,
+        reference: providerReferenceSchema,
+        match: matchSchema,
         options: formatOptionsSchema
       },
-      required: ['track']
+      additionalProperties: false
     }
   },
   {
@@ -295,12 +524,22 @@ export const mcpToolDefinitions = [
       description:
         'Select a single result either by passing matches + criteria or by supplying match directly.',
       properties: {
+        items: {
+          type: 'array',
+          description: 'Grouped results returned from search_lyrics.',
+          items: searchGroupSchema
+        },
         matches: {
           type: 'array',
-          description: 'Results returned from search_lyrics or search_provider.',
-          items: matchSchema
+          description:
+            'Results returned from search_provider, or flattened match entries from previous search output.',
+          items: {
+            anyOf: [matchSchema, compactSearchResultSchema]
+          }
         },
-        match: matchSchema,
+        match: {
+          anyOf: [matchSchema, compactSearchResultSchema]
+        },
         criteria: selectCriteriaSchema
       }
     }
@@ -370,28 +609,33 @@ export const mcpToolDefinitions = [
 ];
 
 export async function handleMcpTool(name, args = {}) {
-  const track = args.track || {};
   const options = args.options || {};
 
   if (name === 'find_lyrics') {
-    const result = await runFind(track, options);
+    const result = await resolveFindResult(args, options);
     return buildPayloadFromResult(result, buildActionContext(options));
   }
 
   if (name === 'find_synced_lyrics') {
-    const result = await runFind(track, { ...options, syncedOnly: true });
+    const result = await resolveFindResult(args, options, { syncedOnly: true });
     return buildPayloadFromResult(result, buildActionContext(options));
   }
 
   if (name === 'search_lyrics') {
-    return runSearch(track);
+    const { track } = resolveLookupInputs(args);
+    assertLookupInputs(track, null);
+    return projectSearchGroups(await runSearch(track));
   }
 
   if (name === 'search_provider') {
     if (!args.provider) {
       throw new McpError(ErrorCode.InvalidParams, 'provider is required');
     }
-    return runProviderSearch(args.provider, track);
+    const { track } = resolveLookupInputs(args);
+    assertLookupInputs(track, null);
+    return (await runProviderSearch(args.provider, track)).map((record) =>
+      buildCompactSearchResult(record)
+    );
   }
 
   if (name === 'get_provider_status') {
@@ -399,7 +643,7 @@ export async function handleMcpTool(name, args = {}) {
   }
 
   if (name === 'export_lyrics') {
-    const result = await runFind(track, options);
+    const result = await resolveFindResult(args, options);
     const context = buildActionContext({ ...options, export: true });
     const payload = await buildPayloadFromResult(result, context);
     // buildPayloadFromResult already calls exportBestResult internally when
@@ -408,7 +652,7 @@ export async function handleMcpTool(name, args = {}) {
   }
 
   if (name === 'format_lyrics') {
-    const result = await runFind(track, options);
+    const result = await resolveFindResult(args, options);
     const best = result?.best;
     if (!best) {
       return { error: 'No match found' };
@@ -433,24 +677,28 @@ export async function handleMcpTool(name, args = {}) {
   }
 
   if (name === 'build_catalog_payload') {
-    return buildCatalogPayload(track, options);
+    const { track, reference } = resolveLookupInputs(args);
+    assertLookupInputs(track, reference);
+
+    if (!reference) {
+      return buildCatalogPayload(track, options);
+    }
+
+    const resolved = await resolveProviderReference(reference, track);
+    const { best } = buildResolvedReferenceResult(resolved);
+    return buildCatalogPayloadFromResult(best, track, options);
   }
 
   if (name === 'select_match') {
     if (args.match) {
-      return args.match;
+      return normalizeMatchInput(args.match) ?? args.match;
     }
-    const matches = Array.isArray(args.matches) ? args.matches : [];
+    const matches = flattenSelectableMatches(args);
     if (matches.length === 0) {
       return { error: 'No matches provided' };
     }
     const { provider, requireSynced, index } = args.criteria || {};
-    // Strip entries with no actual lyric content (e.g. unhydrated search stubs)
-    // so the caller never accidentally selects an empty result.
-    let filtered = matches.filter((entry) => lyricContentScore(entry.result) > 0);
-    if (filtered.length === 0) {
-      return { error: 'No matches with lyric content found' };
-    }
+    let filtered = matches;
     if (provider) {
       filtered = filtered.filter((entry) => entry.provider === provider);
     }

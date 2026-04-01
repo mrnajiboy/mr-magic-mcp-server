@@ -611,17 +611,139 @@ Both the stdio and Streamable HTTP & SSE transports expose the same tool registr
 
 | Tool                       | Purpose                                                                                                                             |
 | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `find_lyrics`              | Fetch best lyrics (prefers synced) plus metadata and payload.                                                                       |
-| `find_synced_lyrics`       | Like `find_lyrics` but rejects plain-only results.                                                                                  |
-| `search_lyrics`            | List candidate matches across all providers without downloading lyrics.                                                             |
-| `search_provider`          | Query a single named provider.                                                                                                      |
+| `find_lyrics`              | Fetch best lyrics (prefers synced) plus metadata and payload from direct track metadata, or resolve a prior provider reference / selected match. |
+| `find_synced_lyrics`       | Like `find_lyrics` but rejects plain-only results; also accepts direct track metadata, a provider reference, or a selected match. |
+| `search_lyrics`            | Return grouped, preview-only candidate matches across all providers, including reusable provider references.                        |
+| `search_provider`          | Query a single named provider and return flat, preview-only matches plus reusable provider references.                              |
 | `get_provider_status`      | Report readiness and notes for each provider.                                                                                       |
-| `format_lyrics`            | Format lyrics in memory (optional romanization) for display.                                                                        |
-| `export_lyrics`            | Write plain / LRC / SRT / romanized files to the export backend.                                                                    |
-| `select_match`             | Pick a prior result by provider, index, or synced flag.                                                                             |
-| `build_catalog_payload`    | Return a compact record (title / link / lyrics) for Airtable-style inserts.                                                         |
+| `format_lyrics`            | Format lyrics in memory (optional romanization) for display from direct track metadata, a provider reference, or a selected match. |
+| `export_lyrics`            | Write plain / LRC / SRT / romanized files to the export backend from direct track metadata, a provider reference, or a selected match. |
+| `select_match`             | Pick a single prior search result from grouped `items`, flat `matches`, or a direct `match`, using provider/index/synced filters. |
+| `build_catalog_payload`    | Return a compact record (title / link / lyrics) for Airtable-style inserts from direct track metadata, a provider reference, or a selected match. |
 | `push_catalog_to_airtable` | Write catalog records to Airtable server-side — lyrics never pass through LLM arguments. Requires `AIRTABLE_PERSONAL_ACCESS_TOKEN`. |
 | `runtime_status`           | Snapshot provider readiness plus relevant env vars.                                                                                 |
+
+### MCP search result behavior
+
+`search_lyrics` and `search_provider` now return **preview-only** search results. They are intentionally compact and do **not** include full lyrics or raw provider payloads.
+
+Each returned result is designed for follow-up tool calls and includes:
+
+- core metadata such as provider, title, artist, album, duration, source URL, confidence, and synced/plain-only flags
+- preview snippets (`plainPreview` / `syncedPreview`) when available
+- a reusable `reference` object that can be passed back into downstream tools for exact result recall
+
+The `reference` object is the durable handoff between search and resolution. Instead of copying large provider payloads around, clients can reuse the compact reference to resolve the exact provider result later.
+
+### MCP provider-reference workflow
+
+After a search step, the following tools can resolve lyrics from **either**:
+
+- direct `track` metadata
+- a provider `reference` returned by `search_lyrics` or `search_provider`
+- a selected `match` object from prior search output
+
+This applies to:
+
+- `find_lyrics`
+- `find_synced_lyrics`
+- `build_catalog_payload`
+- `format_lyrics`
+- `export_lyrics`
+
+### `select_match` in the workflow
+
+`select_match` is the bridge between preview-only search results and the tools that resolve full lyrics.
+
+It accepts any of these input shapes:
+
+- `items` — grouped provider results returned by `search_lyrics`
+- `matches` — flat results returned by `search_provider` (or other flattened match arrays)
+- `match` — a single previously returned result passed through directly
+
+Use `criteria` to narrow the choice by provider, require synced lyrics, and/or choose a zero-based index. The returned selected match can then be passed directly into `find_lyrics`, `find_synced_lyrics`, `build_catalog_payload`, `format_lyrics`, or `export_lyrics`. If you already know which result you want, you can skip `select_match` and pass that result's `reference` directly.
+
+### Example workflow: search → select → build/export
+
+1. Call `search_lyrics` to get grouped, preview-only results plus provider `reference` objects.
+2. Call `select_match` with the returned `items` to choose one result.
+3. Pass the returned `match` into `build_catalog_payload`, `find_lyrics`, `format_lyrics`, or `export_lyrics`.
+4. Optionally reuse the nested `match.result.reference` later to resolve the exact same provider result again without repeating the original broad search.
+
+Example sequence:
+
+```json
+{
+  "track": { "artist": "Coldplay", "title": "Yellow" }
+}
+```
+
+→ `search_lyrics`
+
+```json
+{
+  "items": [
+    {
+      "provider": "lrclib",
+      "results": [
+        {
+          "title": "Yellow",
+          "artist": "Coldplay",
+          "synced": true,
+          "reference": {
+            "provider": "lrclib",
+            "providerId": "...",
+            "fingerprint": "..."
+          }
+        }
+      ]
+    }
+  ],
+  "criteria": { "requireSynced": true, "index": 0 }
+}
+```
+
+→ `select_match`
+
+```json
+{
+  "match": {
+    "provider": "lrclib",
+    "result": {
+      "title": "Yellow",
+      "artist": "Coldplay",
+      "reference": {
+        "provider": "lrclib",
+        "providerId": "...",
+        "fingerprint": "..."
+      }
+    }
+  },
+  "options": {
+    "omitInlineLyrics": true,
+    "lyricsPayloadMode": "payload"
+  }
+}
+```
+
+→ `build_catalog_payload`
+
+Or export the same exact result later with:
+
+```json
+{
+  "reference": {
+    "provider": "lrclib",
+    "providerId": "...",
+    "fingerprint": "..."
+  },
+  "options": {
+    "formats": ["plain", "lrc", "srt"]
+  }
+}
+```
+
+→ `export_lyrics`
 
 ## Airtable Integration
 
@@ -1199,6 +1321,8 @@ curl -sS -X POST http://127.0.0.1:3444/mcp \
 
 #### `find_lyrics`
 
+Accepts either direct `track` metadata, a provider `reference` from prior search output, or a selected `match`.
+
 ```bash
 curl -sS -X POST http://127.0.0.1:3444/mcp \
   -H 'Content-Type: application/json' \
@@ -1208,6 +1332,8 @@ curl -sS -X POST http://127.0.0.1:3444/mcp \
 
 #### `find_synced_lyrics`
 
+Same lookup inputs as `find_lyrics`, but only returns timestamped results.
+
 ```bash
 curl -sS -X POST http://127.0.0.1:3444/mcp \
   -H 'Content-Type: application/json' \
@@ -1216,6 +1342,8 @@ curl -sS -X POST http://127.0.0.1:3444/mcp \
 ```
 
 #### `build_catalog_payload` — inline lyrics
+
+Accepts direct `track` metadata, a reusable `reference`, or a selected `match` from prior search output.
 
 ```bash
 curl -sS -X POST http://127.0.0.1:3444/mcp \
@@ -1241,6 +1369,8 @@ curl -sS -X POST http://127.0.0.1:3444/mcp \
 
 #### `search_lyrics`
 
+Returns grouped, preview-only results under `items`. Each result includes a reusable `reference`, plus compact metadata and previews when available. Full lyrics and raw provider payloads are intentionally omitted.
+
 ```bash
 curl -sS -X POST http://127.0.0.1:3444/mcp \
   -H 'Content-Type: application/json' \
@@ -1249,6 +1379,8 @@ curl -sS -X POST http://127.0.0.1:3444/mcp \
 ```
 
 #### `search_provider`
+
+Returns a flat `matches` array with the same preview-only result shape used by the grouped `search_lyrics` output.
 
 ```bash
 curl -sS -X POST http://127.0.0.1:3444/mcp \
@@ -1259,6 +1391,8 @@ curl -sS -X POST http://127.0.0.1:3444/mcp \
 
 #### `format_lyrics`
 
+Accepts direct `track` metadata, a reusable `reference`, or a selected `match`.
+
 ```bash
 curl -sS -X POST http://127.0.0.1:3444/mcp \
   -H 'Content-Type: application/json' \
@@ -1267,6 +1401,8 @@ curl -sS -X POST http://127.0.0.1:3444/mcp \
 ```
 
 #### `export_lyrics`
+
+Accepts direct `track` metadata, a reusable `reference`, or a selected `match`.
 
 ```bash
 curl -sS -X POST http://127.0.0.1:3444/mcp \
@@ -1321,6 +1457,8 @@ curl -sS -X POST http://127.0.0.1:3444/mcp \
 
 #### `select_match`
 
+Use `items` for grouped `search_lyrics` output, `matches` for flat `search_provider` output, or `match` to pass through a single result directly.
+
 ```bash
 curl -sS -X POST http://127.0.0.1:3444/mcp \
   -H 'Content-Type: application/json' \
@@ -1329,6 +1467,21 @@ curl -sS -X POST http://127.0.0.1:3444/mcp \
     "jsonrpc":"2.0","id":13,"method":"tools/call",
     "params":{"name":"select_match","arguments":{
       "matches":[{"provider":"lrclib","result":{"title":"Yellow","artist":"Coldplay","synced":true,"plainOnly":false}}],
+      "criteria":{"requireSynced":true,"index":0}
+    }}
+  }' | jq
+```
+
+Example using grouped `items` from `search_lyrics`:
+
+```bash
+curl -sS -X POST http://127.0.0.1:3444/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{
+    "jsonrpc":"2.0","id":14,"method":"tools/call",
+    "params":{"name":"select_match","arguments":{
+      "items":[{"provider":"lrclib","results":[{"title":"Yellow","artist":"Coldplay","synced":true,"reference":{"provider":"lrclib","providerId":"123","fingerprint":"abc"}}]}],
       "criteria":{"requireSynced":true,"index":0}
     }}
   }' | jq
