@@ -21,6 +21,8 @@
     ".env.example"
   ],
   "scripts": {
+    "check-for-updates": "npm-check-updates",
+    "update-deps": "npm-check-updates -u && npm install",
     "cleanup": "eslint . --fix && prettier --write .",
     "cli": "node src/bin/cli.js",
     "server:http": "node src/bin/http-server.js",
@@ -59,17 +61,17 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@dotenvx/dotenvx": "^1.55.1",
-    "@modelcontextprotocol/sdk": "^1.27.1",
-    "axios": "^1.13.6",
+    "@dotenvx/dotenvx": "^1.59.1",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "axios": "^1.14.0",
     "cheerio": "^1.2.0",
     "commander": "^14.0.3"
   },
   "devDependencies": {
-    "eslint": "^10.0.3",
+    "eslint": "^10.1.0",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-import-x": "^4.15.1",
-    "playwright": "^1.58.2",
+    "eslint-plugin-import-x": "^4.16.2",
+    "playwright": "^1.59.0",
     "prettier": "^3.8.1"
   },
   "overrides": {
