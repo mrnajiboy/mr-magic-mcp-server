@@ -609,19 +609,19 @@ Responses:
 
 Both the stdio and Streamable HTTP & SSE transports expose the same tool registry:
 
-| Tool                       | Purpose                                                                                                                             |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `find_lyrics`              | Fetch best lyrics (prefers synced) plus metadata and payload from direct track metadata, or resolve a prior provider reference / selected match. |
-| `find_synced_lyrics`       | Like `find_lyrics` but rejects plain-only results; also accepts direct track metadata, a provider reference, or a selected match. |
-| `search_lyrics`            | Return grouped, preview-only candidate matches across all providers, including reusable provider references.                        |
-| `search_provider`          | Query a single named provider and return flat, preview-only matches plus reusable provider references.                              |
-| `get_provider_status`      | Report readiness and notes for each provider.                                                                                       |
-| `format_lyrics`            | Format lyrics in memory (optional romanization) for display from direct track metadata, a provider reference, or a selected match. |
-| `export_lyrics`            | Write plain / LRC / SRT / romanized files to the export backend from direct track metadata, a provider reference, or a selected match. |
-| `select_match`             | Pick a single prior search result from grouped `items`, flat `matches`, or a direct `match`, using provider/index/synced filters. |
+| Tool                       | Purpose                                                                                                                                           |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `find_lyrics`              | Fetch best lyrics (prefers synced) plus metadata and payload from direct track metadata, or resolve a prior provider reference / selected match.  |
+| `find_synced_lyrics`       | Like `find_lyrics` but rejects plain-only results; also accepts direct track metadata, a provider reference, or a selected match.                 |
+| `search_lyrics`            | Return grouped, preview-only candidate matches across all providers, including reusable provider references.                                      |
+| `search_provider`          | Query a single named provider and return flat, preview-only matches plus reusable provider references.                                            |
+| `get_provider_status`      | Report readiness and notes for each provider.                                                                                                     |
+| `format_lyrics`            | Format lyrics in memory (optional romanization) for display from direct track metadata, a provider reference, or a selected match.                |
+| `export_lyrics`            | Write plain / LRC / SRT / romanized files to the export backend from direct track metadata, a provider reference, or a selected match.            |
+| `select_match`             | Pick a single prior search result from grouped `items`, flat `matches`, or a direct `match`, using provider/index/synced filters.                 |
 | `build_catalog_payload`    | Return a compact record (title / link / lyrics) for Airtable-style inserts from direct track metadata, a provider reference, or a selected match. |
-| `push_catalog_to_airtable` | Write catalog records to Airtable server-side — lyrics never pass through LLM arguments. Requires `AIRTABLE_PERSONAL_ACCESS_TOKEN`. |
-| `runtime_status`           | Snapshot provider readiness plus relevant env vars.                                                                                 |
+| `push_catalog_to_airtable` | Write catalog records to Airtable server-side — lyrics never pass through LLM arguments. Requires `AIRTABLE_PERSONAL_ACCESS_TOKEN`.               |
+| `runtime_status`           | Snapshot provider readiness plus relevant env vars.                                                                                               |
 
 ### MCP search result behavior
 

@@ -154,7 +154,12 @@ function compactFingerprintIds(ids = {}) {
 }
 
 function buildFingerprintSnippet(record = {}) {
-  const lyricText = [record.plainLyrics, record.syncedLyrics, record.plainPreview, record.syncedPreview]
+  const lyricText = [
+    record.plainLyrics,
+    record.syncedLyrics,
+    record.plainPreview,
+    record.syncedPreview
+  ]
     .map((value) => normalizeFingerprintValue(value))
     .find(Boolean);
   return lyricText ? lyricText.slice(0, 100) : '';

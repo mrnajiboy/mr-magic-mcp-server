@@ -183,7 +183,11 @@ async function testResolvedMelonReferenceWithoutLyricsIsRejected() {
 
   const result = buildResolvedReferenceResult(resolved);
   assert.equal(result.best, null, 'empty Melon reference hydration should not become best');
-  assert.deepEqual(result.matches, [], 'empty Melon reference hydration should not produce matches');
+  assert.deepEqual(
+    result.matches,
+    [],
+    'empty Melon reference hydration should not produce matches'
+  );
 }
 
 async function testResolvedGeniusReferenceWithoutLyricsIsRejected() {

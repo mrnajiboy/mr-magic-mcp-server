@@ -9,6 +9,8 @@ The user will provide:
 
 If you are not sure you have all required information, ask the user before proceeding.
 
+Once the user has provided enough initial information to identify the Airtable destination and process the requested songs, continue through the main run autonomously. Do **not** stop between passes to ask the user for permission, confirmation, or manual intervention unless a required dependency is missing or a hard failure blocks progress.
+
 For each batch of songs in the user's list, follow this workflow.
 
 ## 1) Resolve Airtable destination
@@ -44,7 +46,7 @@ Never send extra metadata or unused fields to Airtable.
 `Song (Video)` must always be formatted exactly as:
 `{Artist 1}, {Artist 2} - {Title} (Lyrics)`
 
-If the song title has featuring, ft., feat, take that out. 
+If the song title has featuring, ft., feat, take that out.
 If the song has remix, or any other differentiation, put it at the right before (Lyrics) in Parentheses.
 
 Examples:
@@ -61,7 +63,7 @@ Artist names may contain brackets or special characters. Preserve them exactly.
 - If one artist, just input artist directly, no other data. (i.e. Artist)
 - If artist name contains quotes or double quotes, wrap them in Double quotes. (i.e. "'John Wick'"|""James Bond"")
 - If artist name contains commas, use double quotes around the special name, and comma-separate as normal. (i.e. "Artist, with a comma", Artist 2)
-- If more than one artist, always input names as a comma-separated list, no exceptions. (i.e. Artist 1, Artist 2 | "[[]]"Joseo'aa94#(@$(*",|Lean,,,, Widdit)
+- If more than one artist, always input names as a comma-separated list, no exceptions. (i.e. Artist 1, Artist 2 | "[[]]"Joseo'aa94#(@$(\*",|Lean,,,, Widdit)
 
 ## 5) Listen Link rules
 
@@ -74,38 +76,43 @@ Artist names may contain brackets or special characters. Preserve them exactly.
 - When multiple releases exist, use the most popular/official upload for the exact title user provides.
 
 ## 6) Ready for Generation rules
+
 - Wait until lyrics and artist fields have been fully populated, then run a ready for generation update pass. If you attempt to fill them all at once, the automation in the table will fail. This may only be set after there is content in both Lyrics and Artists.
 - Always fill value as true or 1, if there's a problem with input, do not input anything.
 - Again, procure lyrics, fill in all metadata, and once fully filled out, then you may send the ready for generation value.
 
-
 ## 7) Lyrics resolution rules
 
-Use the `build_catalog_payload` tool to resolve lyrics for each song.
+`build_catalog_payload` is the **required and exclusive lyric-resolution / lyric-preparation step for any Airtable entry**.
 
-You may call it either:
+For every song that will be written to Airtable:
 
-- directly with track metadata
-- or with a previously selected `match` / reusable `reference` from `search_lyrics` or `search_provider`
+1. You **must** call `build_catalog_payload` before the Lyrics field can be written.
+2. You may call `build_catalog_payload` either:
+   - directly with track metadata
+   - or with a previously selected `match` / reusable `reference` from `search_lyrics` or `search_provider`
+3. You **must** keep the returned `lyricsCacheKey` and use that exact value later with `push_catalog_to_airtable`.
 
 If you need to inspect lyric candidates before resolving one exactly:
 
-1. Use `search_lyrics` (all providers) or `search_provider` (one provider) to get preview-only candidates.
+1. Use `search_lyrics` (all providers) or `search_provider` (one provider) to get preview-only candidates and reusable references.
 2. Use `select_match` if you need to choose one candidate from grouped `items`, flat `matches`, or a direct `match`.
-3. Pass the selected `match` or its `reference` into `build_catalog_payload` for exact recall.
+3. Pass the selected `match` or `reference` into `build_catalog_payload`.
+
+`search_lyrics`, `search_provider`, and `select_match` are **optional helpers for choosing the exact song**. They are **not replacements** for `build_catalog_payload`, and they do **not** complete Airtable lyric preparation by themselves.
 
 Do **not** assume the search tools return full lyrics or raw provider payloads. They return previews plus reusable references only.
 
-Call it with:
+Call `build_catalog_payload` with:
 
 - `preferRomanized: true`
 
 The response will include:
 
-- `lyricsCacheKey` — a short slug identifying the cached lyrics server-side
+- `lyricsCacheKey` — the cache key that must later be passed to `push_catalog_to_airtable`
 - `songVideoTitle` — use this to cross-check the `Song (Video)` field formatting
 
-Do **not** copy any lyric text out of `build_catalog_payload`. The full lyrics are handled server-side by `push_catalog_to_airtable`. Never relay lyrics text through tool-call arguments.
+Do **not** copy lyric text out of `build_catalog_payload`. `build_catalog_payload` prepares the cached lyric payload server-side; it does **not** write Airtable lyrics by itself. The actual Lyrics-field write happens later through `push_catalog_to_airtable` using the returned `lyricsCacheKey`. Never relay lyric text through tool-call arguments.
 
 ### Lyric priority (handled automatically by push_catalog_to_airtable)
 
@@ -116,11 +123,24 @@ Do **not** copy any lyric text out of `build_catalog_payload`. The full lyrics a
 
 Create new records by default, or update existing ones if they already exist.
 
+Split Airtable writing responsibilities exactly as follows:
+
+- `create_records_for_table` / `update_records_for_table` are for **Song (Video)**, **Artists**, **Listen Link**, and **Ready for Generation** only.
+- `push_catalog_to_airtable` is for the **Lyrics** field only.
+
 Use Airtable MCP tools (`create_records_for_table` / `update_records_for_table`) for **Song (Video)**, **Artists**, **Listen Link**, and **Ready for Generation** fields. These tools support bulk writes of up to 10 records per call — use that fully.
 
-**STRICTLY FORBIDDEN:** Never use `create_records_for_table` or `update_records_for_table` to write or update the `Lyrics` field. Those tools cannot handle long multiline lyric text without JSON truncation errors.
+**STRICTLY FORBIDDEN:** Never use `create_records_for_table` or `update_records_for_table` to write, carry, relay, or update lyric text for the `Lyrics` field. Never place lyric text into those tool arguments. Never include the `Lyrics` field in those writes.
 
-**Always use `push_catalog_to_airtable` to write the Lyrics field.** This tool makes the Airtable API call server-side — lyrics are fetched from the internal cache and the lyric text never passes through your tool-call arguments.
+**Always use `push_catalog_to_airtable` to write the Lyrics field.** This is the only tool that actually writes Lyrics into Airtable. It makes the Airtable API call server-side, resolves lyrics from the cached payload identified by `lyricsCacheKey`, and keeps lyric text out of your tool-call arguments.
+
+The required chain is:
+
+1. `build_catalog_payload` resolves/prepares the lyrics and returns `lyricsCacheKey`
+2. `create_records_for_table` / `update_records_for_table` write the non-lyrics Airtable fields only
+3. `push_catalog_to_airtable` writes the Lyrics field using the `lyricsCacheKey` from `build_catalog_payload`
+
+Do **not** skip `build_catalog_payload`. Do **not** treat search tools, selection tools, or export tools as Airtable lyric-write tools.
 
 ### How to call push_catalog_to_airtable
 
@@ -131,10 +151,11 @@ Pass:
 - `recordId` — the record ID returned from the create step (required to update the Lyrics field)
 - `fields` — pass an **empty object `{}`** (no non-lyrics fields; those were already written in the create step)
 - `lyricsFieldId` — the field ID for the Lyrics field
-- `lyricsCacheKey` — the value returned by `build_catalog_payload`
+- `lyricsCacheKey` — the value returned by `build_catalog_payload` (required source of lyric data for Airtable)
 - `preferRomanized: true`
 
-Do NOT include the lyrics text itself in `fields`. Do NOT include `lyricsFieldId` in `fields`.
+Do NOT include the lyric text itself in `fields`. Do NOT include `lyricsFieldId` in `fields`.
+Do NOT call `push_catalog_to_airtable` without first obtaining `lyricsCacheKey` from `build_catalog_payload`.
 
 ### Example push_catalog_to_airtable call shape (lyrics-only update)
 
@@ -158,24 +179,55 @@ If the lyrics write fails, retry with `splitLyricsUpdate: true`. This updates th
 
 Process all songs in the user's list together as a batch, not one at a time.
 
-### Phase 1 — Resolve all data in parallel
+After the initial inputs are sufficient, execute the main processing flow without pausing for user intervention between passes unless a required dependency is missing or a hard failure prevents continuation.
+
+The batch run must happen in **four explicit passes**, in this order:
+
+1. **First pass — catalog pass:** ensure songs exist in the catalog by creating or identifying the target Airtable records.
+2. **Second pass — normalization + Spotify pass:** normalize artist values and populate Spotify listen links.
+3. **Third pass — lyrics pass:** populate Lyrics using the required `build_catalog_payload` → `push_catalog_to_airtable` chain.
+4. **Fourth pass — Ready for Generation pass:** push Ready for Generation only after the prior data requirements are satisfied.
+
+### First pass — ensure songs exist in the catalog / identify target Airtable records
+
+Before record writes, resolve shared Airtable destination data once per batch:
+
+- resolve Airtable destination info (`search_bases`, `list_tables_for_base`)
+- verify field IDs against field names
+- resolve the view ID if available for final record links
+
+Then, for every song in the batch:
+
+- determine whether the song already exists and should be updated, or whether a new Airtable record must be created later
+- identify any existing target `recordId` values that later passes will update
+- prepare a per-song plan for `create` vs `update`, but keep this first pass **read-only**
+
+Do **not** create new Airtable records in this first pass. If a song's Spotify lookup or lyric preparation later fails, you must avoid creating a new incomplete catalog row for that song.
+
+This first pass is only for destination resolution, duplicate detection, and deciding which songs are safe to create later.
+
+### Second pass — normalize artist values and populate Spotify listen links
 
 For every song in the batch (up to all at once):
 
-1. Resolve Airtable destination info (`search_bases`, `list_tables_for_base`) — do this once per base/table, not per song.
+1. Normalize artist values into the Airtable `Artists` input format required above.
 2. Resolve Spotify link (`search-spotify`) for each song.
-3. Resolve lyrics for each song:
-   - default path: call `build_catalog_payload` with direct track metadata and `preferRomanized: true`
-   - optional search-first path: call `search_lyrics` or `search_provider`, then `select_match` if needed, then call `build_catalog_payload` with the chosen `match` or `reference`
-   - save each song's `lyricsCacheKey`
+3. Only after the non-lyrics metadata for a song is ready, write the non-lyrics Airtable fields needed for this pass:
+   - `Song (Video)`
+   - `Artists`
+   - `Listen Link`
+4. For songs identified as existing in the first pass, use `update_records_for_table`.
+5. For songs identified as new in the first pass, use `create_records_for_table` only now, after the non-lyrics metadata is ready.
 
-### Phase 2 — Bulk create/update records (Song (Video), Artists, Listen Link, and Ready for Generation fields only)
+Use `create_records_for_table` / `update_records_for_table` for these non-lyrics fields only, with `typecast: true` so Artists can successfully be inserted.
 
-Use `create_records_for_table` (or `update_records_for_table` if updating existing records) to write **Song (Video)**, **Artists**, **Listen Link**, and **Ready for Generation** fields for all songs in the batch. use typecast: true, so Artists can successfully be inserted.
+Do **not** include the `Lyrics` field in this pass. Do **not** include lyric text anywhere in these Airtable MCP tool arguments. Do **not** set `Ready for Generation` yet.
+
+If a song cannot be resolved well enough to produce the required non-lyrics metadata for this pass, do **not** create a new Airtable record for that song.
 
 - Send up to **10 records per call**.
 - If the batch has more than 10 songs, split into multiple calls of up to 10 each.
-- Capture the `recordId` returned for each newly created record — you will need these in Phase 3.
+- Capture or preserve the `recordId` for each song — use the existing `recordId` identified in the first pass or the new `recordId` returned by the create step in this second pass.
 
 Example batch create body (Song (Video), Artists, Listen Link, and Ready for Generation fields only — no Lyrics):
 
@@ -198,24 +250,46 @@ Example batch create body (Song (Video), Artists, Listen Link, and Ready for Gen
 }
 ```
 
-### Phase 3 — Write lyrics for each record via push_catalog_to_airtable
+### Third pass — populate lyrics for each record via push_catalog_to_airtable
 
-For each record created in Phase 2, call `push_catalog_to_airtable` with:
+For each target record established in the first pass, resolve lyrics and then call `push_catalog_to_airtable` with:
 
-- The `recordId` from Phase 2
+- required Airtable-preparation path: call `build_catalog_payload` with direct track metadata and `preferRomanized: true`
+- optional search-first helper path: call `search_lyrics` or `search_provider`, then `select_match` if needed, then call `build_catalog_payload` with the chosen `match` or `reference`
+- save each song's `lyricsCacheKey`
+- do **not** treat `search_lyrics`, `search_provider`, or `select_match` as completing Airtable lyric preparation; `build_catalog_payload` is still required
+
+Then call `push_catalog_to_airtable` with:
+
+- The `recordId` from the first pass
 - `fields: {}` (non-lyrics fields already written)
 - `lyricsFieldId` for the Lyrics field
-- `lyricsCacheKey` from Phase 1 for that song
+- `lyricsCacheKey` from `build_catalog_payload` for that song
 - `preferRomanized: true`
+
+This is the **only Airtable lyric-write step**.
 
 **One `push_catalog_to_airtable` call per song** (lyrics are per-track, not batchable).
 
-### Phase 4 — SRT export
+### Fourth pass — push Ready for Generation
+
+Only after the earlier passes have succeeded enough to satisfy the table automation requirements, run a final Ready for Generation update pass.
+
+In this pass:
+
+- update `Ready for Generation` to `true` or `1`
+- do this only for records whose `Artists` field is populated and whose `Lyrics` field has already been written
+- never combine this with the lyric-write step
+
+This fourth pass must happen after the catalog pass, the normalization + Spotify pass, and the lyrics pass.
+
+### Post-pass export step — SRT export
 
 After all Airtable inserts and lyrics writes succeed:
 
 - Export `.SRT` lyrics using the `export_lyrics` tool for each song.
 - `export_lyrics` may be called with direct track metadata, or with the same selected `match` / `reference` used earlier so the export resolves the exact same lyric result.
+- `export_lyrics` is a post-Airtable export step only. It is **not** part of Airtable lyric insertion and must never be described as the tool that writes Lyrics into Airtable.
 - Confirm the user has received at least one of the following:
   - SRT download link
   - SRT file path
@@ -224,7 +298,7 @@ After all Airtable inserts and lyrics writes succeed:
 
 ## 10) Required export step after Airtable succeeds
 
-After all Airtable inserts succeed, the agent must export synced lyrics as `.SRT`.
+After all Airtable passes succeed, the agent must export synced lyrics as `.SRT`.
 This export step is required and must be handled separately from Airtable insertion.
 
 ### Export priority
@@ -260,6 +334,7 @@ Do not confuse Airtable lyric insertion with export output:
 
 - Airtable `Lyrics` must contain only plain-text lyrics (handled server-side)
 - export output may be synced `.SRT`
+- `export_lyrics` does **not** insert Airtable lyrics
 
 If the tool returns a URL, present that URL clearly.
 If the tool returns a file path, present that file path clearly.
@@ -294,15 +369,16 @@ If the view ID could not be resolved, omit it from the URL rather than guessing.
 
 ## 12) Tool responsibility summary
 
-| Step                                 | Tool (MCP Server)                                                          | Bulk?                 |
-| ------------------------------------ | -------------------------------------------------------------------------- | --------------------- |
-| Find base/table                      | `search_bases`, `list_tables_for_base` (Airtable MCP)                      | Once per base         |
-| Spotify link                         | `s4168377_get_spotify_song` (Make.com) or `search-spotify` (Spotify MCP).  | Per song              |
-| Optional lyric candidate preview     | `search_lyrics` / `search_provider`, then `select_match` (mr-magic)        | Per song              |
-| Lyrics resolution                    | `build_catalog_payload` with track, `match`, or `reference` (mr-magic)     | Per song              |
-| **(Song (Video), Artists, Listen Link, and Ready for Generation fields write** | **`create_records_for_table` / `update_records_for_table` (Airtable MCP)** | **Up to 10 per call** |
-| **Lyrics write**                     | **`push_catalog_to_airtable` (mr-magic) — always**                         | Per song              |
-| SRT export                           | `export_lyrics` with track, `match`, or `reference` (mr-magic)             | Per song              |
+| Step                                                                           | Tool (MCP Server)                                                                                       | Bulk?                 |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- | --------------------- |
+| Find base/table                                                                | `search_bases`, `list_tables_for_base` (Airtable MCP)                                                   | Once per base         |
+| Spotify link                                                                   | `s4168377_get_spotify_song` (Make.com) or `search-spotify` (Spotify MCP).                               | Per song              |
+| Optional lyric candidate preview / selection                                   | `search_lyrics` / `search_provider`, then `select_match` (mr-magic)                                     | Per song              |
+| Required Airtable lyric preparation                                            | `build_catalog_payload` with track, `match`, or `reference` (mr-magic)                                  | Per song              |
+| **(Song (Video), Artists, Listen Link, and Ready for Generation fields write** | **`create_records_for_table` / `update_records_for_table` (Airtable MCP)**                              | **Up to 10 per call** |
+| **Lyrics write**                                                               | **`push_catalog_to_airtable` (mr-magic) — always, using `lyricsCacheKey` from `build_catalog_payload`** | Per song              |
+| Post-write SRT export                                                          | `export_lyrics` with track, `match`, or `reference` (mr-magic)                                          | Per song              |
 
 **Never use `create_records_for_table` or `update_records_for_table` for the Lyrics field.**
-Always use `push_catalog_to_airtable` for Lyrics — no exceptions.
+**Never use `search_lyrics`, `search_provider`, `select_match`, or `export_lyrics` as substitutes for Airtable lyric preparation or Airtable lyric writing.**
+Always use `build_catalog_payload` first, then use `push_catalog_to_airtable` for Lyrics — no exceptions.

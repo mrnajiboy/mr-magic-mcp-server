@@ -2,10 +2,7 @@ import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 
 import { runFind, runSearch, runProviderSearch } from '../core/find-service.js';
 import { extractPlainPreview, extractSyncedPreview } from '../core/preview.js';
-import {
-  buildProviderReferenceFingerprint,
-  lyricContentScore
-} from '../provider-result-schema.js';
+import { buildProviderReferenceFingerprint, lyricContentScore } from '../provider-result-schema.js';
 import {
   buildActionContext,
   buildPayloadFromResult,
