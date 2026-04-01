@@ -44,7 +44,7 @@ Never send extra metadata or unused fields to Airtable.
 `Song (Video)` must always be formatted exactly as:
 `{Artist 1}, {Artist 2} - {Title} (Lyrics)`
 
-If the song title has featuring, ft., feat, take that out.
+If the song title has featuring, ft., feat, take that out. 
 If the song has remix, or any other differentiation, put it at the right before (Lyrics) in Parentheses.
 
 Examples:
@@ -61,20 +61,22 @@ Artist names may contain brackets or special characters. Preserve them exactly.
 - If one artist, just input artist directly, no other data. (i.e. Artist)
 - If artist name contains quotes or double quotes, wrap them in Double quotes. (i.e. "'John Wick'"|""James Bond"")
 - If artist name contains commas, use double quotes around the special name, and comma-separate as normal. (i.e. "Artist, with a comma", Artist 2)
-- If more than one artist, always input names as a comma-separated list, no exceptions. (i.e. Artist 1, Artist 2 | "[[]]"Joseo'aa94#(@$(\*",|Lean,,,, Widdit)
+- If more than one artist, always input names as a comma-separated list, no exceptions. (i.e. Artist 1, Artist 2 | "[[]]"Joseo'aa94#(@$(*",|Lean,,,, Widdit)
 
 ## 5) Listen Link rules
 
-- Use the your Spotify song lookup tool. The tool may come from Spotify MCP tool or Make.com (s4168377_get_spotify_song) MCP tool.
+- You may only use your Spotify song lookup tool from Make.com (s4168377_get_spotify_song) to find the links to fill in the entries.
+- Do NOT try to search for links via your search_provider tool, that is exclusively for lyrics and lyrical content only.
 - Use the `URL` value for the Airtable `Listen Link` field.
 - Spotify link resolution must always be handled separately from lyric resolution.
 - Use the titles provided exactly unless the user asks you to find an alternate version.
 - When multiple releases exist, use the most popular/official upload for the exact title user provides.
 
 ## 6) Ready for Generation rules
-
 - Wait until lyrics and artist fields have been fully populated, then run a ready for generation update pass. If you attempt to fill them all at once, the automation in the table will fail. This may only be set after there is content in both Lyrics and Artists.
 - Always fill value as true or 1, if there's a problem with input, do not input anything.
+- Again, procure lyrics, fill in all metadata, and once fully filled out, then you may send the ready for generation value.
+
 
 ## 7) Lyrics resolution rules
 
@@ -273,14 +275,14 @@ If the view ID could not be resolved, omit it from the URL rather than guessing.
 
 ## 12) Tool responsibility summary
 
-| Step                                                                           | Tool (MCP Server)                                                          | Bulk?                 |
-| ------------------------------------------------------------------------------ | -------------------------------------------------------------------------- | --------------------- |
-| Find base/table                                                                | `search_bases`, `list_tables_for_base` (Airtable MCP)                      | Once per base         |
-| Spotify link                                                                   | `search-spotify` (Spotify MCP)                                             | Per song              |
-| Lyrics resolution                                                              | `build_catalog_payload` (mr-magic)                                         | Per song              |
+| Step                                 | Tool (MCP Server)                                                          | Bulk?                 |
+| ------------------------------------ | -------------------------------------------------------------------------- | --------------------- |
+| Find base/table                      | `search_bases`, `list_tables_for_base` (Airtable MCP)                      | Once per base         |
+| Spotify link                         | `search-spotify` (Spotify MCP)                                             | Per song              |
+| Lyrics resolution                    | `build_catalog_payload` (mr-magic)                                         | Per song              |
 | **(Song (Video), Artists, Listen Link, and Ready for Generation fields write** | **`create_records_for_table` / `update_records_for_table` (Airtable MCP)** | **Up to 10 per call** |
-| **Lyrics write**                                                               | **`push_catalog_to_airtable` (mr-magic) — always**                         | Per song              |
-| SRT export                                                                     | `export_lyrics` (mr-magic)                                                 | Per song              |
+| **Lyrics write**                     | **`push_catalog_to_airtable` (mr-magic) — always**                         | Per song              |
+| SRT export                           | `export_lyrics` (mr-magic)                                                 | Per song              |
 
 **Never use `create_records_for_table` or `update_records_for_table` for the Lyrics field.**
 Always use `push_catalog_to_airtable` for Lyrics — no exceptions.
