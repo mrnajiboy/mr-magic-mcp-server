@@ -21,8 +21,8 @@
     ".env.example"
   ],
   "scripts": {
-    "check-for-updates": "npm-check-updates",
-    "update-deps": "npm-check-updates -u && npm install",
+    "check-for-updates": "npx npm-check-updates",
+    "update-deps": "npx npm-check-updates -u && npm install",
     "cleanup": "eslint . --fix && prettier --write .",
     "cli": "node src/bin/cli.js",
     "server:http": "node src/bin/http-server.js",
