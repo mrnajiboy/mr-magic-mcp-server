@@ -22,6 +22,11 @@ Use your Airtable tools to determine the correct:
 
 Always verify field IDs against field names before inserting or updating records.
 
+Recommended tools for finding base IDs and table IDs:
+search_bases
+list_bases
+list_tables_for_base
+
 ## 2) Required Airtable fields
 
 For every song, populate only these Airtable fields:
