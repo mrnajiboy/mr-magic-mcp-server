@@ -69,6 +69,7 @@ Artist names may contain brackets or special characters. Preserve them exactly.
 - Use the `URL` value for the Airtable `Listen Link` field.
 - Spotify link resolution must always be handled separately from lyric resolution.
 - Use the titles provided exactly unless the user asks you to find an alternate version.
+- When multiple releases exist, use the most popular/official upload for the exact title user provides.
 
 ## 6) Ready for Generation rules
 - Wait until lyrics and artist fields have been fully populated, then run a ready for generation update pass. If you attempt to fill them all at once, the automation in the table will fail. This may only be set after there is content in both Lyrics and Artists.
