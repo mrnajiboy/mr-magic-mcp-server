@@ -54,7 +54,7 @@ Examples:
 - `BLACKPINK, Doja Cat, Absolutely - Crazy (Lyrics)`
 - `Joji - Glimpse of Us (Lyrics)`
 - `[GANG$] - Money (Remix) (Lyrics)`
-- WRONG:`John Wick - This Song Is Lit (feat. BANKS) \\ RIGHT: `John Wick, BANKS - This Song Is Lit`
+- WRONG:`John Wick - This Song Is Lit (feat. BANKS) \\ RIGHT:`John Wick, BANKS - This Song Is Lit`
 
 Artist names may contain brackets or special characters. Preserve them exactly.
 
