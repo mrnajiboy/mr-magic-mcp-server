@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.11](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.10...mr-magic-mcp-server-v0.3.11) (2026-04-01)
+
+
+### Bug Fixes
+
+* changed mcp search results logic, to drastically reduce payload sizes on calls ([95e0ebd](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/95e0ebd3c07df1726c122597906f66f2f86a3112))
+* package.json script typo ([9dc63ca](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/9dc63ca0e5371365f5a9951372a5149f23f45638))
+* updated prompt and cleaned up mcp tooling linting ([40f1eab](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/40f1eab3829bdc15288fcc1cb96030e90b09afed))
+
 ## [0.3.10](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.9...mr-magic-mcp-server-v0.3.10) (2026-03-18)
 
 ### Bug Fixes
