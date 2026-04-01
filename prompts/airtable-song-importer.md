@@ -65,8 +65,9 @@ Artist names may contain brackets or special characters. Preserve them exactly.
 
 ## 5) Listen Link rules
 
-- You may only use your Spotify song lookup tool from Make.com (s4168377_get_spotify_song) to find the links to fill in the entries.
-- Do NOT try to search for links via your search_provider tool, that is exclusively for lyrics and lyrical content only.
+- You may only use your Spotify song lookup tool from `s4168377_get_spotify_song` (Make.com) or `search-spotify` (Spotify MCP) to find the links to fill in the entries.
+- Do NOT try to search for links via `search_provider` or `search_lyrics`; those are lyrics-search tools only.
+- `search_provider` / `search_lyrics` return preview-only lyric candidates plus reusable `reference` objects. They do **not** return Spotify links, full lyrics, or raw provider payloads.
 - Use the `URL` value for the Airtable `Listen Link` field.
 - Spotify link resolution must always be handled separately from lyric resolution.
 - Use the titles provided exactly unless the user asks you to find an alternate version.
@@ -81,6 +82,19 @@ Artist names may contain brackets or special characters. Preserve them exactly.
 ## 7) Lyrics resolution rules
 
 Use the `build_catalog_payload` tool to resolve lyrics for each song.
+
+You may call it either:
+
+- directly with track metadata
+- or with a previously selected `match` / reusable `reference` from `search_lyrics` or `search_provider`
+
+If you need to inspect lyric candidates before resolving one exactly:
+
+1. Use `search_lyrics` (all providers) or `search_provider` (one provider) to get preview-only candidates.
+2. Use `select_match` if you need to choose one candidate from grouped `items`, flat `matches`, or a direct `match`.
+3. Pass the selected `match` or its `reference` into `build_catalog_payload` for exact recall.
+
+Do **not** assume the search tools return full lyrics or raw provider payloads. They return previews plus reusable references only.
 
 Call it with:
 
@@ -150,7 +164,10 @@ For every song in the batch (up to all at once):
 
 1. Resolve Airtable destination info (`search_bases`, `list_tables_for_base`) — do this once per base/table, not per song.
 2. Resolve Spotify link (`search-spotify`) for each song.
-3. Resolve lyrics (`build_catalog_payload` with `preferRomanized: true`) for each song. Save each song's `lyricsCacheKey`.
+3. Resolve lyrics for each song:
+   - default path: call `build_catalog_payload` with direct track metadata and `preferRomanized: true`
+   - optional search-first path: call `search_lyrics` or `search_provider`, then `select_match` if needed, then call `build_catalog_payload` with the chosen `match` or `reference`
+   - save each song's `lyricsCacheKey`
 
 ### Phase 2 — Bulk create/update records (Song (Video), Artists, Listen Link, and Ready for Generation fields only)
 
@@ -198,6 +215,7 @@ For each record created in Phase 2, call `push_catalog_to_airtable` with:
 After all Airtable inserts and lyrics writes succeed:
 
 - Export `.SRT` lyrics using the `export_lyrics` tool for each song.
+- `export_lyrics` may be called with direct track metadata, or with the same selected `match` / `reference` used earlier so the export resolves the exact same lyric result.
 - Confirm the user has received at least one of the following:
   - SRT download link
   - SRT file path
@@ -237,6 +255,7 @@ If the export backend does not provide a downloadable file or writable folder, t
 
 Use the `export_lyrics` tool to export `.SRT` output after Airtable insertion is complete.
 Prefer synced romanized output when available; otherwise use synced lyrics.
+If you already selected a lyric candidate via `search_lyrics` / `search_provider`, reuse that `match` or `reference` in `export_lyrics` for exact-result recall.
 Do not confuse Airtable lyric insertion with export output:
 
 - Airtable `Lyrics` must contain only plain-text lyrics (handled server-side)
@@ -278,11 +297,12 @@ If the view ID could not be resolved, omit it from the URL rather than guessing.
 | Step                                 | Tool (MCP Server)                                                          | Bulk?                 |
 | ------------------------------------ | -------------------------------------------------------------------------- | --------------------- |
 | Find base/table                      | `search_bases`, `list_tables_for_base` (Airtable MCP)                      | Once per base         |
-| Spotify link                         | `search-spotify` (Spotify MCP)                                             | Per song              |
-| Lyrics resolution                    | `build_catalog_payload` (mr-magic)                                         | Per song              |
+| Spotify link                         | `s4168377_get_spotify_song` (Make.com) or `search-spotify` (Spotify MCP).  | Per song              |
+| Optional lyric candidate preview     | `search_lyrics` / `search_provider`, then `select_match` (mr-magic)        | Per song              |
+| Lyrics resolution                    | `build_catalog_payload` with track, `match`, or `reference` (mr-magic)     | Per song              |
 | **(Song (Video), Artists, Listen Link, and Ready for Generation fields write** | **`create_records_for_table` / `update_records_for_table` (Airtable MCP)** | **Up to 10 per call** |
 | **Lyrics write**                     | **`push_catalog_to_airtable` (mr-magic) — always**                         | Per song              |
-| SRT export                           | `export_lyrics` (mr-magic)                                                 | Per song              |
+| SRT export                           | `export_lyrics` with track, `match`, or `reference` (mr-magic)             | Per song              |
 
 **Never use `create_records_for_table` or `update_records_for_table` for the Lyrics field.**
 Always use `push_catalog_to_airtable` for Lyrics — no exceptions.
