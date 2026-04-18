@@ -7,6 +7,25 @@ import '../utils/config.js';
 import { describeKvBackend, isKvConfigured, kvSet } from '../utils/kv-store.js';
 
 const AUTH_URL = 'https://auth.musixmatch.com/';
+const ACCOUNT_URL = 'https://account.musixmatch.com';
+
+async function waitForDesktopCookie(context, { attempts = 10, delayMs = 500 } = {}) {
+  let latestCookies = [];
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    latestCookies = await context.cookies(ACCOUNT_URL);
+    const desktopCookie = latestCookies.find((cookie) => cookie.name === 'web-desktop-app-v1.0');
+    if (desktopCookie) {
+      return { desktopCookie, cookies: latestCookies, attempts: attempt };
+    }
+
+    if (attempt < attempts) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+
+  return { desktopCookie: null, cookies: latestCookies, attempts };
+}
 
 async function saveToken(token, desktopCookie, tokenPayload) {
   // Uses the same env var as the server runtime so both read/write the same path.
@@ -216,11 +235,17 @@ async function main() {
   // ERR_ABORTED on browsers like Comet that intercept or redirect during initial navigation.
   await page.goto(AUTH_URL, { waitUntil: 'commit' });
   console.log('Waiting to be redirected to https://account.musixmatch.com/ ...');
-  await page.waitForURL('https://account.musixmatch.com/**', { timeout: 0 });
+  await page.waitForURL(`${ACCOUNT_URL}/**`, { timeout: 0 });
+  await page.waitForLoadState('domcontentloaded');
+  try {
+    await page.waitForLoadState('networkidle', { timeout: 5000 });
+  } catch {
+    // Best-effort stabilization: some pages keep background connections open.
+  }
 
-  const cookies = await context.cookies('https://account.musixmatch.com');
+  const { desktopCookie, cookies, attempts } = await waitForDesktopCookie(context);
+  console.log(`Checked account.musixmatch.com cookies ${attempts} time(s) after login.`);
   const userCookie = cookies.find((cookie) => cookie.name === 'musixmatchUserToken');
-  const desktopCookie = cookies.find((cookie) => cookie.name === 'web-desktop-app-v1.0');
   if (!userCookie) {
     console.error('musixmatchUserToken cookie not found; ensure you completed login.');
     process.exit(1);
