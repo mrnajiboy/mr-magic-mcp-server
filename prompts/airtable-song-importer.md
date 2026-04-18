@@ -54,7 +54,7 @@ Examples:
 - `BLACKPINK, Doja Cat, Absolutely - Crazy (Lyrics)`
 - `Joji - Glimpse of Us (Lyrics)`
 - `[GANG$] - Money (Remix) (Lyrics)`
-- WRONG:`John Wick - This Song Is Lit (feat. BANKS) \\ RIGHT:`John Wick, BANKS - This Song Is Lit`
+- WRONG:`John Wick - This Song Is Lit (feat. BANKS) \\ RIGHT: `John Wick, BANKS - This Song Is Lit`
 
 Artist names may contain brackets or special characters. Preserve them exactly.
 
@@ -85,6 +85,9 @@ Artist names may contain brackets or special characters. Preserve them exactly.
 
 `build_catalog_payload` is the **required and exclusive lyric-resolution / lyric-preparation step for any Airtable entry**.
 
+If you have an issue finding a lyric for a song with all the artists given, fallback to just using the first written artist, or the native language equivalent if found on Spotify.
+
+If you have an issue finding a lyric for a song with the english title, use the native language version native language equivalent title of the song found from Spotify.
 For every song that will be written to Airtable:
 
 1. You **must** call `build_catalog_payload` before the Lyrics field can be written.
