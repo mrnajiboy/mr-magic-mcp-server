@@ -31,6 +31,36 @@ let cachedToken = null;
 let lastLoadedFrom = 'unknown';
 let cachedDesktopCookie = null;
 
+function resolveStoredToken(parsed) {
+  if (!parsed) return null;
+
+  if (typeof parsed.token === 'string' && parsed.token.trim()) {
+    return parsed.token;
+  }
+
+  const nestedToken = parsed.token?.message?.body?.usertoken;
+  if (typeof nestedToken === 'string' && nestedToken.trim()) {
+    return nestedToken;
+  }
+
+  const payloadToken = parsed.tokenPayload?.message?.body?.usertoken;
+  if (typeof payloadToken === 'string' && payloadToken.trim()) {
+    return payloadToken;
+  }
+
+  const payloadDesktopToken = parsed.tokenPayload?.tokens?.['web-desktop-app-v1.0'];
+  if (typeof payloadDesktopToken === 'string' && payloadDesktopToken.trim()) {
+    return payloadDesktopToken;
+  }
+
+  const nestedDesktopToken = parsed.token?.tokens?.['web-desktop-app-v1.0'];
+  if (typeof nestedDesktopToken === 'string' && nestedDesktopToken.trim()) {
+    return nestedDesktopToken;
+  }
+
+  return null;
+}
+
 function getCacheDir() {
   return path.dirname(TOKEN_CACHE_PATH);
 }
@@ -50,8 +80,9 @@ async function readCachedToken() {
   try {
     const raw = await fs.readFile(TOKEN_CACHE_PATH, 'utf8');
     const parsed = JSON.parse(raw);
-    if (parsed?.token) {
-      cachedToken = parsed.token;
+    const resolvedToken = resolveStoredToken(parsed);
+    if (resolvedToken) {
+      cachedToken = resolvedToken;
       cachedDesktopCookie = parsed.desktopCookie || null;
       lastLoadedFrom = 'cache';
       return cachedToken;
@@ -91,8 +122,9 @@ async function readKvToken() {
     const raw = await kvGet(KV_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (parsed?.token) {
-      cachedToken = parsed.token;
+    const resolvedToken = resolveStoredToken(parsed);
+    if (resolvedToken) {
+      cachedToken = resolvedToken;
       cachedDesktopCookie = parsed.desktopCookie || null;
       lastLoadedFrom = `kv:${describeKvBackend()}`;
       return cachedToken;
@@ -143,6 +175,15 @@ export async function getMusixmatchToken() {
 
   // 4. On-disk cache — local dev / persistent hosts with a writable filesystem
   return readCachedToken();
+}
+
+export async function getMusixmatchDesktopCookie() {
+  if (cachedDesktopCookie) {
+    return cachedDesktopCookie;
+  }
+
+  await getMusixmatchToken();
+  return cachedDesktopCookie;
 }
 
 export async function setMusixmatchToken(token, { desktopCookie } = {}) {
@@ -196,7 +237,7 @@ export async function getMusixmatchTokenDiagnostics() {
     diagnostics.cacheFound = true;
     diagnostics.cacheBytes = raw.length;
     const parsed = JSON.parse(raw.toString('utf8'));
-    diagnostics.cacheTokenPresent = Boolean(parsed?.token);
+    diagnostics.cacheTokenPresent = Boolean(resolveStoredToken(parsed));
   } catch (error) {
     diagnostics.cacheError = error?.code === 'ENOENT' ? null : (error?.message ?? null);
   }

@@ -8,12 +8,15 @@ import { describeKvBackend, isKvConfigured, kvSet } from '../utils/kv-store.js';
 
 const AUTH_URL = 'https://auth.musixmatch.com/';
 
-async function saveToken(token, desktopCookie) {
+async function saveToken(token, desktopCookie, tokenPayload) {
   // Uses the same env var as the server runtime so both read/write the same path.
   const cachePath =
     process.env.MUSIXMATCH_TOKEN_CACHE || path.resolve('.cache', 'musixmatch-token.json');
   await mkdir(path.dirname(cachePath), { recursive: true });
   const payload = { token };
+  if (tokenPayload && typeof tokenPayload === 'object') {
+    payload.tokenPayload = tokenPayload;
+  }
   if (desktopCookie) {
     payload.desktopCookie = desktopCookie;
   }
@@ -22,11 +25,15 @@ async function saveToken(token, desktopCookie) {
   console.log('(Local and persistent servers read this file on startup.)');
 }
 
-async function saveToKv(token, desktopCookie) {
+async function saveToKv(token, desktopCookie, tokenPayload) {
   if (!isKvConfigured()) return;
   const kvKey = process.env.MUSIXMATCH_TOKEN_KV_KEY || 'mr-magic:musixmatch-token';
   const kvTtl = parseInt(process.env.MUSIXMATCH_TOKEN_KV_TTL_SECONDS || '2592000', 10);
-  const payload = JSON.stringify({ token, ...(desktopCookie ? { desktopCookie } : {}) });
+  const payload = JSON.stringify({
+    token,
+    ...(tokenPayload && typeof tokenPayload === 'object' ? { tokenPayload } : {}),
+    ...(desktopCookie ? { desktopCookie } : {})
+  });
   try {
     await kvSet(kvKey, payload, kvTtl);
     console.log(`Token written to KV store (${describeKvBackend()}) under key: ${kvKey}`);
@@ -35,11 +42,7 @@ async function saveToKv(token, desktopCookie) {
   }
 }
 
-function printDeploymentBlock(tokenValue) {
-  const tokenString =
-    typeof tokenValue === 'string'
-      ? tokenValue
-      : (tokenValue?.message?.body?.usertoken ?? JSON.stringify(tokenValue));
+function printDeploymentBlock(tokenString) {
   const kvBackend = isKvConfigured() ? describeKvBackend() : null;
 
   console.log('\n' + '─'.repeat(68));
@@ -47,6 +50,7 @@ function printDeploymentBlock(tokenValue) {
 
   console.log('LOCAL & PERSISTENT SERVERS (cache token)');
   console.log('  Token written to .cache/musixmatch-token.json (or MUSIXMATCH_TOKEN_CACHE).');
+  console.log('  When available, the desktop cookie is written alongside the token.');
   console.log('  Any server with a writable, persistent filesystem (local dev, VPS,');
   console.log('  dedicated host) reads it automatically on startup.');
   console.log('  Re-run this script only when your token expires.\n');
@@ -76,6 +80,29 @@ function printDeploymentBlock(tokenValue) {
 function isHeadlessEnabled() {
   const value = (process.env.HEADLESS || '').trim().toLowerCase();
   return value === '1' || value === 'true' || value === 'yes';
+}
+
+function resolveTokenFromPayload(payload) {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+
+  if (
+    typeof payload?.message?.body?.usertoken === 'string' &&
+    payload.message.body.usertoken.trim()
+  ) {
+    return payload.message.body.usertoken;
+  }
+
+  if (typeof payload?.tokens?.['web-desktop-app-v1.0'] === 'string') {
+    return payload.tokens['web-desktop-app-v1.0'].trim() || null;
+  }
+
+  if (typeof payload?.tokens?.['mxm-com-v1.0'] === 'string') {
+    return payload.tokens['mxm-com-v1.0'].trim() || null;
+  }
+
+  return null;
 }
 
 async function main() {
@@ -210,18 +237,25 @@ async function main() {
   console.log('\nMusixmatch token payload:');
   console.log(JSON.stringify(parsed, null, 2));
 
+  const resolvedToken = resolveTokenFromPayload(parsed);
+  if (typeof resolvedToken !== 'string' || !resolvedToken.trim()) {
+    console.error('Unable to extract raw usertoken string from musixmatchUserToken payload.');
+    process.exit(1);
+  }
+
   const decodedDesktopCookie = desktopCookie ? decodeURIComponent(desktopCookie.value) : null;
+  console.log(`Desktop cookie captured: ${decodedDesktopCookie ? 'yes' : 'no'}`);
 
   // Write to all configured storage backends in parallel.
   await Promise.allSettled([
-    saveToken(parsed, decodedDesktopCookie),
-    saveToKv(parsed, decodedDesktopCookie)
+    saveToken(resolvedToken, decodedDesktopCookie, parsed),
+    saveToKv(resolvedToken, decodedDesktopCookie, parsed)
   ]);
 
   // Extract the raw token string for the deployment hint.
   // The parsed payload is the full musixmatchUserToken JSON object; the server
   // stores and reads the entire parsed object as the `token` field.
-  printDeploymentBlock(parsed);
+  printDeploymentBlock(resolvedToken);
 
   await context.close();
 }

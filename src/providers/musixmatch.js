@@ -4,6 +4,7 @@ import { normalizeLyricRecord } from '../provider-result-schema.js';
 import { createLogger } from '../utils/logger.js';
 import {
   getMusixmatchToken,
+  getMusixmatchDesktopCookie,
   invalidateMusixmatchToken
 } from '../utils/tokens/musixmatch-token-manager.js';
 
@@ -15,6 +16,7 @@ const DEFAULT_HEADERS = {
   authority: 'apic-desktop.musixmatch.com',
   'User-Agent': MOZILLA_USER_AGENT
 };
+const MXM_COOKIE_FALLBACK = 'x-mxm-token-guid=';
 
 const logger = createLogger('provider:musixmatch');
 
@@ -110,6 +112,14 @@ function buildBlockedRecord(track = {}, body = {}, reason = 'captcha') {
     status: reason === 'captcha' ? 'captcha_blocked' : 'blocked',
     raw: body
   });
+}
+
+function classifyUnauthorizedPayload(payload) {
+  const hint = payload?.message?.header?.hint;
+  if (hint === 'renew') {
+    return 'MUSIXMATCH_TOKEN_RENEW';
+  }
+  return 'MUSIXMATCH_CAPTCHA';
 }
 
 function normalizeBody(body) {
@@ -212,35 +222,122 @@ function normalizeBody(body) {
 async function macroRequest(track) {
   await ensureMusixmatchToken();
   let token = await getMusixmatchToken();
+  let desktopCookie = await getMusixmatchDesktopCookie();
   const topLevel401 = (payload) => payload?.message?.header?.status_code === 401;
-  const attempt = async (tok) => {
+  const attempt = async (tok, cookie) => {
     const params = buildParams(track, tok);
+    const requestHeaders = {
+      ...DEFAULT_HEADERS,
+      Cookie: cookie || MXM_COOKIE_FALLBACK
+    };
     const response = await axios.get(`${BASE_URL}?${params.toString()}`, {
       timeout: HTTP_TIMEOUT_MS,
-      headers: DEFAULT_HEADERS
+      headers: requestHeaders,
+      validateStatus: () => true,
+      responseType: 'text',
+      transformResponse: [(value) => value]
     });
-    if (topLevel401(response.data)) {
-      const error = new Error('Musixmatch captcha challenge');
-      error.code = 'MUSIXMATCH_CAPTCHA';
+    const contentType = response.headers?.['content-type'] || null;
+    const bodyPreview =
+      typeof response.data === 'string' ? response.data.slice(0, 240) : (response.data ?? null);
+
+    logger.debug('Musixmatch raw response received', {
+      httpStatus: response.status,
+      contentType,
+      dataType: typeof response.data,
+      bodyPreview,
+      trackTitle: track?.title || null,
+      trackArtist: track?.artist || null,
+      desktopCookiePresent: Boolean(cookie),
+      usingFallbackCookie: !cookie
+    });
+
+    if (typeof response.data !== 'string') {
+      logger.warn('Musixmatch returned non-text raw payload', {
+        httpStatus: response.status,
+        contentType,
+        dataType: typeof response.data
+      });
+    }
+
+    if (typeof response.data === 'string') {
+      const trimmed = response.data.trim();
+      const looksLikeHtml =
+        contentType?.includes('text/html') ||
+        /^<!doctype html/i.test(trimmed) ||
+        /^<html[\s>]/i.test(trimmed);
+      if (looksLikeHtml) {
+        const error = new Error('Musixmatch returned HTML instead of JSON');
+        error.code = 'MUSIXMATCH_HTML_RESPONSE';
+        error.response = {
+          status: response.status,
+          data: response.data,
+          headers: response.headers
+        };
+        throw error;
+      }
+    }
+
+    let payload;
+    try {
+      payload = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+    } catch (parseError) {
+      logger.error('Failed to parse Musixmatch response as JSON', {
+        httpStatus: response.status,
+        contentType,
+        bodyPreview,
+        error: parseError
+      });
+      const error = new Error('Musixmatch returned invalid JSON');
+      error.code = 'MUSIXMATCH_INVALID_JSON';
       error.response = {
-        status: 401,
-        data: response.data
+        status: response.status,
+        data: response.data,
+        headers: response.headers
       };
       throw error;
     }
-    return response.data?.message?.body?.macro_calls || response.data?.message?.body || {};
+
+    if (response.status === 401 || response.status === 403) {
+      const error = new Error(`Musixmatch HTTP ${response.status}`);
+      error.code =
+        response.status === 401 ? classifyUnauthorizedPayload(payload) : 'MUSIXMATCH_BLOCKED';
+      error.response = {
+        status: response.status,
+        data: payload,
+        headers: response.headers
+      };
+      throw error;
+    }
+
+    if (topLevel401(payload)) {
+      const error = new Error('Musixmatch unauthorized response');
+      error.code = classifyUnauthorizedPayload(payload);
+      error.response = {
+        status: 401,
+        data: payload,
+        headers: response.headers
+      };
+      throw error;
+    }
+    return payload?.message?.body?.macro_calls || payload?.message?.body || {};
   };
 
   try {
-    return await attempt(token);
+    return await attempt(token, desktopCookie);
   } catch (error) {
     if (error.response?.status === 401 || error.response?.status === 403) {
-      logger.warn('Musixmatch token rejected, invalidating', { status: error.response.status });
+      logger.warn('Musixmatch token rejected, invalidating', {
+        status: error.response.status,
+        desktopCookiePresent: Boolean(desktopCookie),
+        errorCode: error.code
+      });
       invalidateMusixmatchToken();
       token = await getMusixmatchToken();
+      desktopCookie = await getMusixmatchDesktopCookie();
       if (token) {
         try {
-          return await attempt(token);
+          return await attempt(token, desktopCookie);
         } catch (retryError) {
           logger.error('Musixmatch retry failed', { error: retryError });
         }
@@ -269,12 +366,28 @@ export async function fetchFromMusixmatch(track) {
     const record = normalizeBody(body);
     return record;
   } catch (error) {
-    if (error.code === 'MUSIXMATCH_CAPTCHA') {
+    if (error.code === 'MUSIXMATCH_CAPTCHA' || error.code === 'MUSIXMATCH_HTML_RESPONSE') {
       logger.warn('Musixmatch blocked by captcha challenge', {
         trackTitle: track?.title || null,
-        trackArtist: track?.artist || null
+        trackArtist: track?.artist || null,
+        httpStatus: error.response?.status ?? null,
+        contentType: error.response?.headers?.['content-type'] ?? null
       });
       return buildBlockedRecord(track, error.response?.data, 'captcha');
+    }
+    if (
+      error.code === 'MUSIXMATCH_BLOCKED' ||
+      error.code === 'MUSIXMATCH_INVALID_JSON' ||
+      error.code === 'MUSIXMATCH_TOKEN_RENEW'
+    ) {
+      logger.warn('Musixmatch returned blocked or invalid response', {
+        trackTitle: track?.title || null,
+        trackArtist: track?.artist || null,
+        httpStatus: error.response?.status ?? null,
+        contentType: error.response?.headers?.['content-type'] ?? null,
+        errorCode: error.code
+      });
+      return buildBlockedRecord(track, error.response?.data, 'blocked');
     }
     logger.error('Musixmatch request failed', { error });
     return null;
@@ -288,5 +401,10 @@ export async function searchMusixmatch(track) {
 
 export async function checkMusixmatchTokenReady() {
   const token = await getMusixmatchToken();
+  const desktopCookie = await getMusixmatchDesktopCookie();
+  logger.debug('Musixmatch credential readiness checked', {
+    tokenPresent: Boolean(token),
+    desktopCookiePresent: Boolean(desktopCookie)
+  });
   return Boolean(token);
 }
