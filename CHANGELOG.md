@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.12](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.11...mr-magic-mcp-server-v0.3.12) (2026-04-18)
+
+
+### Bug Fixes
+
+* musixmatch error logging ([ed743bf](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/ed743bfed7b9108252e86a7a372d3268eb010c69))
+* musixmatch request structure. ([305e318](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/305e318a9ed91fabcdd1bcb3fe27774cf18bf674))
+
 ## [0.3.11](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.10...mr-magic-mcp-server-v0.3.11) (2026-04-01)
 
 ### Bug Fixes
