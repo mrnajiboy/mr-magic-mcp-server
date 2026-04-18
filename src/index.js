@@ -45,6 +45,10 @@ function rankRecord(record) {
   return contentScore + syncedBonus + confidenceScore;
 }
 
+function isBlockedRecord(record) {
+  return record?.status === 'captcha_blocked' || record?.status === 'blocked';
+}
+
 async function tryProviders(track, { syncedOnly = false, providerNames = [] } = {}) {
   const matches = [];
   let bestSynced = null;
@@ -88,22 +92,23 @@ async function tryProviders(track, { syncedOnly = false, providerNames = [] } = 
 
 export async function findLyrics(track, options = {}) {
   const { matches, best } = await tryProviders(track, options);
+  const visibleMatches = matches.filter(
+    ({ result }) => lyricContentScore(result) > 0 || isBlockedRecord(result)
+  );
   return {
-    // Filter out candidates with no actual lyric content (empty / unhydrated stubs).
-    // This keeps the matches list clean for all consumers: CLI, MCP tools, HTTP server.
-    matches: matches
-      .filter(({ result }) => lyricContentScore(result) > 0)
-      .map(({ provider, result }) => ({ provider, result })),
+    // Keep lyric-bearing matches plus explicit provider-block states.
+    matches: visibleMatches.map(({ provider, result }) => ({ provider, result })),
     best: best?.result ?? null
   };
 }
 
 export async function findSyncedLyrics(track, options = {}) {
   const { matches, best } = await tryProviders(track, { ...options, syncedOnly: true });
+  const visibleMatches = matches.filter(
+    ({ result }) => lyricContentScore(result) > 0 || isBlockedRecord(result)
+  );
   return {
-    matches: matches
-      .filter(({ result }) => lyricContentScore(result) > 0)
-      .map(({ provider, result }) => ({ provider, result })),
+    matches: visibleMatches.map(({ provider, result }) => ({ provider, result })),
     best: best?.result ?? null
   };
 }

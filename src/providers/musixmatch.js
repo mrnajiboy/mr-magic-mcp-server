@@ -18,6 +18,56 @@ const DEFAULT_HEADERS = {
 
 const logger = createLogger('provider:musixmatch');
 
+function formatSubtitleTimestamp(item) {
+  if (!item || typeof item !== 'object') return null;
+
+  const text =
+    typeof item.text === 'string'
+      ? item.text
+      : typeof item.subtitle_body === 'string'
+        ? item.subtitle_body
+        : '';
+
+  const candidates = [
+    item.time,
+    item.timestamp,
+    item.ts,
+    item.line_time,
+    item.lineTime,
+    item.time_total,
+    item.timeTotal
+  ].filter((value) => value !== null && value !== undefined);
+
+  const numericCandidate = candidates.find((value) => typeof value === 'number');
+  if (typeof numericCandidate === 'number' && Number.isFinite(numericCandidate)) {
+    const totalCentiseconds = Math.max(0, Math.round(numericCandidate * 100));
+    const minutes = Math.floor(totalCentiseconds / 6000);
+    const seconds = Math.floor((totalCentiseconds % 6000) / 100);
+    const hundredths = totalCentiseconds % 100;
+    return `[${minutes.toString().padStart(2, '0')}:${seconds
+      .toString()
+      .padStart(2, '0')}.${hundredths.toString().padStart(2, '0')}] ${text}`.trim();
+  }
+
+  const timeObject = candidates.find((value) => value && typeof value === 'object');
+  if (timeObject) {
+    const minutes = Number(timeObject.minutes ?? timeObject.min ?? 0);
+    const seconds = Number(timeObject.seconds ?? timeObject.sec ?? 0);
+    const hundredths = Number(
+      timeObject.hundredths ?? timeObject.hundredth ?? timeObject.cs ?? timeObject.milliseconds ?? 0
+    );
+    if ([minutes, seconds, hundredths].every(Number.isFinite)) {
+      const normalizedHundredths =
+        hundredths > 99 ? Math.floor(hundredths / 10) : Math.max(0, hundredths);
+      return `[${minutes.toString().padStart(2, '0')}:${seconds
+        .toString()
+        .padStart(2, '0')}.${normalizedHundredths.toString().padStart(2, '0')}] ${text}`.trim();
+    }
+  }
+
+  return null;
+}
+
 function buildParams(track, token) {
   const durationSeconds = track.duration ? Math.round(track.duration / 1000) : '';
   return new URLSearchParams({
@@ -36,13 +86,48 @@ function buildParams(track, token) {
   });
 }
 
+function summarizeMacroStatus(body = {}) {
+  return {
+    matcher: body['matcher.track.get']?.message?.header ?? null,
+    lyrics: body['track.lyrics.get']?.message?.header ?? null,
+    subtitles: body['track.subtitles.get']?.message?.header ?? null
+  };
+}
+
+function buildBlockedRecord(track = {}, body = {}, reason = 'captcha') {
+  return normalizeLyricRecord({
+    provider: 'musixmatch',
+    id: null,
+    trackName: track.title || null,
+    artistName: track.artist || null,
+    albumName: track.album || null,
+    duration: track.duration ? Math.round(track.duration / 1000) : null,
+    plainLyrics: null,
+    syncedLyrics: null,
+    sourceUrl: null,
+    confidence: 0,
+    synced: false,
+    status: reason === 'captcha' ? 'captcha_blocked' : 'blocked',
+    raw: body
+  });
+}
+
 function normalizeBody(body) {
   const matcher = body['matcher.track.get']?.message?.body;
   if (!matcher) {
+    logger.warn('Musixmatch matcher body missing', { macroStatus: summarizeMacroStatus(body) });
     return null;
   }
 
   const meta = matcher.track || {};
+  if (!meta.track_id) {
+    logger.warn('Musixmatch matcher returned no track', {
+      macroStatus: summarizeMacroStatus(body),
+      matcherBodyType: Array.isArray(matcher) ? 'array' : typeof matcher,
+      matcherPreview: Array.isArray(matcher) ? matcher.slice(0, 2) : matcher
+    });
+    return null;
+  }
   const lyricsBody = body['track.lyrics.get']?.message?.body?.lyrics?.lyrics_body || '';
   const subtitlesRoot = body['track.subtitles.get']?.message?.body;
   const subtitleEntry =
@@ -73,18 +158,38 @@ function normalizeBody(body) {
     }
   }
 
-  const syncedLyrics = syncedLines
-    .map((item) => {
-      const time = item?.time || {};
-      return `[${time.minutes.toString().padStart(2, '0')}:${time.seconds.toString().padStart(2, '0')}.${(
-        time.hundredths || 0
-      )
-        .toString()
-        .padStart(2, '0')}] ${item.text}`.trim();
-    })
-    .join('\n');
+  const syncedLyricLines = [];
+  let skippedSubtitleItems = 0;
+  for (const item of Array.isArray(syncedLines) ? syncedLines : []) {
+    const formattedLine = formatSubtitleTimestamp(item);
+    if (formattedLine) {
+      syncedLyricLines.push(formattedLine);
+    } else {
+      skippedSubtitleItems += 1;
+    }
+  }
+
+  if (skippedSubtitleItems > 0) {
+    logger.warn('Musixmatch subtitle items skipped due to unrecognized shape', {
+      skippedSubtitleItems,
+      sample: Array.isArray(syncedLines) ? syncedLines.slice(0, 2) : syncedLines,
+      trackId: meta.track_id,
+      trackName: meta.track_name,
+      artistName: meta.artist_name
+    });
+  }
+
+  const syncedLyrics = syncedLyricLines.join('\n');
 
   const plainLyrics = lyricsBody.split('\n').filter(Boolean).join('\n');
+  if (!plainLyrics && !syncedLyrics) {
+    logger.warn('Musixmatch matched track but returned no lyric content', {
+      trackId: meta.track_id,
+      trackName: meta.track_name,
+      artistName: meta.artist_name,
+      macroStatus: summarizeMacroStatus(body)
+    });
+  }
   const sourceUrl = meta.share_url || '';
 
   return normalizeLyricRecord({
@@ -107,12 +212,22 @@ function normalizeBody(body) {
 async function macroRequest(track) {
   await ensureMusixmatchToken();
   let token = await getMusixmatchToken();
+  const topLevel401 = (payload) => payload?.message?.header?.status_code === 401;
   const attempt = async (tok) => {
     const params = buildParams(track, tok);
     const response = await axios.get(`${BASE_URL}?${params.toString()}`, {
       timeout: HTTP_TIMEOUT_MS,
       headers: DEFAULT_HEADERS
     });
+    if (topLevel401(response.data)) {
+      const error = new Error('Musixmatch captcha challenge');
+      error.code = 'MUSIXMATCH_CAPTCHA';
+      error.response = {
+        status: 401,
+        data: response.data
+      };
+      throw error;
+    }
     return response.data?.message?.body?.macro_calls || response.data?.message?.body || {};
   };
 
@@ -154,6 +269,13 @@ export async function fetchFromMusixmatch(track) {
     const record = normalizeBody(body);
     return record;
   } catch (error) {
+    if (error.code === 'MUSIXMATCH_CAPTCHA') {
+      logger.warn('Musixmatch blocked by captcha challenge', {
+        trackTitle: track?.title || null,
+        trackArtist: track?.artist || null
+      });
+      return buildBlockedRecord(track, error.response?.data, 'captcha');
+    }
     logger.error('Musixmatch request failed', { error });
     return null;
   }
