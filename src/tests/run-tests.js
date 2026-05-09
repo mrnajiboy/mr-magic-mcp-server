@@ -19,6 +19,7 @@ import {
   catalogCacheKey,
   catalogCache
 } from '../services/lyrics-service.js';
+import { parseSearchPage } from '../providers/melon.js';
 import { mcpToolDefinitions, handleMcpTool } from '../transport/mcp-tools.js';
 import { romanizePlainLyrics } from '../utils/lyrics-format.js';
 
@@ -504,6 +505,37 @@ function testCliEnvPathLoadsCustomEnvFile() {
   console.log('CLI --env-path loads and persists custom env files: ok');
 }
 
+function testMelonSearchParserWithoutCheerioCollection() {
+  const html = `
+    <div id="frm_defaultList">
+      <div>
+        <table>
+          <tbody>
+            <tr>
+              <td></td>
+              <td></td>
+              <td><a class="fc_gray" href="javascript:goSongDetail('38914304')">Summer Nights</a></td>
+              <td><div id="artistName"><a href="#artist">St. Lucia</a></div></td>
+              <td><a href="#album">When The Night</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+
+  const results = parseSearchPage(html);
+  assert.equal(results.length, 1, 'Melon parser should return plain arrays, not Cheerio chains');
+  assert.deepEqual(results[0], {
+    songId: '38914304',
+    title: 'Summer Nights',
+    artist: 'St. Lucia',
+    album: 'When The Night'
+  });
+
+  divider();
+  console.log('Melon parser works without Cheerio collection helpers: ok');
+}
+
 async function run() {
   testAutoPickPrefersSynced();
   testAutoPickFallbackWhenNoSynced();
@@ -522,6 +554,7 @@ async function run() {
   await testBuildPayloadFromResultNoCacheKeyWhenNoLyrics();
   testCliExportCommandHelp();
   testCliEnvPathLoadsCustomEnvFile();
+  testMelonSearchParserWithoutCheerioCollection();
   const toolNames = mcpToolDefinitions.map((tool) => tool.name);
   console.log('MCP tooling available:', toolNames.join(', '));
   console.log('All sanity checks passed');

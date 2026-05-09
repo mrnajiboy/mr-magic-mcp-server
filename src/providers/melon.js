@@ -91,7 +91,7 @@ async function buildLyricHeaders(songId) {
 
 function extractSongId(value) {
   if (!value) return null;
-  const goSongMatch = value.match(/goSongDetail\([^0-9]*?(\d+)\)/);
+  const goSongMatch = value.match(/goSongDetail\([^)]*?(\d+)[^)]*\)/);
   if (goSongMatch) return goSongMatch[1];
   const searchLogMatch = value.match(/searchLog\('[^']+','[^']+','[^']+','[^']+','(\d+)'\)/);
   if (searchLogMatch) return searchLogMatch[1];
@@ -100,7 +100,7 @@ function extractSongId(value) {
   return null;
 }
 
-function parseSearchPage(html) {
+export function parseSearchPage(html) {
   const document = parseDocument(html);
   const seenIds = new Set();
   return selectAll('#frm_defaultList > div > table > tbody > tr', document)
@@ -129,7 +129,6 @@ function parseSearchPage(html) {
       if (!title && !artist) return null;
       return { songId, title, artist, album };
     })
-    .get()
     .filter(Boolean);
 }
 
