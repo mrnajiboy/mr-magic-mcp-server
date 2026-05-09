@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.2](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.5.1...mr-magic-mcp-server-v0.5.2) (2026-05-09)
+
+
+### Bug Fixes
+
+* repair Melon search parser ([a727d89](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/a727d89cab684601b7e86fc04cb81826bfd977ac))
+
 ## [0.5.1](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.5.0...mr-magic-mcp-server-v0.5.1) (2026-05-09)
 
 
