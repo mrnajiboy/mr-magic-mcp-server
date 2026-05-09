@@ -85,7 +85,8 @@
     "hasown": "npm:@socketregistry/hasown@^1",
     "object-assign": "npm:@socketregistry/object-assign@^1",
     "safer-buffer": "npm:@socketregistry/safer-buffer@^1",
-    "side-channel": "npm:@socketregistry/side-channel@^1"
+    "side-channel": "npm:@socketregistry/side-channel@^1",
+    "encoding-sniffer": "^1.0.2"
   },
   "resolutions": {
     "entities": "^7.0.1",
@@ -98,6 +99,7 @@
     "hasown": "npm:@socketregistry/hasown@^1",
     "object-assign": "npm:@socketregistry/object-assign@^1",
     "safer-buffer": "npm:@socketregistry/safer-buffer@^1",
-    "side-channel": "npm:@socketregistry/side-channel@^1"
+    "side-channel": "npm:@socketregistry/side-channel@^1",
+    "encoding-sniffer": "^1.0.2"
   }
 }

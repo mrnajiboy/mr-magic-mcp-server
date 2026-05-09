@@ -109,7 +109,8 @@ program
   .description('Lyrics MCP server CLI powered by LRCLIB, Genius, Musixmatch, and Melon')
   .version('0.1.3')
   .option('--env-path <path>', 'Path to a .env file to load before running a CLI command')
-  .option('--env-file <path>', 'Alias for --env-path');
+  .option('--env-file <path>', 'Alias for --env-path')
+  .option('--save-env-path', 'Persist --env-path for future CLI commands');
 
 function normalizeFormatOptions(value) {
   if (!value) return [];

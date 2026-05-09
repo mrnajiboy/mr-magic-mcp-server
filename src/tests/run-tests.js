@@ -456,31 +456,52 @@ function testCliExportCommandHelp() {
 function testCliEnvPathLoadsCustomEnvFile() {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mrmagic-cli-env-'));
   const envPath = path.join(tempDir, '.env.custom');
+  const configPath = path.join(tempDir, 'config.json');
   fs.writeFileSync(envPath, 'GENIUS_DIRECT_TOKEN=cli-env-path-token\n', 'utf8');
 
   try {
     const output = execFileSync(
       process.execPath,
-      ['src/bin/cli.js', '--env-path', envPath, 'status'],
+      ['src/bin/cli.js', '--env-path', envPath, '--save-env-path', 'status'],
       {
         encoding: 'utf8',
         env: {
           PATH: process.env.PATH,
           NODE_ENV: process.env.NODE_ENV,
           LOG_LEVEL: 'error',
-          MR_MAGIC_QUIET_STDIO: '1'
+          MR_MAGIC_QUIET_STDIO: '1',
+          MR_MAGIC_CLI_CONFIG_PATH: configPath
         }
       }
     );
 
     assert.ok(output.includes('genius'));
     assert.ok(output.includes('Ready'), 'custom env file should make Genius status ready');
+
+    const saved = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    assert.equal(saved.envPath, envPath, '--save-env-path should persist the selected env file');
+
+    const persistedOutput = execFileSync(process.execPath, ['src/bin/cli.js', 'status'], {
+      encoding: 'utf8',
+      env: {
+        PATH: process.env.PATH,
+        NODE_ENV: process.env.NODE_ENV,
+        LOG_LEVEL: 'error',
+        MR_MAGIC_QUIET_STDIO: '1',
+        MR_MAGIC_CLI_CONFIG_PATH: configPath
+      }
+    });
+
+    assert.ok(
+      persistedOutput.includes('Ready'),
+      'CLI should reuse the persisted env path on later commands'
+    );
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
 
   divider();
-  console.log('CLI --env-path loads custom env files: ok');
+  console.log('CLI --env-path loads and persists custom env files: ok');
 }
 
 async function run() {

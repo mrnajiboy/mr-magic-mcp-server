@@ -401,6 +401,8 @@ The `MR_MAGIC_EXPORT_BACKEND` variable controls where formatted lyrics are store
 - **`local`** (default) — writes files to `MR_MAGIC_EXPORT_DIR` (or `exports/` when
   unset). Make sure the target directory is writable. The `export_lyrics` tool also
   returns the raw `content` field so clients can inline results when file writes fail.
+  For global or npx CLI usage, the default `exports/` directory is relative to the
+  directory where you run `mrmagic-cli`, not the npm package install directory.
 
 - **`inline`** — skips disk writes entirely. Each export is returned in the tool
   response with `content` populated and `skipped: true` to signal that persistence
@@ -434,6 +436,16 @@ Or against the JSON HTTP server:
 ```bash
 MR_MAGIC_DOWNLOAD_BASE_URL=http://127.0.0.1:3333
 ```
+
+For global installs, start the JSON HTTP download server with the same persisted env
+file or environment variables used for export commands:
+
+```bash
+mrmagic-cli server --port 3333
+```
+
+Download URLs are only needed for the `redis` export backend. Local exports return
+`file://` URLs and write files directly to `MR_MAGIC_EXPORT_DIR` or `./exports`.
 
 ## Local Deployment
 
@@ -1166,6 +1178,9 @@ Global CLI options:
 - `--env-path <path>` / `--env-file <path>` — load credentials from a custom `.env` file
   before running the command. This is useful for global installs, `npm link`, and `npx`
   usage where the package install directory is not your project directory.
+- `--save-env-path` — persist the provided `--env-path` to
+  `~/.config/mrmagic-cli/config.json` so future `mrmagic-cli` commands load the same
+  credentials file automatically.
 
 ### Commands
 
@@ -1190,11 +1205,24 @@ npm run cli -- search --artist "BLACKPINK" --title "Kill This Love"
 # Global/custom install with an explicit credential file
 mrmagic-cli --env-path /absolute/path/to/.env find --artist "Nayeon" --title "POP!"
 
+# Save that credential file path once for future global CLI commands
+mrmagic-cli --env-path /absolute/path/to/.env --save-env-path status
+
 # Find best lyric (prefers synced LRC)
 npm run cli -- find --artist "Nayeon" --title "POP!"
 
 # Export plain text and SRT files for the best match
 npm run cli -- export --artist "Nayeon" --title "POP!" --format plain --format srt --output ./exports
+
+# Global install: local export files are written to ./exports relative to your shell's current directory
+mrmagic-cli export --artist "Nayeon" --title "POP!" --format srt
+
+# Global install: Redis-backed download URLs served by the JSON HTTP server
+MR_MAGIC_EXPORT_BACKEND=redis \
+MR_MAGIC_DOWNLOAD_BASE_URL=http://127.0.0.1:3333 \
+  mrmagic-cli export --artist "Nayeon" --title "POP!" --format srt
+
+mrmagic-cli server --port 3333
 
 # Pick first synced match from a prioritized provider list
 npm run cli -- select --providers lrclib,genius --artist "Nayeon" --title "POP!" --require-synced
