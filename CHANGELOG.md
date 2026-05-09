@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.4.0...mr-magic-mcp-server-v0.5.0) (2026-05-09)
+
+
+### Features
+
+* persist CLI env path ([34d9089](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/34d9089fd7756e4bbb14fea139a6cccf00a5a3e7))
+
 ## [0.4.0](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.12...mr-magic-mcp-server-v0.4.0) (2026-05-09)
 
 
