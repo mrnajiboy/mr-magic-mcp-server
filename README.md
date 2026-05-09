@@ -1161,12 +1161,19 @@ A single CLI entrypoint (`mrmagic-cli`) is published with the package. Inside th
 local repo use `npm run cli -- <subcommand>` unless you have run `npm link` or
 installed globally.
 
+Global CLI options:
+
+- `--env-path <path>` / `--env-file <path>` — load credentials from a custom `.env` file
+  before running the command. This is useful for global installs, `npm link`, and `npx`
+  usage where the package install directory is not your project directory.
+
 ### Commands
 
 | Command                       | Purpose                                                 | Notable flags                                                                                              |
 | ----------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `mrmagic-cli search`          | List candidates across providers without downloading.   | `--artist`, `--title`, `--provider`, `--duration`, `--show-all`, `--pick`                                  |
 | `mrmagic-cli find`            | Resolve best lyric (prefers synced) and print / export. | `--providers`, `--synced-only`, `--export`, `--format`, `--output`, `--no-romanize`, `--choose`, `--index` |
+| `mrmagic-cli export`          | Resolve best lyric and write export files directly.     | `--providers`, `--synced-only`, `--format`, `--output`, `--no-romanize`                                    |
 | `mrmagic-cli select`          | Pick first match from a prioritized provider list.      | `--providers`, `--artist`, `--title`, `--require-synced`                                                   |
 | `mrmagic-cli server`          | Start the JSON automation API.                          | `--host`, `--port`, `--remote`                                                                             |
 | `mrmagic-cli server:mcp`      | Start the MCP stdio server.                             | —                                                                                                          |
@@ -1180,8 +1187,14 @@ installed globally.
 # Search all providers
 npm run cli -- search --artist "BLACKPINK" --title "Kill This Love"
 
+# Global/custom install with an explicit credential file
+mrmagic-cli --env-path /absolute/path/to/.env find --artist "Nayeon" --title "POP!"
+
 # Find best lyric (prefers synced LRC)
 npm run cli -- find --artist "Nayeon" --title "POP!"
+
+# Export plain text and SRT files for the best match
+npm run cli -- export --artist "Nayeon" --title "POP!" --format plain --format srt --output ./exports
 
 # Pick first synced match from a prioritized provider list
 npm run cli -- select --providers lrclib,genius --artist "Nayeon" --title "POP!" --require-synced

@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 import { selectMatch } from '../index.js';
 import { buildChooserEntries, autoPick } from '../core/find-service.js';
@@ -431,6 +435,54 @@ async function testBuildPayloadFromResultNoCacheKeyWhenNoLyrics() {
   console.log('buildPayloadFromResult omits lyricsCacheKey when best has no lyrics: ok');
 }
 
+function testCliExportCommandHelp() {
+  const output = execFileSync(process.execPath, ['src/bin/cli.js', 'export', '--help'], {
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      LOG_LEVEL: 'error',
+      MR_MAGIC_QUIET_STDIO: '1'
+    }
+  });
+
+  assert.ok(output.includes('Find lyrics and write plain/LRC/SRT exports'));
+  assert.ok(output.includes('--format <format>'));
+  assert.ok(output.includes('--output <dir>'));
+
+  divider();
+  console.log('CLI export command help is available: ok');
+}
+
+function testCliEnvPathLoadsCustomEnvFile() {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mrmagic-cli-env-'));
+  const envPath = path.join(tempDir, '.env.custom');
+  fs.writeFileSync(envPath, 'GENIUS_DIRECT_TOKEN=cli-env-path-token\n', 'utf8');
+
+  try {
+    const output = execFileSync(
+      process.execPath,
+      ['src/bin/cli.js', '--env-path', envPath, 'status'],
+      {
+        encoding: 'utf8',
+        env: {
+          PATH: process.env.PATH,
+          NODE_ENV: process.env.NODE_ENV,
+          LOG_LEVEL: 'error',
+          MR_MAGIC_QUIET_STDIO: '1'
+        }
+      }
+    );
+
+    assert.ok(output.includes('genius'));
+    assert.ok(output.includes('Ready'), 'custom env file should make Genius status ready');
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+
+  divider();
+  console.log('CLI --env-path loads custom env files: ok');
+}
+
 async function run() {
   testAutoPickPrefersSynced();
   testAutoPickFallbackWhenNoSynced();
@@ -447,6 +499,8 @@ async function run() {
   testRomanization();
   await testBuildPayloadFromResultReturnsCacheKey();
   await testBuildPayloadFromResultNoCacheKeyWhenNoLyrics();
+  testCliExportCommandHelp();
+  testCliEnvPathLoadsCustomEnvFile();
   const toolNames = mcpToolDefinitions.map((tool) => tool.name);
   console.log('MCP tooling available:', toolNames.join(', '));
   console.log('All sanity checks passed');

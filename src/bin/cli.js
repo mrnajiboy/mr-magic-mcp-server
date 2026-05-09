@@ -6,4 +6,12 @@
 if (!process.env.LOG_LEVEL) process.env.LOG_LEVEL = 'warn';
 if (!process.env.MR_MAGIC_QUIET_STDIO) process.env.MR_MAGIC_QUIET_STDIO = '1';
 
+const envPathFlagIndex = process.argv.findIndex(
+  (arg) => arg === '--env-path' || arg === '--env-file'
+);
+if (envPathFlagIndex >= 0 && process.argv[envPathFlagIndex + 1]) {
+  process.env.MR_MAGIC_ENV_PATH = process.argv[envPathFlagIndex + 1];
+  process.argv.splice(envPathFlagIndex, 2);
+}
+
 await import('../tools/cli.js');

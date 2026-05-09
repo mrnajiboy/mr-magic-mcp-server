@@ -107,7 +107,9 @@ const program = new Command();
 program
   .name('mrmagic-cli')
   .description('Lyrics MCP server CLI powered by LRCLIB, Genius, Musixmatch, and Melon')
-  .version('0.1.3');
+  .version('0.1.3')
+  .option('--env-path <path>', 'Path to a .env file to load before running a CLI command')
+  .option('--env-file <path>', 'Alias for --env-path');
 
 function normalizeFormatOptions(value) {
   if (!value) return [];
@@ -697,6 +699,67 @@ program
       });
       console.log('Exports:', exports);
     }
+  });
+
+program
+  .command('export')
+  .description('Find lyrics and write plain/LRC/SRT exports')
+  .requiredOption('--artist <name>', 'Artist name')
+  .requiredOption('--title <name>', 'Song title')
+  .option('--album <name>', 'Album name')
+  .option('--duration <ms>', 'Track duration in milliseconds')
+  .option('--providers <list>', 'Comma-separated provider list')
+  .option('--synced-only', 'Require synced lyrics', false)
+  .option(
+    '--format <format>',
+    'Export format (plain|lrc|srt). repeatable',
+    (value, acc) => {
+      acc.push(value);
+      return acc;
+    },
+    []
+  )
+  .option('--output <dir>', 'Directory for exports (defaults to MR_MAGIC_EXPORT_DIR or ./exports)')
+  .option('--no-romanize', 'Disable romanized lyrics', false)
+  .action(async (options) => {
+    const track = buildTrackFromOptions(options);
+    const searchLabel = [track.artist, track.title].filter(Boolean).join(' - ');
+    process.stderr.write(`Searching: ${searchLabel}...\n`);
+    const providerNames = options.providers
+      ? options.providers.split(',').map((value) => value.trim())
+      : [];
+    const result = await runFind(track, {
+      providerNames,
+      syncedOnly: options.syncedOnly
+    });
+
+    if (!result.best) {
+      console.error('No best match available');
+      process.exitCode = 1;
+      return;
+    }
+
+    const includeRomanization = options.noRomanize ? false : true;
+    const exports = await exportLyrics(result.best, {
+      formats: deriveFormatSet(options.format),
+      output: options.output,
+      includeRomanization
+    });
+    console.log(
+      JSON.stringify(
+        {
+          picked: {
+            provider: result.best.provider || 'unknown',
+            synced: Boolean(result.best.synced),
+            artist: result.best.artist || track.artist || 'unknown',
+            title: result.best.title || track.title || 'song'
+          },
+          exports
+        },
+        null,
+        2
+      )
+    );
   });
 
 program
