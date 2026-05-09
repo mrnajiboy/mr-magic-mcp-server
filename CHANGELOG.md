@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.5.0...mr-magic-mcp-server-v0.5.1) (2026-05-09)
+
+
+### Bug Fixes
+
+* remove deprecated encoding dependency ([ffc1e0d](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/ffc1e0dc9030a40bf18e929381ad63620ef12ead))
+
 ## [0.5.0](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.4.0...mr-magic-mcp-server-v0.5.0) (2026-05-09)
 
 
