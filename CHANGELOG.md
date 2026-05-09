@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.12...mr-magic-mcp-server-v0.4.0) (2026-05-09)
+
+
+### Features
+
+* add CLI export and env path support ([dc700c5](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/dc700c5e2700bc907b5bf83203a362016f01a2a0))
+
 ## [0.3.12](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.3.11...mr-magic-mcp-server-v0.3.12) (2026-04-18)
 
 
