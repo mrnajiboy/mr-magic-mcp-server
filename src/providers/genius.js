@@ -1,5 +1,7 @@
 import axios from 'axios';
-import * as cheerio from 'cheerio';
+import { selectAll } from 'css-select';
+import * as DomUtils from 'domutils';
+import { parseDocument } from 'htmlparser2';
 
 import { normalizeLyricRecord } from '../provider-result-schema.js';
 import { assertEnv, getEnvValue } from '../utils/config.js';
@@ -119,7 +121,7 @@ export async function fetchFromGenius(track) {
   return primary;
 }
 
-function normalizeNodeText($node) {
+function normalizeNodeText(node) {
   const lines = [];
   const traverse = (node) => {
     if (!node) return;
@@ -145,7 +147,7 @@ function normalizeNodeText($node) {
     }
   };
 
-  traverse($node[0]);
+  traverse(node);
 
   return lines
     .join(' ')
@@ -155,18 +157,19 @@ function normalizeNodeText($node) {
     .trim();
 }
 
-function extractFromNodes(nodes, $) {
+function removeUnwantedNodes(node) {
+  const unwanted = selectAll(
+    'script,noscript,img,style,aside,.song_media_dropdown,.header_with_cover_art-primary_info',
+    node
+  );
+  unwanted.forEach((element) => DomUtils.removeElement(element));
+}
+
+function extractFromNodes(nodes) {
   const blocks = [];
   nodes.forEach((element) => {
-    const cleaned = $(element)
-      .clone()
-      .find(
-        'script,noscript,img,style,aside,.song_media_dropdown,.header_with_cover_art-primary_info'
-      )
-      .remove()
-      .end();
-
-    const text = normalizeNodeText(cleaned);
+    removeUnwantedNodes(element);
+    const text = normalizeNodeText(element);
     const stripped = stripSummaryText(text);
 
     if (stripped) {
@@ -224,15 +227,18 @@ export async function fetchLyricsForGeniusSong(url) {
       }
     });
 
-    const $ = cheerio.load(response.data);
-    let blocks = extractFromNodes($('div[data-lyrics-container="true"]').toArray(), $);
+    const document = parseDocument(response.data);
+    let blocks = extractFromNodes(selectAll('div[data-lyrics-container="true"]', document));
 
     if (!blocks.length) {
-      blocks = extractFromNodes($('div[class^="Lyrics__Container"]').toArray(), $);
+      blocks = extractFromNodes(selectAll('div[class^="Lyrics__Container"]', document));
     }
 
     if (!blocks.length) {
-      const fallback = $('.lyrics').text().trim();
+      const fallback = selectAll('.lyrics', document)
+        .map((node) => DomUtils.textContent(node))
+        .join('\n')
+        .trim();
       if (fallback) {
         blocks.push(fallback);
       }

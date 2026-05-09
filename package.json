@@ -64,8 +64,10 @@
     "@dotenvx/dotenvx": "^1.65.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "axios": "^1.16.0",
-    "cheerio": "^1.2.0",
-    "commander": "^14.0.3"
+    "commander": "^14.0.3",
+    "css-select": "^6.0.0",
+    "domutils": "^3.2.2",
+    "htmlparser2": "^10.1.0"
   },
   "devDependencies": {
     "eslint": "^10.3.0",
@@ -85,8 +87,7 @@
     "hasown": "npm:@socketregistry/hasown@^1",
     "object-assign": "npm:@socketregistry/object-assign@^1",
     "safer-buffer": "npm:@socketregistry/safer-buffer@^1",
-    "side-channel": "npm:@socketregistry/side-channel@^1",
-    "encoding-sniffer": "^1.0.2"
+    "side-channel": "npm:@socketregistry/side-channel@^1"
   },
   "resolutions": {
     "entities": "^7.0.1",
@@ -99,7 +100,6 @@
     "hasown": "npm:@socketregistry/hasown@^1",
     "object-assign": "npm:@socketregistry/object-assign@^1",
     "safer-buffer": "npm:@socketregistry/safer-buffer@^1",
-    "side-channel": "npm:@socketregistry/side-channel@^1",
-    "encoding-sniffer": "^1.0.2"
+    "side-channel": "npm:@socketregistry/side-channel@^1"
   }
 }
