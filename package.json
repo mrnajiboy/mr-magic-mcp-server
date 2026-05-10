@@ -65,7 +65,7 @@
     "@modelcontextprotocol/sdk": "^1.29.0",
     "axios": "^1.16.0",
     "commander": "^14.0.3",
-    "css-select": "^6.0.0",
+    "css-select": "^7.0.0",
     "domutils": "^3.2.2",
     "htmlparser2": "^10.1.0"
   },
