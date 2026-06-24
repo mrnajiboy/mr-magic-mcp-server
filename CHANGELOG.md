@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.0](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.5.2...mr-magic-mcp-server-v0.6.0) (2026-06-24)
+
+
+### Features
+
+* add musixmatch token refresh to cli ([592545a](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/592545a4189d1f67c3f0f2c87ef66f23ad0b991a))
+
+
+### Bug Fixes
+
+* lrc timeout issue ([b52b6b2](https://github.com/mrnajiboy/mr-magic-mcp-server/commit/b52b6b20451a3d1f0c288c62bf99e866ce73e439))
+
 ## [0.5.2](https://github.com/mrnajiboy/mr-magic-mcp-server/compare/mr-magic-mcp-server-v0.5.1...mr-magic-mcp-server-v0.5.2) (2026-05-09)
 
 
