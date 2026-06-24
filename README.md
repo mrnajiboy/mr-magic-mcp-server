@@ -1184,17 +1184,19 @@ Global CLI options:
 
 ### Commands
 
-| Command                       | Purpose                                                 | Notable flags                                                                                              |
-| ----------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `mrmagic-cli search`          | List candidates across providers without downloading.   | `--artist`, `--title`, `--provider`, `--duration`, `--show-all`, `--pick`                                  |
-| `mrmagic-cli find`            | Resolve best lyric (prefers synced) and print / export. | `--providers`, `--synced-only`, `--export`, `--format`, `--output`, `--no-romanize`, `--choose`, `--index` |
-| `mrmagic-cli export`          | Resolve best lyric and write export files directly.     | `--providers`, `--synced-only`, `--format`, `--output`, `--no-romanize`                                    |
-| `mrmagic-cli select`          | Pick first match from a prioritized provider list.      | `--providers`, `--artist`, `--title`, `--require-synced`                                                   |
-| `mrmagic-cli server`          | Start the JSON automation API.                          | `--host`, `--port`, `--remote`                                                                             |
-| `mrmagic-cli server:mcp`      | Start the MCP stdio server.                             | —                                                                                                          |
-| `mrmagic-cli server:mcp:http` | Start the Streamable HTTP & SSE MCP server.             | `--host`, `--port`, `--remote`, `--sessionless`                                                            |
-| `mrmagic-cli search-provider` | Query a single provider only.                           | `--provider`, `--artist`, `--title`                                                                        |
-| `mrmagic-cli status`          | Print provider readiness.                               | —                                                                                                          |
+| Command                              | Purpose                                                           | Notable flags                                                                                              |
+| ------------------------------------ | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `mrmagic-cli search`                 | List candidates across providers without downloading.             | `--artist`, `--title`, `--provider`, `--duration`, `--show-all`, `--pick`                                  |
+| `mrmagic-cli find`                   | Resolve best lyric (prefers synced) and print / export.           | `--providers`, `--synced-only`, `--export`, `--format`, `--output`, `--no-romanize`, `--choose`, `--index` |
+| `mrmagic-cli export`                 | Resolve best lyric and write export files directly.               | `--providers`, `--synced-only`, `--format`, `--output`, `--no-romanize`                                    |
+| `mrmagic-cli select`                 | Pick first match from a prioritized provider list.                | `--providers`, `--artist`, `--title`, `--require-synced`                                                   |
+| `mrmagic-cli server`                 | Start the JSON automation API.                                    | `--host`, `--port`, `--remote`                                                                             |
+| `mrmagic-cli server:mcp`             | Start the MCP stdio server.                                       | —                                                                                                          |
+| `mrmagic-cli server:mcp:http`        | Start the Streamable HTTP & SSE MCP server.                       | `--host`, `--port`, `--remote`, `--sessionless`                                                            |
+| `mrmagic-cli search-provider`        | Query a single provider only.                                     | `--provider`, `--artist`, `--title`                                                                        |
+| `mrmagic-cli status`                 | Print provider readiness.                                         | —                                                                                                          |
+| `mrmagic-cli fetch:musixmatch-token` | Launch the browser workflow to fetch/cache a Musixmatch token.    | `--headless`, `--browser`, `--session-dir`                                                                 |
+| `mrmagic-cli push:musixmatch-token`  | Push an existing Musixmatch token to configured storage backends. | `--token`                                                                                                  |
 
 ### Examples
 
@@ -1226,6 +1228,12 @@ mrmagic-cli server --port 3333
 
 # Pick first synced match from a prioritized provider list
 npm run cli -- select --providers lrclib,genius --artist "Nayeon" --title "POP!" --require-synced
+
+# Fetch and cache a Musixmatch token through the CLI
+npm run cli -- fetch:musixmatch-token
+
+# Push an existing Musixmatch token through the CLI
+npm run cli -- push:musixmatch-token --token '{"message":...}'
 
 # Start JSON automation API on a custom port
 mrmagic-cli server --port 4000

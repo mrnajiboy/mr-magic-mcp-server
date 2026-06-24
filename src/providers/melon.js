@@ -100,31 +100,46 @@ function extractSongId(value) {
   return null;
 }
 
+function selectFirst(selector, root) {
+  if (!root) return null;
+  return selectAll(selector, root)[0] || null;
+}
+
+function getAttributeValue(node, name) {
+  return node ? DomUtils.getAttributeValue(node, name) || '' : '';
+}
+
+function normalizedText(node) {
+  return node ? DomUtils.textContent(node).trim().replace(/\s+/g, ' ') : '';
+}
+
 export function parseSearchPage(html) {
   const document = parseDocument(html);
   const seenIds = new Set();
   return selectAll('#frm_defaultList > div > table > tbody > tr', document)
     .map((row) => {
       const cells = selectAll('td', row);
-      const titleAnchor = selectAll('a.fc_gray', cells[2] || [])[0];
-      const artistAnchor = selectAll('#artistName > a', cells[3] || [])[0];
-      const albumAnchor = selectAll('a', cells[4] || [])[0];
+      const titleCell = cells[2] || null;
+      const artistCell = cells[3] || null;
+      const albumCell = cells[4] || null;
+      const titleAnchor = selectFirst('a.fc_gray', titleCell) || selectFirst('a', titleCell);
+      const artistAnchor =
+        selectFirst('#artistName > a', artistCell) ||
+        selectFirst('#artistName', artistCell) ||
+        selectFirst('a', artistCell);
+      const albumAnchor = selectFirst('a', albumCell);
       const titleHref =
-        DomUtils.getAttributeValue(titleAnchor, 'href') ||
-        DomUtils.getAttributeValue(titleAnchor, 'onclick') ||
-        '';
+        getAttributeValue(titleAnchor, 'href') || getAttributeValue(titleAnchor, 'onclick');
       const artistHref =
-        DomUtils.getAttributeValue(artistAnchor, 'href') ||
-        DomUtils.getAttributeValue(artistAnchor, 'onclick') ||
-        '';
+        getAttributeValue(artistAnchor, 'href') || getAttributeValue(artistAnchor, 'onclick');
       let songId = extractSongId(titleHref) || extractSongId(artistHref);
       if (!songId) songId = extractSongId(DomUtils.getOuterHTML(row) || '');
       if (!songId || seenIds.has(songId)) {
         return null;
       }
-      const title = DomUtils.textContent(titleAnchor).trim().replace(/\s+/g, ' ');
-      const artist = DomUtils.textContent(artistAnchor).trim().replace(/\s+/g, ' ');
-      const album = DomUtils.textContent(albumAnchor).trim().replace(/\s+/g, ' ');
+      const title = normalizedText(titleAnchor || titleCell);
+      const artist = normalizedText(artistAnchor || artistCell);
+      const album = normalizedText(albumAnchor || albumCell);
       seenIds.add(songId);
       if (!title && !artist) return null;
       return { songId, title, artist, album };

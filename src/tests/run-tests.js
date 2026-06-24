@@ -454,6 +454,41 @@ function testCliExportCommandHelp() {
   console.log('CLI export command help is available: ok');
 }
 
+function testCliMusixmatchTokenCommandHelp() {
+  const fetchOutput = execFileSync(
+    process.execPath,
+    ['src/bin/cli.js', 'fetch:musixmatch-token', '--help'],
+    {
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        LOG_LEVEL: 'error',
+        MR_MAGIC_QUIET_STDIO: '1'
+      }
+    }
+  );
+  const pushOutput = execFileSync(
+    process.execPath,
+    ['src/bin/cli.js', 'push:musixmatch-token', '--help'],
+    {
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        LOG_LEVEL: 'error',
+        MR_MAGIC_QUIET_STDIO: '1'
+      }
+    }
+  );
+
+  assert.ok(fetchOutput.includes('Launch the browser workflow'));
+  assert.ok(fetchOutput.includes('--browser <name>'));
+  assert.ok(pushOutput.includes('Push an existing Musixmatch token'));
+  assert.ok(pushOutput.includes('--token <json_or_string>'));
+
+  divider();
+  console.log('CLI Musixmatch token command help is available: ok');
+}
+
 function testCliEnvPathLoadsCustomEnvFile() {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mrmagic-cli-env-'));
   const envPath = path.join(tempDir, '.env.custom');
@@ -536,6 +571,50 @@ function testMelonSearchParserWithoutCheerioCollection() {
   console.log('Melon parser works without Cheerio collection helpers: ok');
 }
 
+function testMelonSearchParserHandlesMissingAnchors() {
+  const html = `
+    <div id="frm_defaultList">
+      <div>
+        <table>
+          <tbody>
+            <tr>
+              <td></td>
+              <td></td>
+              <td><a class="fc_gray" href="javascript:goSongDetail('12345678')">This Feeling</a></td>
+              <td><div id="artistName">The Chainsmokers</div></td>
+              <td><a href="#album">Sick Boy</a></td>
+            </tr>
+            <tr>
+              <td></td>
+              <td></td>
+              <td><a href="javascript:goSongDetail('87654321')">Fallback Title Link</a></td>
+              <td><a href="#artist">Fallback Artist</a></td>
+              <td>Fallback Album</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+
+  const results = parseSearchPage(html);
+  assert.equal(results.length, 2, 'Melon parser should skip missing anchors without crashing');
+  assert.deepEqual(results[0], {
+    songId: '12345678',
+    title: 'This Feeling',
+    artist: 'The Chainsmokers',
+    album: 'Sick Boy'
+  });
+  assert.deepEqual(results[1], {
+    songId: '87654321',
+    title: 'Fallback Title Link',
+    artist: 'Fallback Artist',
+    album: 'Fallback Album'
+  });
+
+  divider();
+  console.log('Melon parser handles missing class/id anchors: ok');
+}
+
 async function run() {
   testAutoPickPrefersSynced();
   testAutoPickFallbackWhenNoSynced();
@@ -553,8 +632,10 @@ async function run() {
   await testBuildPayloadFromResultReturnsCacheKey();
   await testBuildPayloadFromResultNoCacheKeyWhenNoLyrics();
   testCliExportCommandHelp();
+  testCliMusixmatchTokenCommandHelp();
   testCliEnvPathLoadsCustomEnvFile();
   testMelonSearchParserWithoutCheerioCollection();
+  testMelonSearchParserHandlesMissingAnchors();
   const toolNames = mcpToolDefinitions.map((tool) => tool.name);
   console.log('MCP tooling available:', toolNames.join(', '));
   console.log('All sanity checks passed');

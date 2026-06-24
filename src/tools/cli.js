@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 import '../utils/config.js';
+import { spawn } from 'node:child_process';
+import path from 'node:path';
 import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 
 import { Command } from 'commander';
 
@@ -75,6 +78,38 @@ function buildTrackFromOptions(options) {
 
 function hasOption(argv, names) {
   return argv.some((token) => names.some((name) => token === name || token.startsWith(`${name}=`)));
+}
+
+function runScript(scriptFile, { args = [], env = process.env } = {}) {
+  const scriptPath = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    '..',
+    'scripts',
+    scriptFile
+  );
+
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, [scriptPath, ...args], {
+      stdio: 'inherit',
+      env
+    });
+
+    child.on('error', (error) => {
+      console.error(`Failed to start ${scriptFile}: ${error.message}`);
+      process.exitCode = 1;
+      resolve();
+    });
+
+    child.on('close', (code, signal) => {
+      if (signal) {
+        console.error(`${scriptFile} terminated by signal ${signal}`);
+        process.exitCode = 1;
+      } else if (code && code !== 0) {
+        process.exitCode = code;
+      }
+      resolve();
+    });
+  });
 }
 
 function normalizeLegacyNpmInvocation(argv) {
@@ -173,6 +208,32 @@ program
   .description('Show provider readiness')
   .action(async () => {
     console.table(await getProviderStatus());
+  });
+
+program
+  .command('fetch:musixmatch-token')
+  .description('Launch the browser workflow to fetch and cache a Musixmatch token')
+  .option('--headless', 'Run the Playwright browser workflow headlessly', false)
+  .option(
+    '--browser <name>',
+    'Prefer a browser candidate (chrome, brave, msedge, comet, firefox, safari)'
+  )
+  .option('--session-dir <dir>', 'Override the persistent Playwright session directory')
+  .action(async (options) => {
+    const env = { ...process.env };
+    if (options.headless) env.HEADLESS = '1';
+    if (options.browser) env.BROWSER = options.browser;
+    if (options.sessionDir) env.PLAYWRIGHT_SESSION_DIR = options.sessionDir;
+    await runScript('fetch_musixmatch_token.mjs', { env });
+  });
+
+program
+  .command('push:musixmatch-token')
+  .description('Push an existing Musixmatch token to configured storage backends')
+  .option('-t, --token <json_or_string>', 'Token JSON payload or raw token string')
+  .action(async (options) => {
+    const args = options.token ? ['--token', options.token] : [];
+    await runScript('push_musixmatch_token.mjs', { args });
   });
 
 const DEFAULT_FORMATS = ['plain', 'srt'];
