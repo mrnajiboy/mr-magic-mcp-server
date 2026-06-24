@@ -61,20 +61,20 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@dotenvx/dotenvx": "^1.65.0",
+    "@dotenvx/dotenvx": "^1.75.1",
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "axios": "^1.16.0",
-    "commander": "^14.0.3",
-    "css-select": "^6.0.0",
-    "domutils": "^3.2.2",
-    "htmlparser2": "^10.1.0"
+    "axios": "^1.18.1",
+    "commander": "^15.0.0",
+    "css-select": "^7.0.0",
+    "domutils": "^4.0.2",
+    "htmlparser2": "^12.0.0"
   },
   "devDependencies": {
-    "eslint": "^10.3.0",
+    "eslint": "^10.5.0",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-import-x": "^4.16.2",
-    "playwright": "^1.59.1",
-    "prettier": "^3.8.3"
+    "eslint-plugin-import-x": "^4.17.0",
+    "playwright": "^1.61.1",
+    "prettier": "^3.8.4"
   },
   "overrides": {
     "entities": "^7.0.1",
